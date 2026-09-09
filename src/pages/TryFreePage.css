@@ -1,0 +1,123 @@
+/* Основной контейнер страницы */
+.tryfree-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: rgba(242, 243, 255, 1);
+  font-family: 'Montserrat', sans-serif;
+
+}
+
+/* Поля ввода с белым фоном и черным текстом */
+.tryfree-form {
+  padding: 30px;
+  border-radius: 15px;
+  width: 450px;
+  text-align: center;
+}
+
+/* Заголовок формы */
+.tryfree-form h2 {
+  color: black;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* Лейблы */
+.tryfree-form label {
+  color: black;
+  font-size: 16px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+/* Поля ввода и селекты */
+.tryfree-form input,
+.tryfree-form select {
+  max-width: 450px;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  color: black;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Убираем контур при фокусе */
+.tryfree-form input:focus,
+.tryfree-form select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Группы селектов */
+.date-selects, .time-selects {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.date-selects select,
+.time-selects select {
+  flex: 1;
+}
+
+/* Ошибки валидации */
+.error {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-top: -8px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* Кнопка отправки */
+.tryfree-form button {
+  width: 100%;
+  background: #9b51e0;
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.tryfree-form button:hover {
+  background: #bb6bd9;
+}
+
+/* Подсказки по городам с улучшенным фоном */
+.suggestions-list {
+  background: white;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 5px;
+  margin-top: 5px;
+  color: black;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.suggestions-list li {
+  padding: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.suggestions-list li:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+
+  

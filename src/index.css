@@ -1,0 +1,42 @@
+/* Подключаем оба шрифта одной командой */
+
+/* Глобальный стиль для всего сайта */
+* {
+  font-family: 'Roboto Flex', sans-serif;
+}
+
+
+
+html, body, #root {
+  background: none !important;
+  background-color: white !important;
+}
+/* Пример для заголовков */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+}
+
+
+
+/* Reset базовых отступов */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  #root {
+    width: 100%;
+    height: 100%;
+  }
+  
+
+
+/* Убираем отступы у списка (если где-то используется) */
+ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}

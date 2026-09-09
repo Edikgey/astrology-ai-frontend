@@ -1,0 +1,90 @@
+/* PatternVisualizer.css — шедевр в CSS */
+
+.patterns-wrapper {
+    padding: 60px;
+    background: linear-gradient(135deg, #fefcff, #f0f4ff);
+    font-family: 'Montserrat', sans-serif;
+
+    color: #1f1f1f;
+  }
+  
+  .patterns-title {
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #5e35b1;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: 1px;
+  }
+  
+  .group-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #4527a0;
+    margin: 40px 0 20px 10px;
+    border-left: 4px solid #7e57c2;
+    padding-left: 12px;
+    background: linear-gradient(to right, #ede7f6, transparent);
+  }
+  
+  .patterns-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: flex-start;
+    margin-bottom: 40px;
+  }
+  
+  .pattern-card {
+    background: #ffffff;
+    border: 2px solid #ddd;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    padding: 16px;
+    width: 180px;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .pattern-card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  }
+  
+  .pattern-svg {
+    margin-bottom: 16px;
+    display: block;
+  }
+  
+  .pattern-body-text {
+    font-size: 13px;
+    margin: 2px 0;
+    text-align: center;
+    color: #333;
+    font-family: 'Times New Roman', serif;
+    line-height: 1.4;
+  }
+  
+  /* Добавим плавности и немного "магии" */
+  .pattern-card:hover .pattern-svg circle {
+    stroke: #7e57c2;
+    stroke-width: 2;
+    transition: all 0.4s ease;
+  }
+  
+  .pattern-card:hover .pattern-body-text {
+    color: #5e35b1;
+  }
+  
+  /* Подписи за пределами круга — чтоб дышалось свободно */
+  .pattern-svg text {
+    dominant-baseline: middle;
+    pointer-events: none;
+    user-select: none;
+  }
+  
+  

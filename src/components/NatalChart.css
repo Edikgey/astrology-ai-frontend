@@ -1,0 +1,58 @@
+.chart-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.chart-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 300px;
+}
+
+.toggle-button {
+  margin-bottom: 16px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background: linear-gradient(to right, #2196f3, #21cbf3);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.responsive-svg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  display: block;
+}
+
+.chart-wrapper {
+  width: 400px;         /* ✅ увеличивай размер квадрата здесь */
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f7f0fa;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+}
+

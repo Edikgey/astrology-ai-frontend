@@ -1,0 +1,35 @@
+.charts-container {
+    max-width: 500px;
+    margin: auto;
+    padding: 20px;
+    background: #1d0e47;
+    color: white;
+    border-radius: 10px;
+    text-align: center;
+  }
+  
+  .charts-container input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid white;
+    background: transparent;
+    color: white;
+  }
+  
+  .charts-container button {
+    width: 100%;
+    padding: 10px;
+    background: #7a5cff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 10px;
+  }
+  
+  .charts-container button:hover {
+    background: #6148cc;
+  }
+  

@@ -1,0 +1,217 @@
+/* 🔹 Секция тарифов */
+.pricing-section {
+  background-color:#ffffff;
+  text-align: center;
+  padding: 80px 20px;
+  color: black;
+}
+
+.money-back {
+  background: #f3f3ff;
+  display: inline-block;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: black;
+}
+
+/* Заголовок и подзаголовок */
+.pricing-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: black;
+}
+
+.pricing-subtitle {
+  font-size: 18px;
+  color: black;
+  margin-bottom: 40px;
+}
+
+/* Грид с тарифами */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  margin: auto;
+  align-items: stretch; /* Делаем карточки одинаковой высоты */
+}
+
+/* Карточки тарифов */
+.pricing-card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: left; /* Текст теперь слева */
+  color: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Равномерное распределение */
+}
+
+/* Выровняем текст внутри карточек */
+.plan-name {
+  font-family: Roboto;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.price {
+  font-family: Roboto;
+  font-size: 28px;
+  font-weight: bold;
+  color: black;
+}
+
+
+/* Кнопки */
+.outline-button, .filled-button {
+  border: 2px solid rgba(147,51,234,255);
+  padding: 12px;
+  border-radius: 8px;
+  width: 100%;
+  color: rgba(147,51,234,255);
+  text-align: center;
+  font-weight: bold;
+  margin-top: auto; /* Чтобы кнопки всегда были внизу */
+}
+
+.filled-button {
+  background: rgba(147,51,234,255);
+  color: white;
+}
+
+/* Стили заголовков вместо тегов */
+.purple-text {
+  color: rgba(147,51,234,255);
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.green-text {
+  color: #28a745;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.discount {
+  color:#28a745;
+}
+
+/* Список преимуществ */
+/* Нижний текст внутри карточек */
+.features-list {
+  font-size: 12px;
+  text-align: left; /* Выравнивание текста по левому краю */
+  padding: 0 auto ; /* Отступы от краев карточки */
+  margin-top: 15px; /* Дополнительный отступ сверху */
+  line-height: 2; /* Увеличенный межстрочный интервал */
+}
+
+
+
+
+/* Описание отмены */
+.cancel-text {
+  font-size: 12px;
+  color: gray;
+  margin-top: 10px;
+}
+
+
+/* Зеленая тень и контур для "Годового" плана */
+.pricing-card.best-value {
+  
+  border: 2px solid rgba(40, 167, 69, 1); /* Зеленый контур */
+}
+
+.pricing-card.best-value .outline-button {
+  background-color: #28a745; /* Зеленый фон */
+  color: white; /* Белый текст */
+  border: 2px solid #28a745; /* Зеленая рамка */
+}
+
+.pricing-card.popular {
+  border: 2px solid rgba(147,51,234,255); /* Фиолетовый контур */
+}
+
+
+
+
+.comparison-section {
+  padding: 60px 20px;
+  background-color: #ffffff;
+  color: #000; /* чёрный текст */
+}
+
+.comparison-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #000;
+}
+
+.comparison-table {
+  overflow-x: auto;
+}
+
+.comparison-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  color: #000; /* чёрный текст */
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 15px;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+}
+
+.comparison-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.comparison-table .highlight {
+  background-color: #f3e8ff;
+}
+
+.comparison-table .best {
+  background-color: #e8fdf2;
+}
+
+.plan-button {
+  padding: 12px 24px;
+  background-color: #6b46c1;
+  color: white;
+  border: none;
+  border-radius: 9999px; /* максимальное скругление */
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(107, 70, 193, 0.2); /* фиолетовая тень */
+  transition: all 0.3s ease;
+}
+
+.plan-button:hover {
+  background-color: #5936b0;
+  box-shadow: 0 6px 14px rgba(89, 54, 176, 0.3);
+  transform: translateY(-1px);
+}
+
+.plan-buttons td {
+  border: none;
+  padding-top: 30px;
+}
+
