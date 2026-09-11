@@ -28,7 +28,7 @@ test.each(flows)("%s keeps the guest token until the backend succeeds", async (_
   expect(global.fetch.mock.calls[0][1].headers["X-Session-Token"]).toBe(guestToken);
   completeRequest({ ok: true, json: async () => ({ access_token: "test-jwt", token_type: "bearer" }) });
   await request;
-  expect(localStorage.getItem("session_token")).toBeNull();
+  expect(localStorage.getItem("session_token")).toBe(guestToken);
   expect(localStorage.getItem("access_token")).toBe("test-jwt");
 });
 
@@ -44,4 +44,22 @@ test.each(flows)("%s keeps guest access on a network error", async (_, submit) =
   await expect(submit()).rejects.toThrow("Network unavailable");
   expect(localStorage.getItem("session_token")).toBe(guestToken);
   expect(localStorage.getItem("access_token")).toBeNull();
+});
+
+test.each(["login", "verification"])("%s sends only the explicitly selected ID and its original token", async flow => {
+  localStorage.setItem("chart_id", "999");
+  const context = { chartId: 7, sessionToken: guestToken };
+  const result = { access_token: "jwt", guest_chart_migration: { status: "migrated", chart_id: 7 } };
+  global.fetch.mockResolvedValue({ ok: true, json: async () => result });
+  const data = await (flow === "login" ? login("a@example.com", "password", context) : verifyCode("123456", "a@example.com", "password", context));
+  expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ email: "a@example.com", password: "password", guest_chart_id: 7 });
+  expect(global.fetch.mock.calls[0][1].headers["X-Session-Token"]).toBe(guestToken);
+  expect(data).toEqual(result);
+});
+
+test.each(flows)("%s ordinary auth does not reuse a cached chart ID", async (_, submit) => {
+  localStorage.setItem("chart_id", "999");
+  global.fetch.mockResolvedValue({ ok: true, json: async () => ({ access_token: "jwt", guest_chart_migration: { status: "not_requested", chart_id: null } }) });
+  await submit();
+  expect(JSON.parse(global.fetch.mock.calls[0][1].body)).not.toHaveProperty("guest_chart_id");
 });

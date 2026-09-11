@@ -1,13 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./AuthorizationPage.css";
 
 const AuthorizationPage = () => {
   const { user, login, registerEmail, verifyRegistration } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const submitting = useRef(false);
+  const completed = useRef(false);
+  const [busy, setBusy] = useState(false);
+  // Only an explicit transition from the open chart carries migration intent.
+  // Router state survives reload, but ordinary auth links never inherit old IDs.
+  const guestChart = location.state?.guestChart || null;
+  const returnPath = location.state?.returnTo || localStorage.getItem("redirect_after_login") || localStorage.getItem("returnTo") || "/";
+  const ordinaryReturn = returnPath.startsWith("/") && !returnPath.startsWith("//") && !returnPath.startsWith("/authorization") ? returnPath : "/";
 
-  const [step, setStep] = useState("login");
+  const [step, setStep] = useState(location.state?.mode === "register" ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -16,13 +25,33 @@ const AuthorizationPage = () => {
   const [isCodeSent, setIsCodeSent] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      localStorage.removeItem("session_token");
-      const redirectPath = localStorage.getItem("redirect_after_login") || "/";
-      localStorage.removeItem("redirect_after_login");
-      navigate(redirectPath);
+    if (user && !submitting.current && !completed.current) {
+      navigate(ordinaryReturn, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, ordinaryReturn]);
+
+  const finishAuth = (data) => {
+    completed.current = true;
+    localStorage.removeItem("redirect_after_login");
+    localStorage.removeItem("returnTo");
+    if (guestChart) {
+      const result = data.guest_chart_migration;
+      const migrated = result?.status === "migrated" && Number(result.chart_id) === Number(guestChart.chartId);
+      navigate(`/natal-chart-result/${guestChart.chartId}`, {
+        replace: true,
+        state: {
+          chartAuth: {
+            chartId: guestChart.chartId,
+            status: migrated ? "migrated" : (result?.status === "migrated" ? "not_found" : result?.status || "not_requested"),
+            sessionToken: migrated ? null : guestChart.sessionToken,
+            pendingQuestion: guestChart.pendingQuestion || "",
+          },
+        },
+      });
+    } else {
+      navigate(ordinaryReturn, { replace: true });
+    }
+  };
 
   const extractErrorMessage = (err) => {
     if (Array.isArray(err?.message?.detail)) {
@@ -33,18 +62,19 @@ const AuthorizationPage = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     setError("");
     setMessage("");
 
     try {
-      const sessionToken = localStorage.getItem("session_token");
-
       if (!isCodeSent) {
         if (!email.trim() || !password.trim()) {
           setError("Введите email и пароль");
           return;
         }
-        await registerEmail(email, password, sessionToken);
+        await registerEmail(email, password);
         setIsCodeSent(true);
         setMessage("Код отправлен на почту. Введите его ниже для завершения регистрации.");
       } else {
@@ -52,23 +82,29 @@ const AuthorizationPage = () => {
           setError("Введите код из почты");
           return;
         }
-        await verifyRegistration(code, email, password, sessionToken);
-        setMessage("Регистрация завершена и выполнен вход.");
+        finishAuth(await verifyRegistration(code, email, password, guestChart));
       }
     } catch (err) {
       setError(extractErrorMessage(err));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     setError("");
     try {
-      const sessionToken = localStorage.getItem("session_token");
-      await login(email, password, sessionToken);
-      setMessage("Вы успешно вошли.");
+      finishAuth(await login(email, password, guestChart));
     } catch (err) {
       setError(extractErrorMessage(err));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   };
 
@@ -121,7 +157,7 @@ const AuthorizationPage = () => {
             required
           />
         )}
-        <button type="submit" className="auth-submit auth-button-shadow">
+        <button type="submit" disabled={busy} className="auth-submit auth-button-shadow">
           {step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}
         </button>
       </form>
@@ -133,6 +169,7 @@ const AuthorizationPage = () => {
       <div className="auth-secondary">
         <button
           className="auth-switch-button auth-button-shadow"
+          disabled={busy}
           onClick={() => {
             resetAll();
             setStep(step === "login" ? "register" : "login");

@@ -1,4 +1,16 @@
 /* AskGptChat.css */
+.chart-auth-gate {
+  max-width: 480px;
+  width: calc(100% - 64px);
+  border: 1px solid #d6eaff;
+  border-radius: 24px;
+  padding: 24px;
+  color: #1d3557;
+}
+.chart-auth-gate::backdrop { background: rgba(0, 0, 0, 0.5); }
+.chart-auth-gate button { display: block; margin: 16px auto 0; }
+.askgpt-container .predefined-questions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.askgpt-container button:disabled { opacity: 0.55; cursor: default; transform: none; }
 
 .askgpt-container {
   background: linear-gradient(145deg, #e4f0fb, #ffffff);
@@ -213,4 +225,3 @@ button:hover {
   50% { opacity: 1; }
   100% { opacity: 0.4; }
 }
-

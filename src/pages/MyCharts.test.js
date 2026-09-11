@@ -9,6 +9,7 @@ const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
   useParams: () => ({ chartId: mockChartId }),
+  useLocation: () => ({ pathname: `/natal-chart-result/${mockChartId}`, state: null }),
   Link: ({ to, children }) => <a href={to}>{children}</a>,
 }), { virtual: true }); // CRA's Jest resolver predates React Router 7 package exports.
 jest.mock("../context/AuthContext", () => ({ useAuth: () => ({ user: { id: 1 } }) }));

@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
 const Header = () => {
-  const { user, logout } = useAuth(); // ✅ заменили signOut на logout
+  const { user, logout, loading, activeGuestChart } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -63,7 +63,9 @@ const Header = () => {
             </div>
           </div>
         ) : (
-          <button className="login-btn" onClick={() => navigate("/authorization")}>
+          <button className="login-btn" disabled={loading} onClick={() => navigate("/authorization", activeGuestChart ? { state: {
+            guestChart: activeGuestChart, returnTo: `/natal-chart-result/${activeGuestChart.chartId}`,
+          } } : undefined)}>
             Войти / Регистрация
           </button>
         )}
@@ -73,4 +75,3 @@ const Header = () => {
 };
 
 export default Header;
-

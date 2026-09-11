@@ -39,8 +39,8 @@ export async function requestRegister(email, password) {
 /**
  * Подтверждает код и завершает регистрацию (возвращает токен)
  */
-export async function verifyCode(code, email, password) {
-  const sessionToken = getSessionToken();
+export async function verifyCode(code, email, password, guestChart = null) {
+  const sessionToken = guestChart?.sessionToken || getSessionToken();
 
   const response = await fetch(`${BASE_URL}/auth/verify-code?code=${code}`, {
     method: "POST",
@@ -48,7 +48,7 @@ export async function verifyCode(code, email, password) {
       "Content-Type": "application/json",
       "X-Session-Token": sessionToken,
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
   });
 
   const data = await response.json();
@@ -59,8 +59,7 @@ export async function verifyCode(code, email, password) {
     throw new Error(errorMessage);
   }
 
-  // Удаляем session_token, сохраняем access_token
-  localStorage.removeItem("session_token");
+  // Keep guest access when no transfer occurred (including a full account).
   localStorage.setItem("access_token", data.access_token);
 
   console.log("✅ Верификация прошла:", data);
@@ -70,8 +69,8 @@ export async function verifyCode(code, email, password) {
 /**
  * Логин по email и паролю
  */
-export async function login(email, password) {
-  const sessionToken = getSessionToken();
+export async function login(email, password, guestChart = null) {
+  const sessionToken = guestChart?.sessionToken || getSessionToken();
 
   const response = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
@@ -79,7 +78,7 @@ export async function login(email, password) {
       "Content-Type": "application/json",
       "X-Session-Token": sessionToken,
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
   });
 
   const data = await response.json();
@@ -90,8 +89,7 @@ export async function login(email, password) {
     throw new Error(errorMessage);
   }
 
-  // Удаляем session_token, сохраняем access_token
-  localStorage.removeItem("session_token");
+  // Retain the token: other guest charts must not be migrated or lost here.
   localStorage.setItem("access_token", data.access_token);
 
   console.log("✅ Вход выполнен:", data);

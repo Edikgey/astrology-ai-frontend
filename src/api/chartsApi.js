@@ -1,9 +1,11 @@
 import { API_URL } from "../config/api";
 
-export async function chartRequest(path, { method = "GET", signal, authenticated = false } = {}) {
+export async function chartRequest(path, { method = "GET", signal, authenticated = false, guestSessionToken } = {}) {
   const headers = {};
   const jwt = localStorage.getItem("access_token");
-  if (jwt && jwt !== "null") {
+  if (guestSessionToken && !authenticated) {
+    headers["X-Session-Token"] = guestSessionToken;
+  } else if (jwt && jwt !== "null") {
     headers.Authorization = `Bearer ${jwt}`;
   } else if (!authenticated) {
     const sessionToken = localStorage.getItem("session_token");

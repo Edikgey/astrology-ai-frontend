@@ -4,7 +4,6 @@ import {
   Routes,
   Route,
   Navigate,
-  useNavigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import CookieConsent from "react-cookie-consent";
@@ -29,17 +28,6 @@ function ProtectedRoute({ children }) {
 
 // 🔸 Основное содержимое приложения
 function AppContent() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  // 🔙 Возврат на returnTo, если был редирект
-  React.useEffect(() => {
-    const returnTo = localStorage.getItem("returnTo");
-    if (user && returnTo) {
-      navigate(returnTo);
-      localStorage.removeItem("returnTo");
-    }
-  }, [user, navigate]);
 
   return (
     <>

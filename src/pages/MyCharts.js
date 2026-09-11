@@ -92,7 +92,7 @@ const MyCharts = () => {
             <>
               <p>Сохранено карт: {currentResult.count} / {currentResult.limit}</p>
               <button disabled={currentResult.count >= currentResult.limit} onClick={() => navigate("/try-free")}>Создать карту</button>
-              {currentResult.count >= currentResult.limit && <p>Можно сохранить максимум 3 карты. Удалите одну из карт, чтобы создать новую.</p>}
+              {currentResult.count >= currentResult.limit && <p>Лимит сохранённых карт: {currentResult.limit}. Удалите одну из карт, чтобы создать новую.</p>}
               {currentResult.charts.length === 0 && <p>У вас пока нет сохранённых карт.</p>}
               <ul className="saved-charts-list">
                 {currentResult.charts.map(chart => (

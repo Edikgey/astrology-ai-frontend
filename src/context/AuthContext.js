@@ -11,44 +11,42 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("access_token"));
+  const [loading, setLoading] = useState(Boolean(token));
+  const [activeGuestChart, setActiveGuestChart] = useState(null);
 
   // ⏱ Автоматическая подгрузка юзера по токену
   useEffect(() => {
+    let active = true;
     if (token) {
+      setLoading(true);
       getMe(token)
-        .then((data) => setUser(data))
-        .catch(() => logout());
+        .then((data) => { if (active) setUser(data); })
+        .catch(() => { if (active) logout(); })
+        .finally(() => { if (active) setLoading(false); });
     }
+    return () => { active = false; };
   }, [token]);
 
-  const loginUser = async (email, password) => {
-    const sessionToken = localStorage.getItem("session_token");
-
-    const data = await login(email, password, sessionToken);
+  const loginUser = async (email, password, guestChart) => {
+    const data = await login(email, password, guestChart);
     localStorage.setItem("access_token", data.access_token);
-    localStorage.removeItem("session_token"); // 🧼 Удаляем временный токен
-
+    setUser(null);
+    setLoading(true);
     setToken(data.access_token);
-
-    const userData = await getMe(data.access_token);
-    setUser(userData);
+    return data;
   };
 
   const registerEmail = async (email, password) => {
     return await requestRegister(email, password);
   };
 
-  const verifyRegistration = async (code, email, password) => {
-    const sessionToken = localStorage.getItem("session_token");
-
-    const data = await verifyCode(code, email, password, sessionToken);
+  const verifyRegistration = async (code, email, password, guestChart) => {
+    const data = await verifyCode(code, email, password, guestChart);
     localStorage.setItem("access_token", data.access_token);
-    localStorage.removeItem("session_token");
-
+    setUser(null);
+    setLoading(true);
     setToken(data.access_token);
-
-    const userData = await getMe(data.access_token);
-    setUser(userData);
+    return data;
   };
 
   const fetchCurrentUser = async (token) => {
@@ -57,6 +55,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    setLoading(false);
     setUser(null);
     setToken(null);
     localStorage.removeItem("access_token");
@@ -66,6 +65,10 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        token,
+        loading,
+        activeGuestChart,
+        setActiveGuestChart,
         login: loginUser,
         logout,
         registerEmail,
