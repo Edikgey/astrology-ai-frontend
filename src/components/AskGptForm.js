@@ -9,6 +9,8 @@ const AskGptForm = ({ chartId }) => {
   const [loading, setLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [chartData, setChartData] = useState(null);
+  const [historyError, setHistoryError] = useState("");
+  const [historyLoading, setHistoryLoading] = useState(true);
   const navigate = useNavigate();
 
   const sessionToken =
@@ -24,6 +26,11 @@ const AskGptForm = ({ chartId }) => {
 
   // Загрузка истории чата и данных карты
   useEffect(() => {
+    const controller = new AbortController();
+    setMessages([]);
+    setChartData(null);
+    setHistoryError("");
+    setHistoryLoading(true);
     const fetchInitialData = async () => {
       const headers = {};
       const jwt = localStorage.getItem("access_token");
@@ -36,34 +43,40 @@ const AskGptForm = ({ chartId }) => {
       try {
         const chatRes = await fetch(
           `${API_URL}/gpt-messages?chart_id=${chartId}`,
-          { method: "GET", headers }
+          { method: "GET", headers, signal: controller.signal }
         );
+        if (!chatRes.ok) throw new Error("Не удалось загрузить историю GPT.");
         const chatData = await chatRes.json();
         const formattedMessages = chatData.map((msg) => ({
           user: msg.role === "user" ? "Вы" : "GPT",
           text: msg.content,
         }));
+        if (controller.signal.aborted) return;
         setMessages(formattedMessages);
 
         const chartRes = await fetch(
          `${API_URL}/natal-chart/${chartId}`,
-            { method: "GET", headers }
+            { method: "GET", headers, signal: controller.signal }
           );
 
+        if (!chartRes.ok) throw new Error("Карта недоступна.");
         const chartJson = await chartRes.json();
-        setChartData(chartJson);
+        if (!controller.signal.aborted) setChartData(chartJson);
       } catch (error) {
-        console.error("❌ Ошибка загрузки данных:", error);
+        if (!controller.signal.aborted) setHistoryError(error.message);
+      } finally {
+        if (!controller.signal.aborted) setHistoryLoading(false);
       }
     };
 
     if (chartId) {
       fetchInitialData();
     }
+    return () => controller.abort();
   }, [chartId, sessionToken]);
 
   const sendQuestion = async (q = question) => {
-    if (!q.trim()) return;
+    if (loading || historyLoading || historyError || !q.trim()) return;
 
     const newMessage = { user: "Вы", text: q.trim() };
     const updatedMessages = [...messages, newMessage];
@@ -100,6 +113,7 @@ const AskGptForm = ({ chartId }) => {
       );
 
       const data = await response.json();
+      if (!response.ok) throw new Error("Ошибка запроса");
       const gptMessage = {
         user: "GPT",
         text: data.response || "GPT не дал ответа.",
@@ -117,6 +131,8 @@ const AskGptForm = ({ chartId }) => {
   return (
     <div className="askgpt-container">
       <h4>Чат с GPT</h4>
+      {historyLoading && <p role="status">Загрузка истории...</p>}
+      {historyError && <p role="alert">{historyError} Обновите страницу, чтобы повторить загрузку.</p>}
 
       {chartData && (
         <div className="chart-info">
@@ -164,7 +180,7 @@ const AskGptForm = ({ chartId }) => {
               key={i}
               onClick={() => sendQuestion(preset)}
               className="preset-btn"
-              disabled={loading}
+              disabled={loading || historyLoading || Boolean(historyError)}
             >
               {preset}
             </button>
@@ -182,7 +198,7 @@ const AskGptForm = ({ chartId }) => {
       <button
         className="chat-send"
         onClick={() => sendQuestion()}
-        disabled={loading || (!question.trim() && !isTyping)}
+        disabled={loading || historyLoading || Boolean(historyError) || (!question.trim() && !isTyping)}
       >
         {loading ? "Отправка..." : "Спросить"}
       </button>

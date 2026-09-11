@@ -63,6 +63,7 @@ function AppContent() {
         <Route path="/try-free" element={<TryFreePage />} />
         <Route path="/authorization" element={<AuthorizationPage />} />
         <Route path="/natal-chart-result" element={<NatalChartResultPage />} />
+        <Route path="/natal-chart-result/:chartId" element={<NatalChartResultPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/my-charts" element={<MyCharts />} />
         <Route path="/daily-horoscope" element={<DailyHoroscopePage />} />

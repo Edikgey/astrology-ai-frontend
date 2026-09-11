@@ -32,4 +32,15 @@
   .charts-container button:hover {
     background: #6148cc;
   }
-  
+
+  .charts-container button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .charts-container a { color: #ded1ff; }
+
+  .saved-charts-list { list-style: none; padding: 0; text-align: left; }
+  .saved-charts-list li { border: 1px solid #7a5cff; border-radius: 10px; padding: 16px; margin-top: 16px; overflow-wrap: anywhere; }
+  .local-chart-profile { margin-top: 24px; }
+  .local-chart-profile summary { cursor: pointer; }

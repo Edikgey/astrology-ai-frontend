@@ -62,14 +62,16 @@ const calculateNatalChart = async (formData) => {
     const data = await response.json();
     console.log("📬 Ответ от сервера:", data);
 
-    if (!response.ok) throw new Error(JSON.stringify(data));
+    if (!response.ok) throw new Error(
+      data.detail?.message || (typeof data.detail === "string" ? data.detail : "Произошла ошибка при расчёте натальной карты")
+    );
 
     localStorage.setItem("natalChart", JSON.stringify(data));
     localStorage.setItem("chart_id", data.chart_id);
     return data;
   } catch (error) {
     console.error("❌ Ошибка при расчёте натальной карты:", error);
-    return null;
+    throw error;
   }
 };
 
@@ -93,6 +95,8 @@ const TryFreePage = () => {
     julianDate: "",
   });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
   useEffect(() => {
@@ -172,6 +176,9 @@ const TryFreePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError("");
 
     const updatedFormData = {
       ...formData,
@@ -204,14 +211,14 @@ const TryFreePage = () => {
 
     localStorage.setItem("tempUserData", JSON.stringify(finalData));
 
-    const result = await calculateNatalChart(finalData);
-
-    if (!result) {
-      alert("Произошла ошибка при расчёте натальной карты");
-      return;
+    try {
+      const result = await calculateNatalChart(finalData);
+      navigate(`/natal-chart-result/${result.chart_id}`);
+    } catch (error) {
+      setSubmitError(error.message || "Не удалось создать карту. Попробуйте ещё раз.");
+    } finally {
+      setSubmitting(false);
     }
-
-    navigate("/natal-chart-result");
   };
 
   return (
@@ -252,7 +259,8 @@ const TryFreePage = () => {
             </ul>
           )}
 
-          <button type="submit">Рассчитать карту</button>
+          {submitError && <p role="alert">{submitError}</p>}
+          <button type="submit" disabled={submitting}>{submitting ? "Расчёт..." : "Рассчитать карту"}</button>
         </form>
       </div>
     </div>
