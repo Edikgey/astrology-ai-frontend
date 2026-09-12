@@ -50,6 +50,12 @@ afterEach(async () => {
 const render = async (page = <UsageSummary />) => act(async () => root.render(<UsageProvider>{page}</UsageProvider>));
 const button = text => [...container.querySelectorAll("button")].find(el => el.textContent === text);
 const click = async el => act(async () => el.click());
+const selectBirthplace = async () => {
+  global.fetch.mockResolvedValueOnce(ok({ results: [{ formatted: 'AB', geometry: { lat: 50, lng: 30 },
+    components: {}, annotations: { timezone: { name: 'Europe/Kyiv' } } }] }));
+  await act(async () => Simulate.change(container.querySelector('[name="birthPlace"]'), { target: { name: 'birthPlace', value: 'ABC' } }));
+  await click(container.querySelector('.suggestions-list li'));
+};
 const Refresh = () => { const { refreshUsage } = useUsage(); return <><UsageSummary /><button onClick={refreshUsage}>Refresh</button></>; };
 
 test("guest and pending auth never request account usage; verified JWT loads server counters", async () => {
@@ -150,7 +156,7 @@ test.each(["GPT_LIMIT_REACHED", "GPT_PERIOD_INVALID"])("Premium %s never present
 test.each(["free", "premium"])("chart limit response for %s preserves the form and shows the appropriate limit state", async plan => {
   serverUsage = plan === "free" ? FREE : PREMIUM;
   await render(<TryFreePage />);
-  await act(async () => Simulate.change(container.querySelector('[name="birthPlace"]'), { target: { name: "birthPlace", value: "AB" } }));
+  await selectBirthplace();
   global.fetch.mockResolvedValueOnce(fail(409, { code: "CHART_LIMIT_REACHED", plan, used: serverUsage.saved_charts_limit, limit: serverUsage.saved_charts_limit }));
   await act(async () => Simulate.submit(container.querySelector("form")));
   const modal = container.querySelector("dialog[open]"); expect(modal.textContent).toContain("Достигнут лимит сохранённых карт");
@@ -161,6 +167,7 @@ test.each(["free", "premium"])("chart limit response for %s preserves the form a
 
 test("chart creation refreshes usage and navigates to the created ID", async () => {
   serverUsage = { ...FREE, saved_charts_used: 1 }; await render(<TryFreePage />);
+  await selectBirthplace();
   serverUsage = { ...FREE, saved_charts_used: 2 }; global.fetch.mockResolvedValueOnce(ok({ chart_id: 8 }));
   await act(async () => Simulate.submit(container.querySelector("form")));
   expect(mockNavigate).toHaveBeenCalledWith("/natal-chart-result/8");

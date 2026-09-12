@@ -14,8 +14,33 @@ const days = Array.from({ length: 31 }, (_, i) => i + 1);
 const hours = Array.from({ length: 24 }, (_, i) => (i < 10 ? "0" + i : "" + i));
 const minutes = Array.from({ length: 60 }, (_, i) => (i < 10 ? "0" + i : "" + i));
 
+const chooseLocationMessage = "Выберите место рождения из списка подсказок — ввод текста сам по себе не выбирает место.";
+const validZone = zone => {
+  if (typeof zone !== "string" || (!zone.includes("/") && zone !== "UTC")) return false;
+  try { new Intl.DateTimeFormat("en", { timeZone: zone }); return true; } catch { return false; }
+};
+const validLocation = location => location && location.city && validZone(location.timezone) &&
+  Number.isFinite(location.lat) && Math.abs(location.lat) <= 90 &&
+  Number.isFinite(location.lon) && Math.abs(location.lon) <= 180;
+const selectedLocationMatches = data => validLocation(data.selectedLocation) &&
+  data.birthPlace === data.selectedLocation.city && data.latitude === data.selectedLocation.lat &&
+  data.longitude === data.selectedLocation.lon && data.timezone === data.selectedLocation.timezone &&
+  data.region === data.selectedLocation.region && data.country === data.selectedLocation.country;
+
+const locationFromResult = item => {
+  const parts = item.components || {};
+  // Keep the provider's full label, adding administrative context it may omit.
+  const region = parts.state || parts.region || parts.county || "";
+  const country = parts.country || "";
+  const name = item.formatted || parts.city || parts.town || parts.village || parts.hamlet || "";
+  const city = [name, ...[region, country].filter(value => value && !name.includes(value))].join(", ");
+  return { city, lat: item.geometry?.lat, lon: item.geometry?.lng,
+    timezone: item.annotations?.timezone?.name || "", region, country };
+};
+
 // ✅ универсальный
 export const calculateNatalChart = async (formData) => {
+  if (!selectedLocationMatches(formData)) throw new Error(chooseLocationMessage);
   try {
     const months = [
       "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -36,6 +61,7 @@ export const calculateNatalChart = async (formData) => {
       city: formData.birthPlace,
       region: formData.region || "",
       country: formData.country || "",
+      selected_location: formData.selectedLocation,
     };
 
     const headers = {
@@ -95,27 +121,36 @@ const TryFreePage = () => {
     country: "",
     timezone: "",
     timeFold: "",
+    selectedLocation: null,
   });
   const [timeOptions, setTimeOptions] = useState([]);
   const cityRequest = useRef(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [locationError, setLocationError] = useState("");
 
   useEffect(() => {
     const savedData = localStorage.getItem("userData");
     if (savedData) {
-      setFormData(previous => ({ ...previous, ...JSON.parse(savedData), timeFold: "" }));
+      try {
+        const saved = JSON.parse(savedData);
+        // Profile text is not an OpenCage selection, even if it looks complete.
+        setFormData(previous => ({ ...previous, ...saved, timeFold: "", selectedLocation: null,
+          latitude: "", longitude: "", timezone: "", region: "", country: "" }));
+      } catch { /* Invalid local profile data must not break location selection. */ }
     }
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(previous => ({ ...previous, [name]: value, timeFold: name === "timeFold" ? value : "",
-      ...(name === "birthPlace" ? { latitude: "", longitude: "", timezone: "", region: "", country: "" } : {}),
+      ...(name === "birthPlace" ? { latitude: "", longitude: "", timezone: "", region: "", country: "", selectedLocation: null } : {}),
     }));
     if (name !== "timeFold") setTimeOptions([]);
-    if (name === "birthPlace") { cityRequest.current += 1; setSuggestions([]); }
+    if (name === "birthPlace") {
+      cityRequest.current += 1; setSuggestions([]); setLocationError(""); setSubmitError("");
+    }
 
     if (name === "birthPlace" && value.length > 2) {
       fetchCitySuggestions(value);
@@ -132,33 +167,34 @@ const TryFreePage = () => {
       const data = await response.json();
 
       if (requestId !== cityRequest.current) return;
+      if (!response.ok || !Array.isArray(data.results)) throw new Error("Location lookup failed");
       if (data.results.length > 0) {
-        const cityList = data.results.map((item) => ({
-          name: item.formatted,
-          lat: item.geometry.lat,
-          lng: item.geometry.lng,
-          timezone: item.annotations?.timezone?.name || "",
-          country: item.components.country || "",
-          region: item.components.state || item.components.region || "",
-        }));
+        const cityList = data.results.map(locationFromResult);
         setSuggestions(cityList);
       } else {
         setSuggestions([]);
+        setLocationError("Место не найдено. Уточните город, область и страну.");
       }
-    } catch (error) {
-      console.error("Ошибка получения городов:", error);
+    } catch {
+      if (requestId !== cityRequest.current) return;
+      setSuggestions([]);
+      setLocationError("Не удалось загрузить места. Повторите поиск или уточните область и страну.");
     }
   };
 
   const selectCity = (city) => {
     cityRequest.current += 1;
     setTimeOptions([]);
+    setSubmitError("");
+    const valid = validLocation(city);
+    setLocationError(valid ? "" : "У этого результата нет пригодных координат или IANA timezone. Выберите другой результат или уточните область и страну.");
     setFormData((prevData) => ({
       ...prevData,
-      birthPlace: city.name,
-      latitude: city.lat,
-      longitude: city.lng,
-      timezone: city.timezone,
+      birthPlace: city.city,
+      latitude: valid ? city.lat : "",
+      longitude: valid ? city.lon : "",
+      timezone: valid ? city.timezone : "",
+      selectedLocation: valid ? city : null,
       timeFold: "",
       country: city.country || "",
       region: city.region || "",
@@ -169,6 +205,7 @@ const TryFreePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
+    if (!selectedLocationMatches(formData)) { setLocationError(chooseLocationMessage); return; }
     setSubmitting(true);
     setSubmitError("");
 
@@ -232,7 +269,21 @@ const TryFreePage = () => {
             placeholder="Введите город"
             value={formData.birthPlace}
             onChange={handleChange}
+            autoComplete="off"
+            aria-label="Место рождения"
+            aria-describedby="location-status"
+            onKeyDown={e => {
+              if (e.key === "ArrowDown" && suggestions.length) {
+                e.preventDefault(); document.getElementById("birth-location-option-0")?.focus();
+              }
+              if (e.key === "Enter" && !selectedLocationMatches(formData)) {
+                e.preventDefault(); setLocationError(chooseLocationMessage);
+              }
+            }}
           />
+          <p id="location-status" role={locationError ? "alert" : undefined}>
+            {locationError || (formData.selectedLocation ? "Место выбрано из подсказок." : "Введите город и выберите вариант с нужной областью и страной.")}
+          </p>
           {formData.timezone && <p>Часовой пояс места рождения: {formData.timezone}</p>}
           {timeOptions.length > 0 && <label>Вариант времени при переводе часов:
             <select name="timeFold" value={formData.timeFold} onChange={handleChange}>
@@ -244,8 +295,17 @@ const TryFreePage = () => {
           {suggestions.length > 0 && (
             <ul className="suggestions-list">
               {suggestions.map((city, index) => (
-                <li key={index} onClick={() => selectCity(city)}>
-                  {city.name}
+                <li key={index} id={`birth-location-option-${index}`} role="button" tabIndex={0}
+                  onClick={() => selectCity(city)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCity(city); }
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const next = (index + (e.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length;
+                      document.getElementById(`birth-location-option-${next}`)?.focus();
+                    }
+                  }}>
+                  {city.city}{!validLocation(city) && " — нет пригодного часового пояса или координат"}
                 </li>
               ))}
             </ul>

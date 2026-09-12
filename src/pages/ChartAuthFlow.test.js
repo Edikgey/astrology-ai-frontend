@@ -124,8 +124,12 @@ test("guest creation keeps the existing API flow, renders the result, and never 
     throw new Error(`Unexpected request ${url}`);
   });
   await render(<TryFreePage />);
+  global.fetch.mockResolvedValueOnce(ok({ results: [{ formatted: 'Kyiv', geometry: { lat: 50.45, lng: 30.52 },
+    components: { country: 'Ukraine' }, annotations: { timezone: { name: 'Europe/Kyiv' } } }] }));
+  await act(async () => Simulate.change(container.querySelector('[name="birthPlace"]'), { target: { name: 'birthPlace', value: 'Kyiv' } }));
+  await act(async () => container.querySelector('.suggestions-list li').click());
   await submit();
-  const creation = global.fetch.mock.calls[0];
+  const creation = global.fetch.mock.calls.find(([url]) => url.endsWith('/natal-chart'));
   expect(creation[1].headers["X-Session-Token"]).toBe(guestToken);
   expect(localStorage.getItem("chart_id")).toBe("7");
   expect(mockNavigate).toHaveBeenCalledWith("/natal-chart-result/7");
