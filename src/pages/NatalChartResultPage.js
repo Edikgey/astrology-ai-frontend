@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { FREE_CHART_LIMIT } from '../config/plans';
+import { useUsage } from '../context/UsageContext';
 import { useAuth } from '../context/AuthContext';
 import { chartRequest } from '../api/chartsApi';
 import NatalChart from '../components/NatalChart';
@@ -11,6 +11,7 @@ const NatalChartResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setActiveGuestChart } = useAuth();
+  const { usage } = useUsage();
   const chartId = routeChartId || localStorage.getItem("chart_id") || (() => {
     try { return JSON.parse(localStorage.getItem("natalChart"))?.chart_id; }
     catch { return null; }
@@ -20,7 +21,7 @@ const NatalChartResultPage = () => {
   const chartAuth = String(location.state?.chartAuth?.chartId) === String(chartId) ? location.state.chartAuth : null;
   const unsaved = Boolean(chartAuth && chartAuth.status !== "migrated");
   const guestSessionToken = unsaved ? chartAuth.sessionToken : undefined;
-  const migrationNotice = chartAuth?.status === "limit_reached" ? `Вы вошли в аккаунт, но карта не сохранена: достигнут лимит ${FREE_CHART_LIMIT} карт. Откройте «Мои карты», чтобы управлять сохранёнными картами.` :
+  const migrationNotice = chartAuth?.status === "limit_reached" ? `Вы вошли в аккаунт, но карта не сохранена: достигнут лимит сохранённых карт${usage ? ` (${usage.saved_charts_limit})` : ""}. Откройте «Мои карты», чтобы управлять сохранёнными картами.` :
     chartAuth?.status === "not_found" ? "Вход выполнен, но гостевую карту не удалось перенести. Она не считается сохранённой." :
     chartAuth?.status === "not_requested" ? "Вход выполнен. Перенос карты не выполнялся; карта не сохранена в аккаунт." :
     chartAuth?.status === "migrated" ? "Карта сохранена в вашем аккаунте." : "";

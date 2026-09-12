@@ -2,6 +2,9 @@ import { API_URL } from "../config/api";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useUsage } from "../context/UsageContext";
+import { apiError } from "../api/apiError";
+import UsageSummary from "./UsageSummary";
 import "./AskGptChat.css";
 
 export const CHAT_INTRO = "Я уже посмотрел вашу карту. Могу помочь разобрать характер, отношения, карьеру или сильные стороны.";
@@ -20,6 +23,7 @@ const AskGptForm = (props) => {
 };
 
 const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = false, initialQuestion = "", onQuestionConsumed, guestSessionToken }) => {
+  const { refreshUsage, handleLimitError } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -83,14 +87,19 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ chart_id: Number(chartId), question: text }), signal: controller.signal,
       });
-      if (!response.ok) throw new Error(requestError(response.status));
+      if (!response.ok) {
+        const data = await response.json?.().catch(() => ({}));
+        throw apiError(response.status, data, requestError(response.status));
+      }
       const data = await response.json();
+      refreshUsage();
       if (controller.signal.aborted) return;
       setMessages(previous => [...previous, { user: "Вы", text }, { user: "GPT", text: data.response || "GPT не дал ответа." }]);
       setQuestion("");
       onQuestionConsumed?.();
     } catch (err) {
       if (!controller.signal.aborted) {
+        if (handleLimitError(err)) return; // Keep the draft/history; never retry a denied POST.
         setError(err.message);
         // A failed response may follow a persisted user message. Reload history;
         // never retry POST automatically.
@@ -103,6 +112,7 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
   return <div className="askgpt-container">
     <h4>Чат с GPT</h4>
+    {authenticated && <UsageSummary />}
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}

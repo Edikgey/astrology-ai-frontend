@@ -3,6 +3,9 @@ import { API_URL } from "../config/api";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useUsage } from "../context/UsageContext";
+import { apiError } from "../api/apiError";
+import UsageSummary from "../components/UsageSummary";
 import "./TryFreePage.css";
 
 const years = Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => 1900 + i);
@@ -62,9 +65,7 @@ const calculateNatalChart = async (formData) => {
     const data = await response.json();
     console.log("📬 Ответ от сервера:", data);
 
-    if (!response.ok) throw new Error(
-      data.detail?.message || (typeof data.detail === "string" ? data.detail : "Произошла ошибка при расчёте натальной карты")
-    );
+    if (!response.ok) throw apiError(response.status, data, "Произошла ошибка при расчёте натальной карты");
 
     localStorage.setItem("natalChart", JSON.stringify(data));
     localStorage.setItem("chart_id", data.chart_id);
@@ -79,6 +80,7 @@ const calculateNatalChart = async (formData) => {
 
 const TryFreePage = () => {
   const { user } = useAuth();
+  const { refreshUsage, handleLimitError } = useUsage();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
@@ -213,9 +215,10 @@ const TryFreePage = () => {
 
     try {
       const result = await calculateNatalChart(finalData);
+      refreshUsage();
       navigate(`/natal-chart-result/${result.chart_id}`);
     } catch (error) {
-      setSubmitError(error.message || "Не удалось создать карту. Попробуйте ещё раз.");
+      if (!handleLimitError(error)) setSubmitError(error.message || "Не удалось создать карту. Попробуйте ещё раз.");
     } finally {
       setSubmitting(false);
     }
@@ -225,6 +228,7 @@ const TryFreePage = () => {
     <div className="tryfree-container">
       <div className="tryfree-form">
         <h2>Создать свою натальную карту</h2>
+        {user && <UsageSummary />}
         <form onSubmit={handleSubmit}>
           <label>Дата рождения:</label>
           <div className="date-selects">

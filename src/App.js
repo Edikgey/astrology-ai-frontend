@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { UsageProvider } from "./context/UsageContext";
 import CookieConsent from "react-cookie-consent";
 
 import Header from "./components/Header";
@@ -67,9 +68,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <UsageProvider>
       <Router>
         <AppContent />
       </Router>
+      </UsageProvider>
     </AuthProvider>
   );
 }

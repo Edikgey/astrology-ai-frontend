@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { AuthProvider } from "../context/AuthContext";
+import { UsageProvider } from "../context/UsageContext";
 import AuthorizationPage from "./AuthorizationPage";
 import NatalChartResultPage from "./NatalChartResultPage";
 import TryFreePage from "./TryFreePage";
@@ -43,7 +44,7 @@ afterEach(async () => {
   global.fetch = originalFetch;
   jest.restoreAllMocks();
 });
-const render = async page => act(async () => root.render(<AuthProvider>{page}</AuthProvider>));
+const render = async page => act(async () => root.render(<AuthProvider><UsageProvider>{page}</UsageProvider></AuthProvider>));
 const change = async (selector, value) => act(async () => Simulate.change(container.querySelector(selector), { target: { value } }));
 const submit = async () => act(async () => Simulate.submit(container.querySelector("form")));
 const gptCalls = () => global.fetch.mock.calls.filter(([url]) => /ask-gpt|gpt-messages/.test(url));
@@ -52,6 +53,8 @@ test.each(["login", "verify-code"].flatMap(flow => ["migrated", "limit_reached",
   ("%s / %s preserves auth and the selected chart through return and reload", async (flow, status) => {
     if (flow === "verify-code") mockLocation.state.mode = "register";
     global.fetch.mockImplementation(async url => {
+      if (url.includes("/account/usage")) return ok({ plan: "free", saved_charts_used: status === "migrated" ? 1 : 3,
+        saved_charts_limit: 3, gpt_messages_used: 1, gpt_messages_limit: 10, gpt_limit_type: "lifetime" });
       if (url.includes("/auth/me")) return ok({ id: 1, email: "person@example.com" });
       if (url.includes("/auth/request-register")) return ok({ message: "Code sent" });
       if (url.includes("/auth/")) return ok({ access_token: "jwt", guest_chart_migration: { status, chart_id: 7 } });
@@ -74,6 +77,7 @@ test.each(["login", "verify-code"].flatMap(flow => ["migrated", "limit_reached",
     expect(JSON.parse(authCall[1].body)).toEqual({ email: "person@example.com", password: "test-password-only", guest_chart_id: 7 });
     expect(authCall[1].headers["X-Session-Token"]).toBe(guestToken);
     expect(localStorage.getItem("access_token")).toBe("jwt");
+    expect(global.fetch.mock.calls.filter(([url]) => url.includes("/account/usage"))).toHaveLength(1);
     expect(localStorage.getItem("session_token")).toBe(guestToken);
     expect(mockNavigate).toHaveBeenLastCalledWith("/natal-chart-result/7", expect.objectContaining({ replace: true, state: { chartAuth: expect.objectContaining({ chartId: 7, status, pendingQuestion: guestChart.pendingQuestion }) } }));
     expect(gptCalls()).toHaveLength(0);

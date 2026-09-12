@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { UpgradeCTA } from "./UsageSummary";
 import "./Header.css";
 
 const Header = () => {
@@ -16,6 +17,7 @@ const Header = () => {
       </div>
 
       <div className="nav-right">
+        {user && <UpgradeCTA />}
         {user ? (
           <div className="user-menu">
             <div

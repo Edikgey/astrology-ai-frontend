@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { chartRequest } from "../api/chartsApi";
+import { useUsage } from "../context/UsageContext";
+import UsageSummary from "../components/UsageSummary";
 import "./MyCharts.css"; // Стили
 
 const MyCharts = () => {
   const { user } = useAuth();
+  const { usage, refreshUsage, handleLimitError } = useUsage();
   const token = localStorage.getItem("access_token");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -13,6 +16,9 @@ const MyCharts = () => {
   const [reload, setReload] = useState(0);
   const hasToken = token && token !== "null";
   const currentResult = result?.token === token ? result.data : null;
+  const savedCount = usage?.saved_charts_used ?? currentResult?.count;
+  const savedLimit = usage?.saved_charts_limit ?? currentResult?.limit;
+  const chartLimitReached = savedCount >= savedLimit;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -20,11 +26,11 @@ const MyCharts = () => {
     setError(null);
     if (hasToken) {
       chartRequest("/natal-charts", { authenticated: true, signal: controller.signal })
-        .then(data => { if (!controller.signal.aborted) setResult({ token, data }); })
+        .then(data => { if (!controller.signal.aborted) { setResult({ token, data }); refreshUsage(); } })
         .catch(err => { if (!controller.signal.aborted) setError(err); });
     }
     return () => controller.abort();
-  }, [token, hasToken, user?.id, reload]);
+  }, [token, hasToken, user?.id, reload, refreshUsage]);
 
   const deleteChart = async (chartId) => {
     if (deleting !== null || !window.confirm(`Удалить карту №${chartId} и всю её GPT-историю? Это действие нельзя отменить.`)) return;
@@ -32,6 +38,7 @@ const MyCharts = () => {
     setError(null);
     try {
       await chartRequest(`/natal-chart/${chartId}`, { method: "DELETE", authenticated: true });
+      refreshUsage();
       if (localStorage.getItem("chart_id") === String(chartId)) {
         localStorage.removeItem("chart_id");
         localStorage.removeItem("natalChart");
@@ -85,14 +92,19 @@ const MyCharts = () => {
         <p>Войдите в аккаунт, чтобы увидеть свои карты. <Link to="/authorization">Войти</Link></p>
       ) : (
         <>
+          {user && <UsageSummary />}
           {error && <p role="alert">{error.message}</p>}
           {error && <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button>}
           {!currentResult && !error && <p role="status">Загрузка карт...</p>}
           {currentResult && (
             <>
-              <p>Сохранено карт: {currentResult.count} / {currentResult.limit}</p>
-              <button disabled={currentResult.count >= currentResult.limit} onClick={() => navigate("/try-free")}>Создать карту</button>
-              {currentResult.count >= currentResult.limit && <p>Лимит сохранённых карт: {currentResult.limit}. Удалите одну из карт, чтобы создать новую.</p>}
+              {!usage && <p>Сохранено карт: {savedCount} / {savedLimit}</p>}
+              <button disabled={chartLimitReached} onClick={() => navigate("/try-free")}>Создать карту</button>
+              {chartLimitReached && <p>Лимит сохранённых карт: {savedLimit}. Удалите одну из карт, чтобы создать новую.
+                <button type="button" onClick={() => handleLimitError({ code: "chart_limit_reached", detail: {
+                  used: savedCount, limit: savedLimit, plan: usage?.plan,
+                } })}>Лимиты плана</button>
+              </p>}
               {currentResult.charts.length === 0 && <p>У вас пока нет сохранённых карт.</p>}
               <ul className="saved-charts-list">
                 {currentResult.charts.map(chart => (
