@@ -100,6 +100,30 @@ test("unsaved chart and pending auth never fetch GPT even with a JWT", async () 
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
+test("refresh restores one saved exchange without duplicate assistant responses", async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: "Какие у меня сильные стороны?" });
+  expect(container.querySelector("textarea").maxLength).toBe(4000);
+  global.fetch.mockResolvedValueOnce(response({ response: "Связанный с картой ответ" }));
+  await click(button("Спросить"));
+  expect([...container.querySelectorAll(".message.gpt")].map(el => el.textContent).filter(text => text.includes("Связанный с картой ответ"))).toHaveLength(1);
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  global.fetch.mockResolvedValueOnce(response([
+    { id: 101, role: "user", content: "Какие у меня сильные стороны?" },
+    { id: 102, role: "gpt", content: "Связанный с картой ответ" },
+  ]));
+  await render();
+  expect(container.querySelectorAll(".message")).toHaveLength(2);
+  expect(container.querySelectorAll(".message.gpt")).toHaveLength(1);
+  await act(async () => Simulate.change(container.querySelector("textarea"), { target: { value: "А как это проявляется в отношениях?" } }));
+  global.fetch.mockResolvedValueOnce(response({ response: "Продолжение разговора" }));
+  await click(button("Спросить"));
+  expect(container.querySelectorAll(".message")).toHaveLength(4);
+  expect(container.querySelectorAll(".message.gpt")).toHaveLength(2);
+});
+
 test("late history and send responses cannot appear on another chart", async () => {
   authenticate();
   let finishHistory, finishSend;

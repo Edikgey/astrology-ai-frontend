@@ -129,7 +129,7 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
       <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
     </div>
     <form onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
-      <textarea ref={input} aria-label="Ваш вопрос" rows={2} className="chat-input" value={question} disabled={blocked}
+      <textarea ref={input} aria-label="Ваш вопрос" rows={2} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
         onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Введите вопрос..." />
