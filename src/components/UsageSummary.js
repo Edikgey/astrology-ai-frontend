@@ -1,5 +1,6 @@
 import React from "react";
 import { useUsage } from "../context/UsageContext";
+import { useBilling } from "../context/BillingContext";
 import { formatPeriodDate } from "./UsageModal";
 import "./Usage.css";
 
@@ -9,6 +10,7 @@ export function UpgradeCTA() {
 }
 
 export default function UsageSummary() {
+  const billing = useBilling();
   const { usage, usageLoading, usageError, refreshUsage } = useUsage();
   if (usageError) return <section className="usage-summary" aria-label="Использование аккаунта">
     <p role="alert">{usageError.status === 401 ? "Сессия истекла. Войдите снова." : "Не удалось обновить лимиты аккаунта."}</p>
@@ -27,5 +29,10 @@ export default function UsageSummary() {
     {premium && start && end && <p>Расчётный период: {start} — {end} (UTC).</p>}
     {premium && !usage.gpt_period_valid && <p>Нет действующего расчётного периода Premium. GPT станет доступен после обновления периода.</p>}
     <UpgradeCTA />
+    {usage.cancel_at_period_end && <p>Продление отменено. Доступ до {formatPeriodDate(usage.scheduled_cancel_at)} (UTC).</p>}
+    {usage.subscription_status === "past_due" && <p>Не удалось продлить подписку. Обновите способ оплаты в Paddle.</p>}
+    {usage.can_manage_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.manageSubscription}>Manage subscription</button>}
+    {billing.message && <p role="status">{billing.message}</p>}
+    {billing.error && <p role="alert">{billing.error}</p>}
   </section>;
 }

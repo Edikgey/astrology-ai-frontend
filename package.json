@@ -9,6 +9,7 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@paddle/paddle-js": "1.6.5",
     "axios": "^1.8.3",
     "d3": "^7.9.0",
     "joi": "^17.13.3",

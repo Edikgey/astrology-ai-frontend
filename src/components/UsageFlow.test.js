@@ -66,14 +66,14 @@ test("guest and pending auth never request account usage; verified JWT loads ser
   await render(); expect(container.textContent).toBe(""); expect(calls("/account/usage")).toHaveLength(1);
 });
 
-test("Free upgrade opens one comparison modal with a disabled payment action", async () => {
+test("Free upgrade preserves comparison modal and disables checkout when env is missing", async () => {
   await render(); await click(button("Upgrade to Premium"));
   const modal = container.querySelector("dialog[open]");
   expect(modal.textContent).toContain("3 карты"); expect(modal.textContent).toContain("10 GPT-сообщений за всё время");
   expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 GPT-сообщений в месяц");
   const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Upgrade to Premium");
   expect(upgrade.disabled).toBe(true); await click(upgrade);
-  expect(modal.textContent).toContain("Payments coming next"); expect(global.fetch).toHaveBeenCalledTimes(1);
+  expect(modal.textContent).toContain("Оплата пока не настроена."); expect(global.fetch).toHaveBeenCalledTimes(1);
   await click(button("Закрыть")); expect(container.querySelector("dialog")).toBeNull();
 });
 
@@ -144,7 +144,7 @@ test.each(["GPT_LIMIT_REACHED", "GPT_PERIOD_INVALID"])("Premium %s never present
   await click(button("Спросить"));
   const modal = container.querySelector("dialog[open]");
   expect(modal.textContent).toContain("Premium"); expect(modal.textContent).not.toContain("Free");
-  expect(modal.textContent).not.toContain("Payments coming next"); expect(button("Upgrade to Premium")).toBeUndefined();
+  expect(modal.textContent).not.toContain("Оплата пока не настроена."); expect(button("Upgrade to Premium")).toBeUndefined();
 });
 
 test.each(["free", "premium"])("chart limit response for %s preserves the form and shows the appropriate limit state", async plan => {
@@ -154,7 +154,7 @@ test.each(["free", "premium"])("chart limit response for %s preserves the form a
   global.fetch.mockResolvedValueOnce(fail(409, { code: "CHART_LIMIT_REACHED", plan, used: serverUsage.saved_charts_limit, limit: serverUsage.saved_charts_limit }));
   await act(async () => Simulate.submit(container.querySelector("form")));
   const modal = container.querySelector("dialog[open]"); expect(modal.textContent).toContain("Достигнут лимит сохранённых карт");
-  expect(modal.textContent.includes("Payments coming next")).toBe(plan === "free");
+  expect(modal.textContent.includes("Оплата пока не настроена.")).toBe(plan === "free");
   expect(container.querySelector('[name="birthPlace"]').value).toBe("AB"); expect(mockNavigate).not.toHaveBeenCalled();
   expect(localStorage.getItem("chart_id")).toBeNull();
 });

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { BillingProvider } from "./BillingContext";
 import { useAuth } from "./AuthContext";
 import { API_URL } from "../config/api";
 import { apiError } from "../api/apiError";
@@ -84,7 +85,9 @@ export function UsageProvider({ children }) {
   const openUpgrade = () => { if (usage?.plan === "free") setModal({ key, plan: "free" }); };
 
   return <UsageContext.Provider value={{ usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade }}>
+    <BillingProvider refreshUsage={refreshUsage}>
     {children}
     {modal && <UsageModal state={modal} usage={usage} onClose={() => setModal(null)} />}
+    </BillingProvider>
   </UsageContext.Provider>;
 }

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { PLANS } from "../config/plans";
+import { useBilling } from "../context/BillingContext";
+import PremiumPrice from "./PremiumPrice";
 import "./Usage.css";
 
 export function formatPeriodDate(value) {
@@ -10,13 +12,16 @@ export function formatPeriodDate(value) {
 
 export default function UsageModal({ state, usage, onClose }) {
   const dialog = useRef(null);
+  const billing = useBilling();
   const plan = state.plan || usage?.plan;
   const free = plan === "free";
   const charts = state.codeNormalized === "chart_limit_reached";
   const periodInvalid = state.codeNormalized === "gpt_period_invalid";
   const limited = Boolean(state.codeNormalized);
   const end = formatPeriodDate(usage?.current_period_end);
-  useEffect(() => { dialog.current?.showModal(); }, []);
+  useEffect(() => {
+    if (!billing.checkoutVisible && !dialog.current?.open) dialog.current?.showModal();
+  }, [billing.checkoutVisible, billing.busy]);
   return <dialog ref={dialog} className="usage-modal" aria-labelledby="usage-modal-title" onCancel={onClose}>
     <h2 id="usage-modal-title">{limited ? (periodInvalid ? "Расчётный период Premium недоступен" :
       charts ? "Достигнут лимит сохранённых карт" : "Достигнут лимит GPT-сообщений") : "Больше возможностей с Premium"}</h2>
@@ -30,9 +35,12 @@ export default function UsageModal({ state, usage, onClose }) {
         <section><h3>Free</h3><p>{PLANS.free.chartLimit} карты</p><p>{PLANS.free.gptLimit} GPT-сообщений за всё время аккаунта</p></section>
         <section><h3>Premium</h3><p>{PLANS.premium.chartLimit} карт</p><p>{PLANS.premium.gptLimit} GPT-сообщений в месяц — за расчётный период, на весь аккаунт</p></section>
       </div>
-      <button type="button" className="usage-button" disabled aria-describedby="payments-coming">Upgrade to Premium</button>
-      <p id="payments-coming">Payments coming next — подключение оплаты появится позже. Сейчас изменить план здесь нельзя.</p>
+      <PremiumPrice />
+      <button type="button" className="usage-button" disabled={!billing.configured || billing.busy} onClick={billing.startCheckout}>Upgrade to Premium</button>
+      {!billing.configured && <p>Оплата пока не настроена.</p>}
     </> : <p>{plan === "premium" ? "Ваш текущий план — Premium." : "Лимит определяет сервер."}{end && plan === "premium" ? ` Конец расчётного периода: ${end} (UTC).` : ""}</p>}
+    {billing.message && <p role="status">{billing.message}</p>}
+    {billing.error && <p role="alert">{billing.error}</p>}
     <button type="button" className="usage-button usage-close" onClick={onClose}>Закрыть</button>
   </dialog>;
 }
