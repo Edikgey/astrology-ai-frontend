@@ -21,9 +21,19 @@
 .chat-input { border: 0; outline: none; padding: 8px; min-height: 76px; max-height: 240px; font-size: 15px; line-height: 1.6; flex: 1; }
 .chat-input:focus-visible { outline: 2px solid #799f84; outline-offset: 0; }
 .chat-send { white-space: nowrap; }
-.chat-footnote { margin: 12px 0 0; font-size: 10px; color: var(--muted); }
+
 .chart-auth-gate p { font-size: 14px; color: var(--muted); }
 .chart-auth-gate button { display: flex; width: 100%; margin-top: 12px; }
 .chart-auth-gate button:last-child { background: transparent; color: var(--muted); font-size: 12px; }
 .chart-auth-gate .modal-dismiss { display: inline-flex; width: 36px; margin: -8px -8px 8px 12px; }
 @media (max-width: 700px) { .askgpt-container { padding: 24px 16px; border-radius: 20px; } .chat-heading { flex-direction: column; gap: 14px; } .chat-heading h2 { font-size: 28px; } .chat-messages { max-height: 520px; padding-right: 0; } .message { max-width: 97%; padding: 16px; font-size: 14px; } .chat-composer { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px; } .chat-input { width: 100%; font-size: 16px; } .chat-send { align-self: flex-end; min-width: 115px; } .preset-btn { font-size: 12px; } }
+
+/* Keep composer controls comfortably inset, including after the last message. */
+.predefined-questions { gap: 10px; margin: 28px 0 20px; }
+.chat-composer { padding: 16px; gap: 20px; margin-bottom: 8px; }
+.chat-input { padding: 12px; }
+@media (max-width: 700px) {
+  .askgpt-container { padding: 24px 20px 28px; }
+  .chat-composer { padding: 12px; gap: 12px; margin-bottom: 0; }
+  .chat-input { padding: 10px; }
+}

@@ -31,3 +31,13 @@
 .detail-empty { padding: 20px 24px; margin: 0; color: var(--muted); }
 @media (max-width: 1000px) { .chart-layout { gap: 32px; padding: 28px; } .placements-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .natal-experience { gap: 32px; } .chart-layout { grid-template-columns: 1fr; padding: 20px 16px; gap: 28px; } .chart-wrapper { max-width: 500px; margin: auto; } .chart-summary { padding: 4px 8px; } .chart-summary h2 { font-size: 27px; } .chart-summary h2 br { display: none; } .placement { padding: 16px 0; } .placement strong { font-size: 19px; } .placements-grid, .house-cusps { padding-left: 16px; padding-right: 16px; } .placement-detail { grid-template-columns: 30px 1fr 36px 90px; font-size: 11px; gap: 4px; } .cusps-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Align open content with the disclosure heading. */
+.chart-details > details > summary { padding-left: 24px; padding-right: 24px; }
+.pattern-source-list { padding: 8px 24px 20px; overflow-wrap: anywhere; }
+.pattern-source-list > p { padding: 12px 0; margin: 0; font-size: 13px; line-height: 1.8; }
+.pattern-source-list > p + p { border-top: 1px solid var(--line); }
+@media (max-width: 700px) {
+  .chart-details > details > summary { padding-left: 20px; padding-right: 20px; }
+  .pattern-source-list { padding-left: 20px; padding-right: 20px; }
+}

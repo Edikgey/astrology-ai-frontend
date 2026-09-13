@@ -26,7 +26,7 @@ export default function Header() {
   };
   return <header className="site-header"><nav className="navbar shell" aria-label="Основная навигация" ref={nav}
     onKeyDown={event => { if (event.key === 'Escape' && open) { close(); toggle.current?.focus(); } }}>
-    <Link className="brand" to="/" onClick={close} aria-label="AstrologyAI — главная"><OrbitMark />Astrology<span>AI</span></Link>
+    <Link className="brand" to="/" onClick={close} aria-label="Lunaria — главная"><OrbitMark />Lunaria</Link>
     <button ref={toggle} className="nav-toggle button-secondary" aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
       aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(value => !value)}>{open ? 'Закрыть' : 'Меню'} <span aria-hidden="true">{open ? '×' : '☰'}</span></button>
     <div id="main-navigation" className={`nav-links ${open ? 'is-open' : ''}`}>

@@ -123,8 +123,8 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
     {error && <p role="alert">{error}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions">
-      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><strong>AstrologyAI</strong><div>{CHAT_INTRO}</div></div>}
-      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}><strong>{msg.user === "Вы" ? "Вы" : "AstrologyAI"}</strong><div>{msg.text}</div></div>)}
+      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><strong>Lunaria</strong><div>{CHAT_INTRO}</div></div>}
+      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}><strong>{msg.user === "Вы" ? "Вы" : "Lunaria"}</strong><div>{msg.text}</div></div>)}
       {loading && <div className="message gpt"><span role="status">Обдумываю вашу карту и вопрос...</span></div>}
     </div>
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
@@ -140,7 +140,7 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
         onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Что вам хотелось бы понять о себе?" />
       <button type="submit" className="chat-send" disabled={blocked || (authenticated && !question.trim())}>{loading ? "Отправка..." : "Спросить"}</button>
     </form>
-    <p className="chat-footnote">Ответ AI — повод для размышления, а не предсказание или профессиональный совет.</p>
+
     {gate && <dialog ref={dialog} className="chart-auth-gate" aria-labelledby="chart-auth-title" onCancel={() => setGate(false)}>
       <DialogClose onClose={() => setGate(false)} />
       <h3 id="chart-auth-title">Сохраните карту и продолжите разбор</h3>

@@ -124,7 +124,7 @@ const AuthorizationPage = () => {
         <div className="auth-benefits"><p>01 <span>Сохранённая натальная карта</span></p><p>02 <span>AI, который помнит контекст</span></p><p>03 <span>История каждого разговора</span></p></div>
       </aside>
       <div className="auth-container card">
-        <p className="eyebrow">AstrologyAI</p>
+        <p className="eyebrow">Lunaria</p>
         <h1 className="auth-title">{step === "login" ? "Рады видеть вас снова" : isCodeSent ? "Проверьте почту" : "Начните свой разговор"}</h1>
         <p className="auth-description">{step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
         {guestChart && <p className="notice">После входа попробуем сохранить открытую карту в ваш аккаунт. Ваш вопрос останется с вами.</p>}

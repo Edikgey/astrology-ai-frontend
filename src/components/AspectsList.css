@@ -4,3 +4,8 @@
 .aspects-column ul { padding-left: 18px; }
 .aspects-column li { margin: 8px 0; overflow-wrap: anywhere; }
 @media (max-width: 700px) { .aspects-columns { grid-template-columns: 1fr; gap: 16px; padding: 20px; } }
+
+.aspects-column h3 { margin: 0 0 16px; }
+.aspects-column ul { margin: 0; }
+.aspects-column li { margin: 0 0 12px; line-height: 1.8; }
+.aspects-column li:last-child { margin-bottom: 0; }
