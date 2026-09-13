@@ -93,6 +93,7 @@ const NatalChartResultPage = () => {
   patterns={chartData.patterns_data}
   structuredAspects={chartData.aspects_structured}
   houses={chartData.houses}
+  houseSystem={chartData.house_system}
 >
   {/* ✅ Передаём чат как children */}
   <section id="chart-conversation" className="result-conversation" aria-label="Разговор о вашей карте">

@@ -4,18 +4,8 @@ import NatalChart from '../components/NatalChart';
 import { OrbitMark } from '../components/UI';
 import './HomePage.css';
 
-// Illustrative positions, clearly labelled in the UI; never used for a user's calculation.
-const previewBodies = {
-  '☉': { symbol: '☉', degree: 46, sign: 'Телец', house: 2 },
-  '☽': { symbol: '☽', degree: 129, sign: 'Лев', house: 5 },
-  'AS': { symbol: 'AS', degree: 8, sign: 'Овен', house: 1 },
-  '♀': { symbol: '♀', degree: 74, sign: 'Близнецы', house: 3 },
-  '♂': { symbol: '♂', degree: 213, sign: 'Скорпион', house: 8 },
-  '♃': { symbol: '♃', degree: 300, sign: 'Водолей', house: 11 },
-};
-Object.values(previewBodies).forEach(body => { body.roundedDegree = body.degree % 30; body.sign = body.sign.toUpperCase(); });
-const previewHouses = Array.from({ length: 12 }, (_, i) => ({ symbol: String(i + 1), degree: i * 30 + 8 }));
-const previewAspects = [{ from: '☉', to: '♂', aspect: '☍' }, { from: '☽', to: '♀', aspect: '✶' }, { from: '♀', to: '♃', aspect: '△' }, { from: '♂', to: '♃', aspect: '□' }];
+// Fixed synthetic-input backend fixture; the UI explicitly labels this an example.
+import exampleChart from '../components/natal/fixtures/api-placidus.json';
 
 export default function HomePage() {
   return <div className="home-page">
@@ -27,7 +17,7 @@ export default function HomePage() {
         <p className="hero-note">Начните бесплатно. Карта без регистрации, разговор — в аккаунте.</p>
       </div>
       <div className="hero-preview"><div className="preview-top"><span>Ваша точка отсчёта</span><span className="preview-dot" /> <span>Пример карты</span></div>
-        <NatalChart bodies={previewBodies} houses={previewHouses} aspects={previewAspects} preview />
+        <NatalChart bodies={exampleChart.bodies_for_circle} houses={exampleChart.houses} aspects={exampleChart.aspects_for_circle} structuredAspects={exampleChart.aspects_structured} houseSystem={exampleChart.house_system} preview />
         <div className="preview-conversation"><span className="eyebrow">Пример разговора</span>
           <p className="preview-question">Почему мне так важно чувствовать свободу?</p>
           <div className="preview-answer"><OrbitMark /><p>Давайте посмотрим, как эта тема проявляется в вашей карте — и в вашей жизни.</p></div>
