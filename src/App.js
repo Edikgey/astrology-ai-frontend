@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { UsageProvider } from "./context/UsageContext";
@@ -18,17 +19,20 @@ import TryFreePage from "./pages/TryFreePage";
 import PricingPage from "./pages/PricingPage";
 import MyCharts from "./pages/MyCharts";
 import NatalChartResultPage from "./pages/NatalChartResultPage";
-import Dashboard from "./pages/Dashboard";
+import { LoadingState } from "./components/UI";
 import DailyHoroscopePage from "./pages/DailyHoroscopePage";
 
 // 🔹 Приватные маршруты
 function ProtectedRoute({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingState text="Проверка аккаунта..." />;
   return user ? children : <Navigate to="/authorization" />;
 }
 
 // 🔸 Основное содержимое приложения
 function AppContent() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
   return (
     <>
@@ -38,15 +42,18 @@ function AppContent() {
         declineButtonText="Отклонить"
         enableDeclineButton
         cookieName="userCookieConsent"
-        style={{ background: "#222", color: "#fff" }}
-        buttonStyle={{ background: "#4caf50", color: "#fff", fontSize: "14px" }}
-        declineButtonStyle={{ background: "#f44336", color: "#fff", fontSize: "14px" }}
+        disableStyles
+        containerClasses="cookie-banner"
+        buttonWrapperClasses="cookie-actions"
+        declineButtonClasses="button-secondary"
         expires={365}
       >
-        Мы используем файлы cookie, чтобы улучшить ваш опыт. Приняв, вы соглашаетесь с нашей политикой.
+        Разрешить необязательные cookie? Ваш выбор будет сохранён на этом устройстве.
       </CookieConsent>
 
+      <a className="skip-link" href="#main-content">К содержимому</a>
       <Header />
+      <main id="main-content" tabIndex={-1}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/try-free" element={<TryFreePage />} />
@@ -56,8 +63,10 @@ function AppContent() {
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/my-charts" element={<MyCharts />} />
         <Route path="/daily-horoscope" element={<DailyHoroscopePage />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/my-charts" replace /></ProtectedRoute>} />
       </Routes>
+      </main>
+      <Footer />
 
       
     </>

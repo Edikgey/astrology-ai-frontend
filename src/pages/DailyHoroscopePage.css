@@ -1,21 +1,2 @@
-.daily-horoscope-page {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    padding: 50px;
-    min-height: 60vh;
-    text-align: center;
-  }
-  
-  .spinner {
-    font-size: 20px;
-    color: #888;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
+.daily-horoscope-container { width: min(720px, calc(100% - 32px)); margin: 64px auto; padding: 32px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.daily-horoscope-container .error-message { color: var(--danger); }

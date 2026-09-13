@@ -3,6 +3,9 @@ import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useUsage } from '../context/UsageContext';
 import { useAuth } from '../context/AuthContext';
 import { chartRequest } from '../api/chartsApi';
+import { PageHeading, LoadingState } from '../components/UI';
+import { chartPresentation } from '../api/chartPresentation';
+import './NatalChartResultPage.css';
 import NatalChart from '../components/NatalChart';
 import AskGptForm from '../components/AskGptForm'; // Подключаем компонент чата
 
@@ -60,7 +63,7 @@ const NatalChartResultPage = () => {
   };
 
   if (error) {
-    return <div style={{ padding: "40px", textAlign: "center" }}>
+    return <div className="page result-error">
       {migrationNotice && <p role="status">{migrationNotice}</p>}
       <p role="alert">{error.message}</p>
       <button onClick={() => setReload(value => value + 1)}>Повторить</button>
@@ -70,12 +73,17 @@ const NatalChartResultPage = () => {
   }
 
   if (!chartData) {
-    return <div style={{ padding: "40px", textAlign: "center" }}>Загрузка натальной карты...</div>;
+    return <div className="page"><LoadingState text="Загрузка натальной карты..." /></div>;
   }
 
   return (
-    <div style={{ padding: "40px 0" }}>
-   {migrationNotice && <p role="status" style={{ textAlign: "center" }}>{migrationNotice} <Link to="/my-charts">Мои карты</Link></p>}
+    <div className="page result-page">
+   <PageHeading eyebrow="Ваш личный космос" title={chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
+     action={<a className="button button-secondary" href="#chart-conversation">Перейти к разговору ↓</a>}>
+     <p>Карта — отправная точка. Вы выбираете, о чём поговорить.</p>
+     {chartData.timezone && <p className="result-metadata">Часовой пояс рождения: {chartData.timezone}</p>}
+   </PageHeading>
+   {migrationNotice && <p role="status" className="notice">{migrationNotice} <Link to="/my-charts">Мои карты</Link></p>}
    <NatalChart
   key={requestKey}
   chartId={chartData.chart_id}
@@ -87,11 +95,10 @@ const NatalChartResultPage = () => {
   houses={chartData.houses}
 >
   {/* ✅ Передаём чат как children */}
-  <div style={{ marginTop: "40px", maxWidth: 640 }}>
-    <h2 style={{ textAlign: "center", marginBottom: "16px",fontFamily: "'Montserrat', sans-serif" }}>Спросить у GPT</h2>
+  <section id="chart-conversation" className="result-conversation" aria-label="Разговор о вашей карте">
     <AskGptForm chartId={chartData.chart_id} unsaved={unsaved} initialQuestion={chartAuth?.pendingQuestion || ""}
       guestSessionToken={sessionToken} onQuestionConsumed={consumeQuestion} />
-  </div>
+  </section>
 </NatalChart>
 
    

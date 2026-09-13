@@ -118,75 +118,30 @@ const AuthorizationPage = () => {
   };
 
   return (
-    <div className="auth-container">
-      <img src="img/logo/Frame6.png" alt="Logo" className="logo-img" />
-      <h2 className="auth-title">Войдите в свою учетную запись</h2>
-
-      <button className="auth-button-shadow auth-google-button">Continue with Google</button>
-
-      <div className="auth-divider">
-        <span>Или войти с помощью электронной почты</span>
-      </div>
-
-      <form onSubmit={step === "login" ? handleLogin : handleRegister} className="auth-form">
-        <label className="auth-label">Email</label>
-        <input
-          type="email"
-          placeholder="example@yandex.ru"
-          className="auth-input auth-button-shadow"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <label className="auth-label">Password</label>
-        <input
-          type="password"
-          placeholder="******"
-          className="auth-input auth-button-shadow"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {step === "register" && isCodeSent && (
-          <input
-            type="text"
-            placeholder="Код из почты"
-            className="auth-input auth-button-shadow"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            required
-          />
-        )}
-        <button type="submit" disabled={busy} className="auth-submit auth-button-shadow">
-          {step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}
-        </button>
-      </form>
-
-      <div className="auth-divider">
-        <span>или</span>
-      </div>
-
-      <div className="auth-secondary">
-        <button
-          className="auth-switch-button auth-button-shadow"
-          disabled={busy}
-          onClick={() => {
-            resetAll();
-            setStep(step === "login" ? "register" : "login");
-          }}
-        >
-          {step === "login" ? "Зарегистрироваться" : "Войти в аккаунт"}
-        </button>
-      </div>
-
-      {(error || message) && (
-        <div className={`auth-message ${error ? "error" : "success"}`}>
-          {error && <p>{error}</p>}
-          {message && <p>{message}</p>}
+    <div className="auth-page page">
+      <aside className="auth-story"><p className="eyebrow">Ваше личное пространство</p><h2>Разговор,<br />к которому хочется<br /><span>вернуться.</span></h2>
+        <p>Ваши карты, вопросы и открытия — вместе, в одном аккаунте.</p>
+        <div className="auth-benefits"><p>01 <span>Сохранённая натальная карта</span></p><p>02 <span>AI, который помнит контекст</span></p><p>03 <span>История каждого разговора</span></p></div>
+      </aside>
+      <div className="auth-container card">
+        <p className="eyebrow">AstrologyAI</p>
+        <h1 className="auth-title">{step === "login" ? "Рады видеть вас снова" : isCodeSent ? "Проверьте почту" : "Начните свой разговор"}</h1>
+        <p className="auth-description">{step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
+        {guestChart && <p className="notice">После входа попробуем сохранить открытую карту в ваш аккаунт. Ваш вопрос останется с вами.</p>}
+        <form onSubmit={step === "login" ? handleLogin : handleRegister} className="auth-form" aria-busy={busy}>
+          <label htmlFor="auth-email">Email</label>
+          <input id="auth-email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+          <label htmlFor="auth-password">Пароль</label>
+          <input id="auth-password" type="password" autoComplete={step === "login" ? "current-password" : "new-password"} placeholder="Ваш пароль" value={password} onChange={e => setPassword(e.target.value)} required />
+          {step === "register" && isCodeSent && <><label htmlFor="auth-code">Код подтверждения</label><input id="auth-code" type="text" autoComplete="one-time-code" placeholder="Код из почты" value={code} onChange={e => setCode(e.target.value)} required /></>}
+          {(error || message) && <div className="auth-message">{error && <p role="alert">{error}</p>}{message && <p className="notice" role="status">{message}</p>}</div>}
+          <button type="submit" disabled={busy} className="auth-submit">{busy ? "Подождите..." : step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
+        </form>
+        <div className="auth-secondary"><p>{step === "login" ? "Ещё нет аккаунта?" : "Уже зарегистрированы?"}</p>
+          <button className="auth-switch-button" disabled={busy} onClick={() => { resetAll(); setStep(step === "login" ? "register" : "login"); }}>{step === "login" ? "Зарегистрироваться" : "Войти в аккаунт"}</button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
-
 export default AuthorizationPage;

@@ -13,5 +13,5 @@ export default function PremiumPrice() {
       }).catch(() => {}); // Checkout still works if preview is unavailable.
     return () => { active = false; };
   }, []);
-  return <p>{price ? `${price} / месяц` : "Стоимость в вашей валюте будет показана в Paddle Checkout."} Без пробного периода.</p>;
+  return <div className="premium-price">{price ? <p className="price-value">{price} <span>/ месяц</span></p> : <p>Стоимость в вашей валюте будет показана в Paddle Checkout.</p>}<small>Базовая цена: $9.99 USD / месяц. Итоговая локальная цена — в Paddle.</small><small>Без пробного периода.</small></div>;
 }

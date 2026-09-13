@@ -39,6 +39,15 @@ test('selected HH:MM and IANA zone reach API; zero coordinates survive; no brows
   expect(mockNavigate).toHaveBeenCalledWith('/natal-chart-result/42');
 });
 
+test('optional name is attached to the created chart locally without changing the API contract', async () => {
+  await selectCity(); await change('name', 'Моя карта');
+  global.fetch.mockResolvedValueOnce(ok({ chart_id: 42 }));
+  await submit();
+  expect(JSON.parse(localStorage.getItem('chart-presentation:42'))).toEqual({ name: 'Моя карта' });
+  const [, options] = global.fetch.mock.calls.find(([url]) => url.endsWith('/natal-chart'));
+  expect(JSON.parse(options.body)).not.toHaveProperty('name');
+});
+
 test('editing birthplace invalidates coordinates and timezone from the previous selection', async () => {
   await selectCity(); await change('birthPlace', 'AB');
   expect(container.textContent).not.toContain('Europe/Berlin');

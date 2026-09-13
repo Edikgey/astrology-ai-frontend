@@ -73,11 +73,11 @@ test("guest and pending auth never request account usage; verified JWT loads ser
 });
 
 test("Free upgrade preserves comparison modal and disables checkout when env is missing", async () => {
-  await render(); await click(button("Upgrade to Premium"));
+  await render(); await click(button("Перейти на Premium"));
   const modal = container.querySelector("dialog[open]");
-  expect(modal.textContent).toContain("3 карты"); expect(modal.textContent).toContain("10 GPT-сообщений за всё время");
-  expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 GPT-сообщений в месяц");
-  const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Upgrade to Premium");
+  expect(modal.textContent).toContain("3 карты"); expect(modal.textContent).toContain("10 AI-вопросов за всё время");
+  expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 AI-вопросов в месяц");
+  const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Перейти на Premium");
   expect(upgrade.disabled).toBe(true); await click(upgrade);
   expect(modal.textContent).toContain("Оплата пока не настроена."); expect(global.fetch).toHaveBeenCalledTimes(1);
   await click(button("Закрыть")); expect(container.querySelector("dialog")).toBeNull();
@@ -88,19 +88,19 @@ test("Premium shows real billing period and pending reservations without any upg
   await render();
   expect(container.textContent).toContain("План: Premium"); expect(container.textContent).toContain("299 / 300");
   expect(container.textContent).toContain("за расчётный период"); expect(container.textContent).toContain("12.10.2026");
-  expect(container.textContent).toContain("Запросов в обработке: 1"); expect(button("Upgrade to Premium")).toBeUndefined();
+  expect(container.textContent).toContain("Запросов в обработке: 1"); expect(button("Перейти на Premium")).toBeUndefined();
 });
 
 test.each([401, 500])("usage HTTP %s shows a recoverable error, never invented Free counters", async status => {
   global.fetch.mockResolvedValueOnce(fail(status, "Failure")); await render();
   expect(container.querySelector('[role="alert"]')).not.toBeNull();
-  expect(container.textContent).not.toContain("План: Free"); expect(button("Upgrade to Premium")).toBeUndefined();
+  expect(container.textContent).not.toContain("План: Free"); expect(button("Перейти на Premium")).toBeUndefined();
   if (status === 401) expect(container.querySelector("a").getAttribute("href")).toBe("/authorization");
   else { await click(button("Обновить лимиты")); expect(container.textContent).toContain("3 / 10"); }
 });
 
 test("a late response from another JWT cannot expose usage or resurrect its modal", async () => {
-  await render(); await click(button("Upgrade to Premium"));
+  await render(); await click(button("Перейти на Premium"));
   let finish;
   global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
   await act(async () => window.dispatchEvent(new Event("focus")));
@@ -136,7 +136,7 @@ test.each(["GPT_LIMIT_REACHED", "gpt_limit_reached"])("%s retains pending questi
   serverUsage = { ...FREE, gpt_messages_used: 10 };
   global.fetch.mockResolvedValueOnce(fail(409, { code, plan: "free", used: 10, limit: 10 }));
   await click(button("Спросить"));
-  expect(container.querySelector("dialog[open]").textContent).toContain("Достигнут лимит GPT-сообщений");
+  expect(container.querySelector("dialog[open]").textContent).toContain("Достигнут лимит AI-вопросов");
   expect(container.textContent).not.toContain("Не удалось выполнить запрос");
   expect(container.querySelector("textarea").value).toBe("Pending question"); expect(consumed).not.toHaveBeenCalled();
   expect(calls("/ask-gpt")).toHaveLength(1); expect(calls("/gpt-messages")).toHaveLength(1);
@@ -150,7 +150,7 @@ test.each(["GPT_LIMIT_REACHED", "GPT_PERIOD_INVALID"])("Premium %s never present
   await click(button("Спросить"));
   const modal = container.querySelector("dialog[open]");
   expect(modal.textContent).toContain("Premium"); expect(modal.textContent).not.toContain("Free");
-  expect(modal.textContent).not.toContain("Оплата пока не настроена."); expect(button("Upgrade to Premium")).toBeUndefined();
+  expect(modal.textContent).not.toContain("Оплата пока не настроена."); expect(button("Перейти на Premium")).toBeUndefined();
 });
 
 test.each(["free", "premium"])("chart limit response for %s preserves the form and shows the appropriate limit state", async plan => {

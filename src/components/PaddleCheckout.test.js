@@ -44,8 +44,8 @@ afterEach(async () => {
 });
 const render = async () => act(async () => root.render(<UsageProvider><UsageSummary /><textarea defaultValue="Pending question" /></UsageProvider>));
 const click = async button => act(async () => button.click());
-const upgrade = () => [...container.querySelectorAll("button")].find(b => b.textContent === "Upgrade to Premium");
-const open = async () => { await render(); await click(upgrade()); await click(container.querySelector("dialog button")); };
+const upgrade = () => [...container.querySelectorAll("button")].find(b => b.textContent === "Перейти на Premium");
+const open = async () => { await render(); await click(upgrade()); await click(container.querySelector("dialog button.usage-button:not(.usage-close)")); };
 
 test("authenticated upgrade opens sandbox server transaction and preserves pending question", async () => {
   await open();
@@ -76,7 +76,7 @@ test("logout while checkout request is pending cannot open checkout for stale id
   await render(); await click(upgrade());
   let finish;
   global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await click(container.querySelector("dialog button"));
+  await click(container.querySelector("dialog button.usage-button:not(.usage-close)"));
   mockAuth = { user: null, token: null, loading: false }; localStorage.clear(); await render();
   await act(async () => finish(ok({ transaction_id: TXN, price_id: PRICE })));
   expect(paddle.Checkout.open).not.toHaveBeenCalled();
@@ -88,7 +88,7 @@ test("guest cannot launch payment; server errors do not lose modal or draft", as
   mockAuth = { user: { id: 1 }, token: "jwt", loading: false }; localStorage.setItem("access_token", "jwt");
   await render(); await click(upgrade());
   global.fetch.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ detail: "Paddle Sandbox is not configured" }) });
-  await click(container.querySelector("dialog button"));
+  await click(container.querySelector("dialog button.usage-button:not(.usage-close)"));
   expect(paddle.Checkout.open).not.toHaveBeenCalled();
   expect(container.querySelector("dialog").open).toBe(true);
   expect(container.textContent).toContain("Paddle Sandbox is not configured");
@@ -99,7 +99,7 @@ test("manage subscription opens fresh server portal URL without iframe", async (
   const tab = { opener: {}, location: {}, close: jest.fn() };
   jest.spyOn(window,"open").mockReturnValue(tab);
   serverUsage = { ...free, plan: "premium", can_manage_subscription: true };
-  await render(); await click([...container.querySelectorAll("button")].find(b => b.textContent === "Manage subscription"));
+  await render(); await click([...container.querySelectorAll("button")].find(b => b.textContent === "Управлять подпиской"));
   expect(tab.opener).toBeNull();
   expect(tab.location.href).toBe("https://sandbox-customer-portal.paddle.com/example");
   expect(global.fetch.mock.calls.find(([url]) => url.endsWith("/portal"))[1].headers.Authorization).toBe("Bearer jwt");

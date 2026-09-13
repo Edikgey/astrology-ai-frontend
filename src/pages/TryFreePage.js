@@ -1,5 +1,7 @@
 // ...импорт как есть
 import { API_URL } from "../config/api";
+import { saveChartPresentation } from "../api/chartPresentation";
+import { PageHeading, OrbitMark } from "../components/UI";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -94,6 +96,7 @@ export const calculateNatalChart = async (formData) => {
 
     localStorage.setItem("natalChart", JSON.stringify(data));
     localStorage.setItem("chart_id", data.chart_id);
+    saveChartPresentation(data.chart_id, formData);
     return data;
   } catch (error) {
     console.error("❌ Ошибка при расчёте натальной карты:", error);
@@ -244,28 +247,38 @@ const TryFreePage = () => {
   };
 
   return (
-    <div className="tryfree-container">
-      <div className="tryfree-form">
-        <h2>Создать свою натальную карту</h2>
+    <div className="tryfree-container page">
+      <aside className="create-intro">
+        <PageHeading eyebrow="Начните с себя" title="Ваша история начинается здесь.">
+          <p>Несколько деталей рождения — и перед вами ваша персональная натальная карта.</p>
+        </PageHeading>
+        <div className="create-note"><OrbitMark /><h3>Время имеет значение</h3><p>Укажите местное время рождения, включая минуты. Часовой пояс определится по выбранному месту.</p><p>Чем точнее исходные данные, тем полезнее разбор.</p></div>
         {user && <UsageSummary />}
-        <form onSubmit={handleSubmit}>
-          <label>Дата рождения:</label>
-          <div className="date-selects">
-            <select name="year" value={formData.year} onChange={handleChange}>{years.map(y => <option key={y}>{y}</option>)}</select>
-            <select name="month" value={formData.month} onChange={handleChange}>{months.map(m => <option key={m}>{m}</option>)}</select>
-            <select name="day" value={formData.day} onChange={handleChange}>{days.map(d => <option key={d}>{d}</option>)}</select>
+      </aside>
+      <div className="tryfree-form card">
+        <div className="form-heading"><span className="eyebrow">Новая натальная карта</span><h2>Расскажите о себе</h2></div>
+        <form onSubmit={handleSubmit} aria-busy={submitting}>
+          <label htmlFor="chart-name">Имя или название карты <span className="muted">· необязательно</span></label>
+          <input id="chart-name" name="name" value={formData.name} maxLength={80} onChange={handleChange} placeholder="Как назвать вашу карту?" autoComplete="given-name" aria-describedby="chart-name-hint" />
+          <p className="field-hint" id="chart-name-hint">Подпись сохранится только на этом устройстве.</p>
+          <div className="field-label" id="birth-date-label">Дата рождения</div>
+          <div className="date-selects" role="group" aria-labelledby="birth-date-label">
+            <select aria-label="Год рождения" name="year" value={formData.year} onChange={handleChange}>{years.map(y => <option key={y}>{y}</option>)}</select>
+            <select aria-label="Месяц рождения" name="month" value={formData.month} onChange={handleChange}>{months.map(m => <option key={m}>{m}</option>)}</select>
+            <select aria-label="День рождения" name="day" value={formData.day} onChange={handleChange}>{days.map(d => <option key={d}>{d}</option>)}</select>
           </div>
 
-          <label>Время рождения:</label>
-          <div className="time-selects">
-            <select name="hour" value={formData.hour} onChange={handleChange}>{hours.map(h => <option key={h}>{h}</option>)}</select>
-            <select name="minute" value={formData.minute} onChange={handleChange}>{minutes.map(m => <option key={m}>{m}</option>)}</select>
+          <div className="field-label" id="birth-time-label">Местное время рождения</div>
+          <div className="time-selects" role="group" aria-labelledby="birth-time-label">
+            <select aria-label="Часы рождения" name="hour" value={formData.hour} onChange={handleChange}>{hours.map(h => <option key={h}>{h}</option>)}</select>
+            <select aria-label="Минуты рождения" name="minute" value={formData.minute} onChange={handleChange}>{minutes.map(m => <option key={m}>{m}</option>)}</select>
           </div>
 
-          <label>Место рождения:</label>
+          <label className="field-label" htmlFor="birth-place">Место рождения</label>
           <input
             type="text"
             name="birthPlace"
+            id="birth-place"
             placeholder="Введите город"
             value={formData.birthPlace}
             onChange={handleChange}
@@ -281,10 +294,10 @@ const TryFreePage = () => {
               }
             }}
           />
-          <p id="location-status" role={locationError ? "alert" : undefined}>
+          <p className="field-hint" id="location-status" role={locationError ? "alert" : undefined}>
             {locationError || (formData.selectedLocation ? "Место выбрано из подсказок." : "Введите город и выберите вариант с нужной областью и страной.")}
           </p>
-          {formData.timezone && <p>Часовой пояс места рождения: {formData.timezone}</p>}
+          {formData.timezone && <p className="selected-timezone"><span aria-hidden="true">✓</span> Часовой пояс места рождения: <strong>{formData.timezone}</strong></p>}
           {timeOptions.length > 0 && <label>Вариант времени при переводе часов:
             <select name="timeFold" value={formData.timeFold} onChange={handleChange}>
               <option value="">Выберите UTC-смещение</option>
@@ -312,7 +325,9 @@ const TryFreePage = () => {
           )}
 
           {submitError && <p role="alert">{submitError}</p>}
-          <button type="submit" disabled={submitting}>{submitting ? "Расчёт..." : "Рассчитать карту"}</button>
+          <button className="calculate-button" type="submit" disabled={submitting}>{submitting ? "Расчёт..." : "Рассчитать карту"}</button>
+          {submitting && <p className="field-hint" role="status">Рассчитываем положения планет и домов. Это займёт немного времени.</p>}
+          {!user && <p className="form-footnote">Создание карты бесплатно. Сохранить её и начать AI-разговор можно после регистрации.</p>}
         </form>
       </div>
     </div>

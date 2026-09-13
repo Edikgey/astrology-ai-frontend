@@ -2,7 +2,7 @@ import React from "react";
 import "./PatternVisualizer.css";
 
 const PatternVisualizer = ({ patterns }) => {
-  const grouped = patterns.reduce((acc, p) => {
+  const grouped = (patterns || []).reduce((acc, p) => {
     if (!acc[p.type]) acc[p.type] = [];
     acc[p.type].push(p);
     return acc;
@@ -17,7 +17,7 @@ const PatternVisualizer = ({ patterns }) => {
           <div className="patterns-row">
             {group.map((pattern, i) => (
               <div key={i} className="pattern-card">
-                <svg width="170" height="180" className="pattern-svg">
+                <svg viewBox="0 0 170 180" width="170" height="180" className="pattern-svg">
                   <circle cx="85" cy="90" r="60" stroke="#ccc" fill="none" />
                   {pattern.bodies.map((body, i) => {
                     const angle = (i / pattern.bodies.length) * 2 * Math.PI;

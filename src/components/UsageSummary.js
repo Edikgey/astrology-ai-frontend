@@ -6,7 +6,7 @@ import "./Usage.css";
 
 export function UpgradeCTA() {
   const { usage, openUpgrade } = useUsage();
-  return usage?.plan === "free" ? <button type="button" className="usage-button" onClick={openUpgrade}>Upgrade to Premium</button> : null;
+  return usage?.plan === "free" ? <button type="button" className="usage-button" onClick={openUpgrade}>Перейти на Premium</button> : null;
 }
 
 export default function UsageSummary() {
@@ -24,14 +24,14 @@ export default function UsageSummary() {
   return <section className="usage-summary" aria-label="Использование аккаунта" aria-busy={usageLoading}>
     <strong>План: {premium ? "Premium" : usage.plan === "free" ? "Free" : usage.plan}</strong>
     <p>Сохранено карт: {usage.saved_charts_used} / {usage.saved_charts_limit}</p>
-    <p>GPT-сообщения: {usage.gpt_messages_used} / {usage.gpt_messages_limit} — {usage.gpt_limit_type === "billing_period" ? "за расчётный период" : "за всё время аккаунта"}</p>
+    <p>AI-вопросы: {usage.gpt_messages_used} / {usage.gpt_messages_limit} — {usage.gpt_limit_type === "billing_period" ? "за расчётный период" : "за всё время аккаунта"}</p>
     {usage.gpt_messages_reserved > 0 && <p>Запросов в обработке: {usage.gpt_messages_reserved}. Они временно занимают лимит.</p>}
     {premium && start && end && <p>Расчётный период: {start} — {end} (UTC).</p>}
-    {premium && !usage.gpt_period_valid && <p>Нет действующего расчётного периода Premium. GPT станет доступен после обновления периода.</p>}
+    {premium && !usage.gpt_period_valid && <p>Нет действующего расчётного периода Premium. AI-чат станет доступен после обновления периода.</p>}
     <UpgradeCTA />
     {usage.cancel_at_period_end && <p>Продление отменено. Доступ до {formatPeriodDate(usage.scheduled_cancel_at)} (UTC).</p>}
     {usage.subscription_status === "past_due" && <p>Не удалось продлить подписку. Обновите способ оплаты в Paddle.</p>}
-    {usage.can_manage_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.manageSubscription}>Manage subscription</button>}
+    {usage.can_manage_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.manageSubscription}>Управлять подпиской</button>}
     {billing.message && <p role="status">{billing.message}</p>}
     {billing.error && <p role="alert">{billing.error}</p>}
   </section>;

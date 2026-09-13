@@ -136,7 +136,7 @@ test("guest creation keeps the existing API flow, renders the result, and never 
   mockLocation = { pathname: "/natal-chart-result/7", state: null };
   await render(<NatalChartResultPage />);
   expect(container.querySelector("[data-chart]").dataset.chart).toBe("7");
-  expect(container.textContent).toContain("Я уже посмотрел вашу карту");
+  expect(container.textContent).toContain("Карта готова");
   expect(gptCalls()).toHaveLength(0);
   await render(<MyCharts />);
   expect(global.fetch.mock.calls.some(([url]) => url.includes("/natal-charts"))).toBe(false);

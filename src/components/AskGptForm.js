@@ -5,9 +5,10 @@ import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiError } from "../api/apiError";
 import UsageSummary from "./UsageSummary";
+import { DialogClose } from "./UI";
 import "./AskGptChat.css";
 
-export const CHAT_INTRO = "Я уже посмотрел вашу карту. Могу помочь разобрать характер, отношения, карьеру или сильные стороны.";
+export const CHAT_INTRO = "Карта готова. Давайте поговорим о том, что важно для вас: характере, отношениях, работе или сильных сторонах.";
 const QUESTIONS = ["Какие у меня сильные стороны?", "Что у меня с отношениями?", "Какая карьера мне подходит?"];
 const requestError = status => status === 401 ? "Сессия истекла. Войдите снова." :
   status === 403 || status === 404 ? "Чат этой карты недоступен для вашего аккаунта." :
@@ -34,11 +35,15 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
   const [gate, setGate] = useState(false);
   const dialog = useRef(null);
   const input = useRef(null);
+  const history = useRef(null);
   const sending = useRef(null);
   const navigate = useNavigate();
   const canChat = authenticated && !unsaved;
 
   useEffect(() => () => sending.current?.abort(), []);
+  useEffect(() => {
+    if (history.current) history.current.scrollTop = history.current.scrollHeight;
+  }, [messages, loading]);
   useEffect(() => { if (gate) dialog.current?.showModal(); }, [gate]);
   useEffect(() => {
     const controller = new AbortController();
@@ -111,16 +116,16 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
   };
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
   return <div className="askgpt-container">
-    <h4>Чат с GPT</h4>
-    {authenticated && <UsageSummary />}
+    <div className="chat-heading"><div><p className="eyebrow">Ваш персональный AI-астролог</p><h2>Поговорим о вас</h2><p>Задайте вопрос по карте или продолжите предыдущую мысль.</p></div><span className="badge badge-accent">AI · по вашей карте</span></div>
+    {authenticated && <details className="chat-usage"><summary>Ваш план и доступные вопросы</summary><UsageSummary /></details>}
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
     {error && <p role="alert">{error}</p>}
-    <div className="chat-messages">
-      {!authenticated && <div className="message gpt"><strong>AI:</strong> {CHAT_INTRO}</div>}
-      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}><strong>{msg.user}:</strong> {msg.text}</div>)}
-      {loading && <div className="message gpt"><em>GPT печатает...</em></div>}
+    <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions">
+      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><strong>AstrologyAI</strong><div>{CHAT_INTRO}</div></div>}
+      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}><strong>{msg.user === "Вы" ? "Вы" : "AstrologyAI"}</strong><div>{msg.text}</div></div>)}
+      {loading && <div className="message gpt"><span role="status">Обдумываю вашу карту и вопрос...</span></div>}
     </div>
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
     <div className="predefined-questions">
@@ -128,14 +133,16 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
         onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
       <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
     </div>
-    <form onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
+    <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
       <textarea ref={input} aria-label="Ваш вопрос" rows={2} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
-        onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Введите вопрос..." />
+        onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Что вам хотелось бы понять о себе?" />
       <button type="submit" className="chat-send" disabled={blocked || (authenticated && !question.trim())}>{loading ? "Отправка..." : "Спросить"}</button>
     </form>
+    <p className="chat-footnote">Ответ AI — повод для размышления, а не предсказание или профессиональный совет.</p>
     {gate && <dialog ref={dialog} className="chart-auth-gate" aria-labelledby="chart-auth-title" onCancel={() => setGate(false)}>
+      <DialogClose onClose={() => setGate(false)} />
       <h3 id="chart-auth-title">Сохраните карту и продолжите разбор</h3>
       <p>Создайте бесплатный аккаунт, чтобы сохранить эту натальную карту и начать персональный AI-чат.</p>
       <button type="button" className="chat-send" onClick={() => startAuth("register")}>Продолжить бесплатно</button>

@@ -1,46 +1,23 @@
-.charts-container {
-    max-width: 500px;
-    margin: auto;
-    padding: 20px;
-    background: #1d0e47;
-    color: white;
-    border-radius: 10px;
-    text-align: center;
-  }
-  
-  .charts-container input {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid white;
-    background: transparent;
-    color: white;
-  }
-  
-  .charts-container button {
-    width: 100%;
-    padding: 10px;
-    background: #7a5cff;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 5px;
-    margin-top: 10px;
-  }
-  
-  .charts-container button:hover {
-    background: #6148cc;
-  }
-
-  .charts-container button:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-
-  .charts-container a { color: #ded1ff; }
-
-  .saved-charts-list { list-style: none; padding: 0; text-align: left; }
-  .saved-charts-list li { border: 1px solid #7a5cff; border-radius: 10px; padding: 16px; margin-top: 16px; overflow-wrap: anywhere; }
-  .local-chart-profile { margin-top: 24px; }
-  .local-chart-profile summary { cursor: pointer; }
+.charts-container { max-width: 1100px; }
+.account-plan { margin-bottom: 32px; }
+.account-plan summary { font-size: 13px; }
+.account-plan .usage-summary { border: none; margin: 0; }
+.charts-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 32px 0 24px; }
+.charts-toolbar strong { font-size: 20px; }
+.charts-toolbar p { color: var(--muted); font-size: 12px; margin: 8px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.saved-charts-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; list-style: none; padding: 0; margin: 0; }
+.saved-charts-list > li { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.saved-chart-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.saved-chart-heading .orbit-mark { width: 44px; height: 44px; color: var(--accent); }
+.saved-chart-heading .badge { color: var(--muted); }
+.saved-charts-list h3 { font-size: 22px; margin-bottom: 20px; overflow-wrap: anywhere; }
+.saved-charts-list p { font-size: 12px; color: var(--muted); margin: 0 0 8px; overflow-wrap: anywhere; }
+.saved-chart-actions { display: flex; gap: 10px; padding-top: 24px; margin-top: auto; }
+.saved-chart-actions button { padding: 9px 16px; font-size: 12px; flex: 1; }
+.local-chart-profile { margin: 40px 0 24px; }
+.local-chart-profile summary { font-size: 12px; color: var(--muted); }
+.local-chart-profile > p { padding: 24px 24px 0; font-size: 12px; }
+.local-chart-profile form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 0 24px 24px; }
+.back-home { font-size: 12px; }
+@media (max-width: 1000px) { .saved-charts-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .saved-charts-list { grid-template-columns: 1fr; } .charts-toolbar { align-items: stretch; flex-direction: column; gap: 18px; } .charts-toolbar > button { width: 100%; } .local-chart-profile form { grid-template-columns: 1fr; padding: 0 16px 20px; } }

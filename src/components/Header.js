@@ -1,79 +1,41 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { UpgradeCTA } from "./UsageSummary";
-import "./Header.css";
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useUsage } from '../context/UsageContext';
+import { OrbitMark } from './UI';
+import './Header.css';
 
-const Header = () => {
-  const { user, logout, loading, activeGuestChart } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+export default function Header() {
+  const { user, loading, logout, activeGuestChart } = useAuth();
+  const { usage } = useUsage();
+  const [open, setOpen] = useState(false);
+  const nav = useRef(null);
+  const toggle = useRef(null);
   const navigate = useNavigate();
-
-  return (
-    <nav className="navbar">
-      <div className="nav-left">
-        <Link to="/">Главная</Link>
-        
-      </div>
-
-      <div className="nav-right">
-        {user && <UpgradeCTA />}
-        {user ? (
-          <div className="user-menu">
-            <div
-              className="avatar-container"
-              onClick={() => setMenuOpen((prev) => !prev)}
-            >
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt="User Avatar"
-                  className="user-avatar"
-                  width={40}
-                  height={40}
-                  style={{ borderRadius: "50%", objectFit: "cover" }}
-                />
-              ) : (
-                <div className="user-avatar-placeholder">
-                  {user?.email?.[0]?.toUpperCase() || "U"}
-                </div>
-              )}
-
-              {menuOpen && (
-                <div
-                  className="dropdown-menu"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Link to="/my-charts">My Charts</Link>
-                  <Link to="/my-reports">My Reports</Link>
-                  <Link to="/my-calendar">My Calendar</Link>
-                  <Link to="/daily-horoscope">Daily Horoscope</Link>
-                  <Link to="/settings">User Settings</Link>
-                  <hr />
-                  <button
-                    onClick={() => {
-                      logout();              // ✅ работает корректно
-                      setMenuOpen(false);
-                      navigate("/");
-                    }}
-                    className="logout-btn"
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <button className="login-btn" disabled={loading} onClick={() => navigate("/authorization", activeGuestChart ? { state: {
-            guestChart: activeGuestChart, returnTo: `/natal-chart-result/${activeGuestChart.chartId}`,
-          } } : undefined)}>
-            Войти / Регистрация
-          </button>
-        )}
-      </div>
-    </nav>
-  );
-};
-
-export default Header;
+  useEffect(() => {
+    const outside = event => { if (!nav.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, []);
+  const close = () => setOpen(false);
+  const login = () => {
+    close();
+    navigate('/authorization', activeGuestChart ? { state: {
+      guestChart: activeGuestChart, returnTo: `/natal-chart-result/${activeGuestChart.chartId}`,
+    } } : undefined);
+  };
+  return <header className="site-header"><nav className="navbar shell" aria-label="Основная навигация" ref={nav}
+    onKeyDown={event => { if (event.key === 'Escape' && open) { close(); toggle.current?.focus(); } }}>
+    <Link className="brand" to="/" onClick={close} aria-label="AstrologyAI — главная"><OrbitMark />Astrology<span>AI</span></Link>
+    <button ref={toggle} className="nav-toggle button-secondary" aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
+      aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(value => !value)}>{open ? 'Закрыть' : 'Меню'} <span aria-hidden="true">{open ? '×' : '☰'}</span></button>
+    <div id="main-navigation" className={`nav-links ${open ? 'is-open' : ''}`}>
+      <Link to="/try-free" onClick={close}>Создать карту</Link>
+      {user && <Link to="/my-charts" onClick={close}>Мои карты</Link>}
+      <Link to="/pricing" onClick={close}>Free & Premium</Link>
+      {user ? <div className="nav-account"><Link to="/pricing" className="badge badge-accent" onClick={close}>{usage?.plan === 'premium' ? 'Premium' : usage?.plan === 'free' ? 'Free' : 'Аккаунт'}</Link>
+        <button className="button-secondary" onClick={() => { close(); logout(); navigate('/'); }}>Выйти</button></div> :
+        <button className="login-btn button-secondary" disabled={loading} onClick={login}>Войти</button>}
+    </div>
+  </nav></header>;
+}

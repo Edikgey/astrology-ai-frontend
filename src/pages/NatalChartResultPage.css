@@ -1,49 +1,5 @@
-body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #180031, #3a0057, #000000);
-    font-family: 'Montserrat', sans-serif;
-
-    color: white;
-  }
-  
-  .natal-chart-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    height: 100vh;
-    width: 80%;
-    margin: auto;
-  }
-  
-  .natal-chart-container h1 {
-    font-size: 28px;
-    margin-bottom: 20px;
-  }
-  
-  .natal-chart-container p {
-    font-size: 18px;
-    max-width: 600px;
-    line-height: 1.5;
-  }
-  
-  .full-calculation-btn {
-    margin-top: 20px;
-    padding: 12px 24px;
-    border: none;
-    background-color: #9500ff;
-    color: white;
-    font-size: 18px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  
-  .full-calculation-btn:hover {
-    background-color: #6a0dad;
-  }
-  
+.result-metadata { font-size: 12px; margin-top: 8px; overflow-wrap: anywhere; }
+.result-error { text-align: center; padding-top: 80px; }
+.result-conversation { width: 100%; scroll-margin-top: 24px; }
+.result-page .page-heading h1 { overflow-wrap: anywhere; }
+.result-page .page-heading > .button { flex-shrink: 0; }

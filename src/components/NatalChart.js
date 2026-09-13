@@ -5,7 +5,7 @@ import "./AspectsList.css";
 import "./NatalChart.css";
 
 // Основной компонент, получающий данные карты
-const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, children }) => {
+const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, children, preview = false }) => {
   const ref = useRef();
 
   const [visiblePlanets, setVisiblePlanets] = useState(() => {
@@ -24,7 +24,7 @@ const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, chil
     return initial;
   });
   
-  const [showToggles, setShowToggles] = useState(true);
+  const [showToggles, setShowToggles] = useState(false);
  
 
   
@@ -60,9 +60,9 @@ const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, chil
   .attr("viewBox", `0 0 ${width} ${height}`)
   .attr("preserveAspectRatio", "xMidYMid meet")
   .attr("class", "responsive-svg") // 👈 вместо width/height
-  .style("background", "#f7f0fa")
+  .style("background", "#ffffff")
   .style("border-radius", "12px")
-  .style("box-shadow", "0 0 12px rgba(0,0,0,0.1)");
+  .style("box-shadow", "none");
 
 
     svg.selectAll("*").remove(); // Очистка SVG перед отрисовкой
@@ -71,7 +71,7 @@ const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, chil
 
     // 🔵 Фон: фиолетовый + белые круги
     const bg = g.append("g").attr("id", "background");
-    bg.append("circle").attr("r", radiusZodiacOuter).attr("fill", "#4B0082");
+    bg.append("circle").attr("r", radiusZodiacOuter).attr("fill", "#2c5c4f");
     bg.append("circle").attr("r", radiusZodiacInner).attr("fill", "white");
     bg.append("circle").attr("r", whiteCircleOuter).attr("fill", "white");
     bg.append("circle").attr("r", whiteCircleInner).attr("fill", "white");
@@ -180,7 +180,7 @@ sortedSigns.forEach(({ sign, avgDeg }) => {
     .attr("fill", "white")
     .attr("font-family", "Roboto, sans-serif")
     .attr("font-size", "14px")
-    .text(zodiacSymbolsMap[sign] || sign);
+    .text((zodiacSymbolsMap[sign] || sign) + '\uFE0E');
 });
 
 // === Добавляем первый знак в конец для замыкания круга ===
@@ -333,7 +333,7 @@ sortedBodies.forEach(([key, body]) => {
       .attr("dominant-baseline", "central")
       .attr("fill", color)
       .attr("class", "planet-degree")
-      .text(`${body.roundedDegree}°`);
+      .text(String(body.roundedDegree ?? '').replace(/°?$/, '°'));
   }
 });
 
@@ -456,95 +456,35 @@ topOverlay.append("text")
   }, [bodies, aspects, houses, visiblePlanets, visibleAspects]);
 
 
- return (
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 30 }}>
-    {/* Карта и переключатели */}
-    <div className="chart-layout">
+  if (preview) return <div className="chart-preview"><svg ref={ref} role="img" aria-label="Иллюстративная натальная карта" /></div>;
+  const placements = Object.values(bodies || {});
+  const bigThree = [{ symbol: "☉", label: "Солнце", hint: "Идентичность и стремления" }, { symbol: "☽", label: "Луна", hint: "Чувства и внутренний мир" }, { symbol: "AS", label: "Асцендент", hint: "Как вы встречаете мир" }];
+  return <div className="natal-experience">
+    <section className="chart-layout card" aria-label="Натальная карта и основные положения">
       <div className="chart-wrapper">
-        <svg ref={ref}></svg>
+        {houses?.length === 12 ? <svg ref={ref} role="img" aria-label="Натальная карта: планеты, дома и аспекты" /> : <p className="notice">В этой карте нет сохранённых домов. Для полного круга создайте новую карту с точным временем рождения.</p>}
+        <button className="toggle-button button-secondary" aria-expanded={showToggles} aria-controls="chart-filters" onClick={() => setShowToggles(value => !value)}>{showToggles ? "Скрыть настройки карты" : "Настроить отображение"}</button>
+        {showToggles && <div id="chart-filters" className="chart-toggles">
+          <h3>Планеты и точки</h3><div className="checkbox-group">{Object.keys(visiblePlanets).map(symbol => <label key={symbol}><input type="checkbox" checked={visiblePlanets[symbol]} onChange={() => setVisiblePlanets(prev => ({ ...prev, [symbol]: !prev[symbol] }))} />{symbol}</label>)}</div>
+          <h3>Аспекты</h3><div className="checkbox-group">{Object.keys(visibleAspects).map(asp => <label key={asp}><input type="checkbox" checked={visibleAspects[asp]} onChange={() => setVisibleAspects(prev => ({ ...prev, [asp]: !prev[asp] }))} />{asp}</label>)}</div>
+        </div>}
       </div>
-
-      <div className="chart-toggles">
-        <button
-          onClick={() => setShowToggles(prev => !prev)}
-          className="toggle-button"
-        >
-          {showToggles ? "Скрыть переключатели" : "Показать переключатели"}
-        </button>
-
-        {showToggles && (
-          <>
-            <h3>Планеты:</h3>
-            <div className="checkbox-group">
-              {Object.keys(visiblePlanets).map((symbol) => (
-                <label key={symbol}>
-                  <input
-                    type="checkbox"
-                    checked={visiblePlanets[symbol]}
-                    onChange={() =>
-                      setVisiblePlanets((prev) => ({
-                        ...prev,
-                        [symbol]: !prev[symbol],
-                      }))
-                    }
-                  />
-                  {symbol}
-                </label>
-              ))}
-            </div>
-
-            <h3>Аспекты:</h3>
-            <div className="checkbox-group">
-              {Object.keys(visibleAspects).map((asp) => (
-                <label key={asp}>
-                  <input
-                    type="checkbox"
-                    checked={visibleAspects[asp]}
-                    onChange={() =>
-                      setVisibleAspects((prev) => ({
-                        ...prev,
-                        [asp]: !prev[asp],
-                      }))
-                    }
-                  />
-                  {asp}
-                </label>
-              ))}
-            </div>
-          </>
-        )}
+      <div className="chart-summary"><p className="eyebrow">Три опоры вашей карты</p><h2>Разные стороны<br />одного человека.</h2>
+        {bigThree.map(item => { const body = placements.find(b => b.symbol === item.symbol); return <div className="placement" key={item.symbol}>
+          <span className="placement-symbol" aria-hidden="true">{item.symbol === 'AS' ? '↗' : item.symbol}</span>
+          <div><span className="placement-label">{item.label}</span><strong className="placement-sign">{body?.sign?.toLowerCase() || 'Нет данных'}</strong><p>{item.hint}{body?.house != null ? ` · Дом ${body.house}` : ''}</p></div>
+        </div>; })}
+        <p className="chart-system">Положения из сохранённого расчёта. Дома: Плацидус.</p>
       </div>
-    </div>
-
-    {/* Дети и аспекты */}
+    </section>
     {children}
-    <PatternVisualizer patterns={patterns} />
-    <div className="aspects-wrapper">
-      <h3>Аспекты:</h3>
-      <div className="aspects-columns">
-        <div className="aspects-column">
-          <strong>Мажорные:</strong>
-          <ul>
-            {structuredAspects?.major.map((asp, i) => (
-              <li key={i}>{asp}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="aspects-column">
-          <strong>Минорные:</strong>
-          <ul>
-            {structuredAspects?.minor.map((asp, i) => (
-              <li key={i}>{asp}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-  
-  
+    <section className="chart-details" aria-label="Подробности карты"><div className="details-heading"><p className="eyebrow">Для любопытных</p><h2>Посмотреть глубже</h2><p>Все положения и связи — в деталях вашей карты.</p></div>
+      <details><summary>Планеты и дома</summary><div className="placements-grid">{placements.map((body, index) => <div className="placement-detail" key={index}><strong title={body.label}>{body.symbol}</strong><span>{body.sign || '—'}</span><span>{body.roundedDegree != null ? String(body.roundedDegree).replace(/°?$/, '°') : '—'}</span><span>{body.house != null ? `Дом ${body.house}` : 'Дом не указан'}</span></div>)}</div>
+        {houses?.length > 0 && <div className="house-cusps"><h3>Куспиды домов</h3><div className="cusps-grid">{houses.map((house, index) => <p key={index}><span>Дом {house.symbol || index + 1}</span><strong>{Number.isFinite(house.degree) ? `${house.degree.toFixed(2)}°` : '—'}</strong></p>)}</div></div>}
+      </details>
+      <details><summary>Аспекты</summary><div className="aspects-columns">{[['major', 'Мажорные'], ['minor', 'Минорные']].map(([key, label]) => <div className="aspects-column" key={key}><h3>{label}</h3>{structuredAspects?.[key]?.length ? <ul>{structuredAspects[key].map((asp, i) => <li key={i}>{asp}</li>)}</ul> : <p className="muted">Нет сохранённых аспектов.</p>}</div>)}</div></details>
+      <details><summary>Конфигурации планет</summary>{patterns?.length ? <PatternVisualizer patterns={patterns} /> : <p className="detail-empty">В этой карте нет сохранённых конфигураций.</p>}</details>
+    </section>
+  </div>;
 };
-
 export default NatalChart;

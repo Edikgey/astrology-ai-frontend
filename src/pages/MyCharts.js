@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { chartRequest } from "../api/chartsApi";
 import { useUsage } from "../context/UsageContext";
+import { PageHeading, LoadingState, EmptyState, OrbitMark } from "../components/UI";
+import { chartPresentation } from "../api/chartPresentation";
 import UsageSummary from "../components/UsageSummary";
 import "./MyCharts.css"; // Стили
 
@@ -69,7 +71,7 @@ const MyCharts = () => {
   useEffect(() => {
     const savedData = localStorage.getItem("userData");
     if (savedData) {
-      setFormData(JSON.parse(savedData));
+      try { setFormData(JSON.parse(savedData)); } catch { /* Ignore a malformed optional local profile. */ }
     }
   }, []);
 
@@ -86,37 +88,37 @@ const MyCharts = () => {
   };
 
   return (
-    <div className="charts-container">
-      <h2>Мои карты</h2>
+    <div className="charts-container page">
+      <PageHeading eyebrow="Личное пространство" title="Мои карты"><p>Знакомые истории. Новые открытия. Выберите карту, чтобы продолжить разговор.</p></PageHeading>
       {!hasToken || error?.status === 401 ? (
         <p>Войдите в аккаунт, чтобы увидеть свои карты. <Link to="/authorization">Войти</Link></p>
       ) : (
         <>
-          {user && <UsageSummary />}
+          {user && <details className="account-plan"><summary>Ваш план и использование аккаунта</summary><UsageSummary /></details>}
           {error && <p role="alert">{error.message}</p>}
           {error && <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button>}
-          {!currentResult && !error && <p role="status">Загрузка карт...</p>}
+          {!currentResult && !error && <LoadingState text="Загрузка карт..." />}
           {currentResult && (
             <>
-              {!usage && <p>Сохранено карт: {savedCount} / {savedLimit}</p>}
-              <button disabled={chartLimitReached} onClick={() => navigate("/try-free")}>Создать карту</button>
+              <div className="charts-toolbar"><div><strong>Ваша коллекция</strong><p>Сохранено карт: {savedCount} / {savedLimit} <span className="badge badge-accent">Свободных мест: {Math.max(0, savedLimit - savedCount)}</span></p></div><button disabled={chartLimitReached} onClick={() => navigate("/try-free")}>Создать карту</button></div>
               {chartLimitReached && <p>Лимит сохранённых карт: {savedLimit}. Удалите одну из карт, чтобы создать новую.
                 <button type="button" onClick={() => handleLimitError({ code: "chart_limit_reached", detail: {
                   used: savedCount, limit: savedLimit, plan: usage?.plan,
                 } })}>Лимиты плана</button>
               </p>}
-              {currentResult.charts.length === 0 && <p>У вас пока нет сохранённых карт.</p>}
+              {currentResult.charts.length === 0 && <EmptyState title="Первая карта — начало разговора"><p>У вас пока нет сохранённых карт. Создайте первую с помощью кнопки выше.</p></EmptyState>}
               <ul className="saved-charts-list">
                 {currentResult.charts.map(chart => (
                   <li key={chart.chart_id}>
-                    <h3>Карта №{chart.chart_id}</h3>
+                    <div className="saved-chart-heading"><OrbitMark /><span className="badge">№ {chart.chart_id}</span></div>
+                    <h3>{chartPresentation(chart.chart_id).name || `Карта №${chart.chart_id}`}</h3>
                     <p>Дата рождения: {chart.day && chart.month && chart.year ? `${String(chart.day).padStart(2, "0")}.${String(chart.month).padStart(2, "0")}.${chart.year}` : "Не указана"}</p>
                     <p>Время: {formatTime(chart.hour)}</p>
                     <p>Город: {chart.city || "Не указан"}</p>
-                    <button onClick={() => navigate(`/natal-chart-result/${chart.chart_id}`)}>Открыть</button>
-                    <button disabled={deleting !== null} onClick={() => deleteChart(chart.chart_id)}>
+                    <div className="saved-chart-actions"><button onClick={() => navigate(`/natal-chart-result/${chart.chart_id}`)}>Открыть</button>
+                    <button className="button-danger" disabled={deleting !== null} onClick={() => deleteChart(chart.chart_id)}>
                       {deleting === chart.chart_id ? "Удаление..." : "Удалить"}
-                    </button>
+                    </button></div>
                   </li>
                 ))}
               </ul>
@@ -126,16 +128,16 @@ const MyCharts = () => {
       )}
       <details className="local-chart-profile">
       <summary>Локальные данные профиля</summary>
-      <h2>Редактирование данных натальной карты</h2>
+      <p className="muted">Подсказки для следующего создания карты на этом устройстве. Сохранённые карты в аккаунте не изменятся.</p>
       <form>
-        <input type="text" name="name" placeholder="Имя" value={formData.name} onChange={handleChange} />
-        <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} />
-        <input type="time" name="birthTime" value={formData.birthTime} onChange={handleChange} />
-        <input type="text" name="birthPlace" placeholder="Место рождения" value={formData.birthPlace} onChange={handleChange} />
+        <input type="text" aria-label="Имя" name="name" placeholder="Имя" value={formData.name} onChange={handleChange} />
+        <input type="date" aria-label="Дата рождения" name="birthDate" value={formData.birthDate} onChange={handleChange} />
+        <input type="time" aria-label="Время рождения" name="birthTime" value={formData.birthTime} onChange={handleChange} />
+        <input type="text" aria-label="Место рождения" name="birthPlace" placeholder="Место рождения" value={formData.birthPlace} onChange={handleChange} />
         <button type="button" onClick={handleSave}>Сохранить изменения</button>
       </form>
       </details>
-      <button onClick={() => navigate("/")}>Вернуться на главную</button>
+      <Link className="back-home" to="/">Вернуться на главную</Link>
     </div>
   );
 };
