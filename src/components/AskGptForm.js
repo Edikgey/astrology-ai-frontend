@@ -76,17 +76,18 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
       guestChart: { chartId: Number(chartId), sessionToken: guestSessionToken || localStorage.getItem("session_token"), pendingQuestion: question },
     } });
   };
-  const sendQuestion = async () => {
+  const sendQuestion = async (suggestion) => {
     if (authLoading || unsaved) return;
     if (!authenticated) { openGate(); return; }
-    if (sending.current || historyLoading || historyError || !question.trim()) return;
+    const text = (suggestion ?? question).trim();
+    if (sending.current || historyLoading || historyError || !text) return;
     // Never downgrade a failed/missing JWT to a guest GPT request.
     if (localStorage.getItem("access_token") !== token) return;
     const controller = new AbortController();
     sending.current = controller;
     setLoading(true);
     setError("");
-    const text = question.trim();
+    if (suggestion) setQuestion(text);
     try {
       const response = await fetch(`${API_URL}/ask-gpt`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -99,7 +100,14 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
       const data = await response.json();
       refreshUsage();
       if (controller.signal.aborted) return;
-      setMessages(previous => [...previous, { user: "Вы", text }, { user: "GPT", text: data.response || "GPT не дал ответа." }]);
+      const candidates = data.follow_up_suggestions;
+      const suggestions = Array.isArray(candidates) && candidates.length >= 3 && candidates.length <= 4 &&
+        candidates.every(item => typeof item === "string" && item.trim() && item.length <= 100)
+        ? [...new Set(candidates.map(item => item.trim()))] : [];
+      setMessages(previous => [...previous, { user: "Вы", text }, {
+        user: "GPT", text: data.response || "GPT не дал ответа.",
+        suggestions: suggestions.length >= 3 ? suggestions : [],
+      }]);
       setQuestion("");
       onQuestionConsumed?.();
     } catch (err) {
@@ -124,7 +132,13 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
     {error && <p role="alert">{error}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions">
       {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><strong>Lunaria</strong><div>{CHAT_INTRO}</div></div>}
-      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}><strong>{msg.user === "Вы" ? "Вы" : "Lunaria"}</strong><div>{msg.text}</div></div>)}
+      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
+        <strong>{msg.user === "Вы" ? "Вы" : "Lunaria"}</strong><div>{msg.text}</div>
+        {msg.user === "GPT" && msg.suggestions?.length > 0 && <div className="chat-follow-ups" role="group" aria-label="Следующие вопросы">
+          {msg.suggestions.map(suggestion => <button key={suggestion} type="button" className="preset-btn"
+            disabled={blocked} onClick={() => sendQuestion(suggestion)}>{suggestion}</button>)}
+        </div>}
+      </div>)}
       {loading && <div className="message gpt"><span role="status">Обдумываю вашу карту и вопрос...</span></div>}
     </div>
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}

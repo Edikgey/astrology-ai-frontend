@@ -32,6 +32,54 @@ const click = async el => act(async () => el.click());
 const response = data => ({ ok: true, json: async () => data });
 const authenticate = () => { mockAuth = { user: { id: 1 }, loading: false }; localStorage.setItem("access_token", "jwt"); };
 
+test("assistant chips send one ordinary user request even on immediate double-click", async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: "Что важно в работе?" });
+  const suggestions = ["Как проявляется моё лидерство?", "Что мешает мне развиваться?", "Что карта говорит о деньгах?"];
+  global.fetch.mockResolvedValueOnce(response({ response: "Ответ о карьере", follow_up_suggestions: suggestions }));
+  await click(button("Спросить"));
+  const chips = container.querySelectorAll('.message.gpt .chat-follow-ups button');
+  expect(chips).toHaveLength(3);
+  expect(chips[0].closest('.message').textContent).toContain("Ответ о карьере");
+  let finish;
+  global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await act(async () => { chips[0].click(); chips[0].click(); });
+  expect([...chips].every(chip => chip.disabled)).toBe(true);
+  const posts = global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'));
+  expect(posts).toHaveLength(2); // Original question and precisely one follow-up.
+  expect(JSON.parse(posts[1][1].body)).toEqual({ chart_id: 7, question: suggestions[0] });
+  expect(posts[1][1].headers.Authorization).toBe('Bearer jwt');
+  await act(async () => finish(response({ response: "Ответ о лидерстве" })));
+  expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).toContain('Вы' + suggestions[0]);
+  expect(container.textContent).toContain('Ответ о лидерстве');
+  expect(chips[0].disabled).toBe(false);
+});
+
+test.each([undefined, null, 'broken', ['one', 7, 'three']])("missing/malformed suggestions (%s) keep assistant text readable", async suggestions => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([{ role: 'gpt', content: 'Saved answer without chips' }]));
+  await render({ initialQuestion: "Question" });
+  global.fetch.mockResolvedValueOnce(response({ response: 'Valid answer', follow_up_suggestions: suggestions }));
+  await click(button('Спросить'));
+  expect(container.textContent).toContain('Saved answer without chips');
+  expect(container.textContent).toContain('Valid answer');
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+});
+
+test("a denied follow-up keeps its draft without retry or duplicate message", async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: "First question" });
+  global.fetch.mockResolvedValueOnce(response({ response: 'Answer', follow_up_suggestions: ['Next question?', 'Related question?', 'Deeper question?'] }));
+  await click(button('Спросить'));
+  global.fetch.mockResolvedValueOnce({ ok: false, status: 500 }).mockResolvedValueOnce(response([]));
+  await click(button('Next question?'));
+  expect(container.querySelector('textarea').value).toBe('Next question?');
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'))).toHaveLength(2);
+  expect(container.querySelector('[role="alert"]')).not.toBeNull();
+});
+
 test("guest preview has static intro, four suggestions, no history, GPT requests or allowance", async () => {
   await render();
   expect(container.textContent).toContain(CHAT_INTRO);
