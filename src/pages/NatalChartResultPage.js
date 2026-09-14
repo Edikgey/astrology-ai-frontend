@@ -79,7 +79,7 @@ const NatalChartResultPage = () => {
   return (
     <div className="page result-page">
    <PageHeading eyebrow="Ваш личный космос" title={chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
-     action={<a className="button button-secondary" href="#chart-conversation">Перейти к разговору ↓</a>}>
+     action={<a className="button" href="#chart-conversation">Перейти к разговору ↓</a>}>
      <p>Карта — отправная точка. Вы выбираете, о чём поговорить.</p>
      {chartData.timezone && <p className="result-metadata">Часовой пояс рождения: {chartData.timezone}</p>}
    </PageHeading>

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiError } from "../api/apiError";
+import { readChatResponse } from "../api/chatStream";
 import UsageSummary from "./UsageSummary";
 import { DialogClose } from "./UI";
 import "./AskGptChat.css";
@@ -37,17 +38,19 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
   const input = useRef(null);
   const history = useRef(null);
   const sending = useRef(null);
+  const followBottom = useRef(true);
   const navigate = useNavigate();
   const canChat = authenticated && !unsaved;
 
   useEffect(() => () => sending.current?.abort(), []);
   useEffect(() => {
-    if (history.current) history.current.scrollTop = history.current.scrollHeight;
+    if (history.current && followBottom.current) history.current.scrollTop = history.current.scrollHeight;
   }, [messages, loading]);
   useEffect(() => { if (gate) dialog.current?.showModal(); }, [gate]);
   useEffect(() => {
     const controller = new AbortController();
     setMessages([]);
+    followBottom.current = true;
     setHistoryError("");
     setHistoryLoading(canChat);
     if (canChat && chartId) {
@@ -85,33 +88,39 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
     if (localStorage.getItem("access_token") !== token) return;
     const controller = new AbortController();
     sending.current = controller;
+    followBottom.current = true;
     setLoading(true);
     setError("");
     if (suggestion) setQuestion(text);
+    setMessages(previous => [...previous, { user: "Вы", text }, { user: "GPT", text: "", streaming: true }]);
     try {
       const response = await fetch(`${API_URL}/ask-gpt`, {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ chart_id: Number(chartId), question: text }), signal: controller.signal,
       });
       if (!response.ok) {
         const data = await response.json?.().catch(() => ({}));
         throw apiError(response.status, data, requestError(response.status));
       }
-      const data = await response.json();
+      const data = await readChatResponse(response, delta => {
+        if (!controller.signal.aborted) setMessages(previous => previous.map(msg =>
+          msg.streaming ? { ...msg, text: msg.text + delta } : msg));
+      });
       refreshUsage();
       if (controller.signal.aborted) return;
       const candidates = data.follow_up_suggestions;
       const suggestions = Array.isArray(candidates) && candidates.length >= 3 && candidates.length <= 4 &&
         candidates.every(item => typeof item === "string" && item.trim() && item.length <= 100)
         ? [...new Set(candidates.map(item => item.trim()))] : [];
-      setMessages(previous => [...previous, { user: "Вы", text }, {
+      setMessages(previous => previous.map(msg => msg.streaming ? {
         user: "GPT", text: data.response || "GPT не дал ответа.",
         suggestions: suggestions.length >= 3 ? suggestions : [],
-      }]);
+      } : msg));
       setQuestion("");
       onQuestionConsumed?.();
     } catch (err) {
       if (!controller.signal.aborted) {
+        setMessages(previous => previous.filter(msg => !msg.streaming).slice(0, -1));
         if (handleLimitError(err)) return; // Keep the draft/history; never retry a denied POST.
         setError(err.message);
         // A failed response may follow a persisted user message. Reload history;
@@ -123,30 +132,33 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
     }
   };
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
-  return <div className="askgpt-container">
+  const latestSuggestions = !loading && messages[messages.length - 1]?.user === "GPT" ? messages[messages.length - 1].suggestions || [] : [];
+  const starters = <div className="predefined-questions">
+    {QUESTIONS.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
+      onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
+    <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
+  </div>;
+  return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}`}>
     <div className="chat-heading"><div><p className="eyebrow">Ваш персональный AI-астролог</p><h2>Поговорим о вас</h2><p>Задайте вопрос по карте или продолжите предыдущую мысль.</p></div><span className="badge badge-accent">AI · по вашей карте</span></div>
     {authenticated && <details className="chat-usage"><summary>Ваш план и доступные вопросы</summary><UsageSummary /></details>}
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
     {error && <p role="alert">{error}</p>}
-    <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions">
+    <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions"
+      onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
       {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><strong>Lunaria</strong><div>{CHAT_INTRO}</div></div>}
       {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
-        <strong>{msg.user === "Вы" ? "Вы" : "Lunaria"}</strong><div>{msg.text}</div>
-        {msg.user === "GPT" && msg.suggestions?.length > 0 && <div className="chat-follow-ups" role="group" aria-label="Следующие вопросы">
-          {msg.suggestions.map(suggestion => <button key={suggestion} type="button" className="preset-btn"
-            disabled={blocked} onClick={() => sendQuestion(suggestion)}>{suggestion}</button>)}
-        </div>}
+        <strong>{msg.user === "Вы" ? "Вы" : "Lunaria"}{msg.streaming && <span className="stream-indicator" role="status" aria-label="Lunaria отвечает"> ···</span>}</strong>
+        <div>{msg.text || (msg.streaming ? "Обдумываю вашу карту и вопрос..." : "")}</div>
       </div>)}
-      {loading && <div className="message gpt"><span role="status">Обдумываю вашу карту и вопрос...</span></div>}
     </div>
+    {latestSuggestions.length > 0 && <div className="chat-follow-ups" role="group" aria-label="Следующие вопросы">
+      {latestSuggestions.map(suggestion => <button key={suggestion} type="button" className="preset-btn"
+        disabled={blocked} onClick={() => sendQuestion(suggestion)}><span aria-hidden="true">→ </span>{suggestion}</button>)}
+    </div>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
-    <div className="predefined-questions">
-      {QUESTIONS.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
-        onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
-      <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
-    </div>
+    {canChat && messages.length > 0 ? <details className="chat-starters"><summary>Другие темы для разговора</summary>{starters}</details> : starters}
     <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
       <textarea ref={input} aria-label="Ваш вопрос" rows={2} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate) openGate(); }}

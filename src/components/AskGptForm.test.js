@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import AskGptForm, { CHAT_INTRO } from "./AskGptForm";
+import { TextEncoder, TextDecoder } from "util";
 
 let mockAuth;
 const mockNavigate = jest.fn();
@@ -10,6 +11,7 @@ jest.mock("react-router-dom", () => ({ useNavigate: () => mockNavigate }), { vir
 let root, container, originalFetch;
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
+  global.TextDecoder = TextDecoder;
   localStorage.clear();
   localStorage.setItem("session_token", "guest-token");
   mockAuth = { user: null, loading: false };
@@ -27,10 +29,82 @@ afterEach(async () => {
   global.fetch = originalFetch;
 });
 const render = async props => act(async () => root.render(<AskGptForm chartId={7} {...props} />));
-const button = text => [...container.querySelectorAll("button")].find(el => el.textContent === text);
+const button = text => [...container.querySelectorAll("button")].find(el => el.textContent.replace(/^→ /, '') === text);
 const click = async el => act(async () => el.click());
 const response = data => ({ ok: true, json: async () => data });
 const authenticate = () => { mockAuth = { user: { id: 1 }, loading: false }; localStorage.setItem("access_token", "jwt"); };
+
+// Deliberately controlled chunks: assertions run while the response is still open.
+const controlledStream = () => {
+  let pending;
+  const reader = {
+    read: jest.fn(() => new Promise(resolve => { pending = resolve; })),
+    cancel: jest.fn(async () => {}), releaseLock: jest.fn(),
+  };
+  return {
+    response: { ok: true, headers: { get: () => 'text/event-stream' }, body: { getReader: () => reader } },
+    reader,
+    bytes: async value => act(async () => pending({ value, done: false })),
+    event: async event => act(async () => pending({ value: new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`), done: false })),
+    end: async () => act(async () => pending({ done: true })),
+  };
+};
+
+test('real chunks render before completion; suggestions wait for done and scroll respects the reader', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([{ role: 'gpt', content: 'Old answer' }]));
+  await render({ initialQuestion: 'Что важно для меня?' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  expect(global.fetch.mock.calls[1][1].headers.Accept).toBe('text/event-stream');
+  const history = container.querySelector('.chat-messages');
+  Object.defineProperties(history, { scrollHeight: { value: 1200, configurable: true }, clientHeight: { value: 300 } });
+  await stream.event({ type: 'delta', text: 'Мой путь ' });
+  expect(container.textContent).toContain('Мой путь ');
+  expect(history.scrollTop).toBe(1200);
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  expect(container.querySelector('.stream-indicator')).not.toBeNull();
+  history.scrollTop = 80;
+  await act(async () => Simulate.scroll(history));
+  // A UTF-8 character split across network chunks must remain intact.
+  const bytes = new TextEncoder().encode('data: {"type":"delta","text":"🌙"}\n\n');
+  const split = bytes.indexOf(0xf0) + 2;
+  await stream.bytes(bytes.slice(0, split));
+  await stream.bytes(bytes.slice(split));
+  expect(container.textContent).toContain('Мой путь 🌙');
+  expect(history.scrollTop).toBe(80);
+  const suggestions = ['Как мне раскрыть свои силы?', 'Что мне важно в отношениях?', 'Как мне выбрать направление?'];
+  await stream.event({ type: 'done', response: 'Мой путь 🌙', follow_up_suggestions: suggestions });
+  expect(history.scrollTop).toBe(80);
+  expect(container.querySelector('.stream-indicator')).toBeNull();
+  expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+  expect(container.querySelectorAll('.message.user')).toHaveLength(1);
+  expect(container.querySelectorAll('.message.gpt')).toHaveLength(2);
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'))).toHaveLength(1);
+  expect(stream.reader.cancel).toHaveBeenCalledTimes(1);
+  expect(stream.reader.releaseLock).toHaveBeenCalledTimes(1);
+});
+
+test.each(['disconnect', 'error'])('interrupted stream (%s) reloads saved history, keeps draft and never retries POST', async ending => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Мой вопрос' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(response([{ role: 'gpt', content: 'Saved history' }]));
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: 'Partial answer' });
+  expect(container.textContent).toContain('Partial answer');
+  if (ending === 'disconnect') await stream.end();
+  else await stream.event({ type: 'error', status: 502, detail: 'Stream interrupted' });
+  expect(container.textContent).not.toContain('Partial answer');
+  expect(container.textContent).toContain('Saved history');
+  expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  expect(container.querySelector('textarea').value).toBe('Мой вопрос');
+  expect(container.querySelector('textarea').disabled).toBe(false);
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'))).toHaveLength(1);
+});
 
 test("assistant chips send one ordinary user request even on immediate double-click", async () => {
   authenticate();
@@ -39,13 +113,14 @@ test("assistant chips send one ordinary user request even on immediate double-cl
   const suggestions = ["Как проявляется моё лидерство?", "Что мешает мне развиваться?", "Что карта говорит о деньгах?"];
   global.fetch.mockResolvedValueOnce(response({ response: "Ответ о карьере", follow_up_suggestions: suggestions }));
   await click(button("Спросить"));
-  const chips = container.querySelectorAll('.message.gpt .chat-follow-ups button');
+  const chips = container.querySelectorAll('.chat-follow-ups button');
   expect(chips).toHaveLength(3);
-  expect(chips[0].closest('.message').textContent).toContain("Ответ о карьере");
+  expect(container.querySelector('.message.gpt').textContent).toContain("Ответ о карьере");
   let finish;
   global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
   await act(async () => { chips[0].click(); chips[0].click(); });
-  expect([...chips].every(chip => chip.disabled)).toBe(true);
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  expect(container.querySelector('button[type="submit"]').disabled).toBe(true);
   const posts = global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'));
   expect(posts).toHaveLength(2); // Original question and precisely one follow-up.
   expect(JSON.parse(posts[1][1].body)).toEqual({ chart_id: 7, question: suggestions[0] });
@@ -53,7 +128,7 @@ test("assistant chips send one ordinary user request even on immediate double-cl
   await act(async () => finish(response({ response: "Ответ о лидерстве" })));
   expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).toContain('Вы' + suggestions[0]);
   expect(container.textContent).toContain('Ответ о лидерстве');
-  expect(chips[0].disabled).toBe(false);
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
 });
 
 test.each([undefined, null, 'broken', ['one', 7, 'three']])("missing/malformed suggestions (%s) keep assistant text readable", async suggestions => {
