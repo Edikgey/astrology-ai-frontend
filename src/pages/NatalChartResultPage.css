@@ -1,5 +1,5 @@
-.result-metadata { font-size: 12px; margin-top: 8px; overflow-wrap: anywhere; }
+.result-metadata { font-size: var(--ln-text-12); margin-top: var(--ln-space-8); overflow-wrap: anywhere; }
 .result-error { text-align: center; padding-top: 80px; }
-.result-conversation { width: 100%; scroll-margin-top: 24px; }
+.result-conversation { width: 100%; scroll-margin-top: var(--ln-space-24); }
 .result-page .page-heading h1 { overflow-wrap: anywhere; }
 .result-page .page-heading > .button { flex-shrink: 0; }
