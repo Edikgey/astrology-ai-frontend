@@ -18,6 +18,7 @@ jest.mock("react-router-dom", () => ({
   Link: ({ to, children }) => <a href={to}>{children}</a>,
 }), { virtual: true });
 jest.mock("../components/NatalChart", () => props => <div data-chart={props.chartId} data-houses={JSON.stringify(props.houses)}>{props.children}</div>);
+jest.mock("../components/GoogleSignIn", () => props => <button data-google-sign-in onClick={() => props.onSignIn('google-credential', 'a'.repeat(64))}>Google test</button>);
 let container, root, originalFetch;
 const guestToken = "12345678-1234-4234-8234-123456789abc";
 const guestChart = { chartId: 7, sessionToken: guestToken, pendingQuestion: "Какие у меня сильные стороны?" };
@@ -49,7 +50,7 @@ const change = async (selector, value) => act(async () => Simulate.change(contai
 const submit = async () => act(async () => Simulate.submit(container.querySelector("form")));
 const gptCalls = () => global.fetch.mock.calls.filter(([url]) => /ask-gpt|gpt-messages/.test(url));
 
-test.each(["login", "verify-code"].flatMap(flow => ["migrated", "limit_reached", "not_found", "not_requested"].map(status => [flow, status])))
+test.each(["login", "verify-code", "google"].flatMap(flow => ["migrated", "limit_reached", "not_found", "not_requested"].map(status => [flow, status])))
   ("%s / %s preserves auth and the selected chart through return and reload", async (flow, status) => {
     if (flow === "verify-code") mockLocation.state.mode = "register";
     global.fetch.mockImplementation(async url => {
@@ -66,7 +67,8 @@ test.each(["login", "verify-code"].flatMap(flow => ["migrated", "limit_reached",
     await render(<AuthorizationPage />);
     await change('input[type="email"]', "person@example.com");
     await change('input[type="password"]', "test-password-only");
-    await submit();
+    if (flow === 'google') await act(async () => container.querySelector('[data-google-sign-in]').click());
+    else await submit();
     if (flow === "verify-code") {
       expect(gptCalls()).toHaveLength(0);
       expect(localStorage.getItem("session_token")).toBe(guestToken);
@@ -74,7 +76,7 @@ test.each(["login", "verify-code"].flatMap(flow => ["migrated", "limit_reached",
       await submit();
     }
     const authCall = global.fetch.mock.calls.find(([url]) => url.includes(`/auth/${flow}`));
-    expect(JSON.parse(authCall[1].body)).toEqual({ email: "person@example.com", password: "test-password-only", guest_chart_id: 7 });
+    expect(JSON.parse(authCall[1].body)).toEqual(flow === 'google' ? { credential: 'google-credential', nonce: 'a'.repeat(64), guest_chart_id: 7 } : { email: "person@example.com", password: "test-password-only", guest_chart_id: 7 });
     expect(authCall[1].headers["X-Session-Token"]).toBe(guestToken);
     expect(localStorage.getItem("access_token")).toBe("jwt");
     expect(global.fetch.mock.calls.filter(([url]) => url.includes("/account/usage"))).toHaveLength(1);

@@ -4,6 +4,7 @@ import {
   verifyCode,
   login,
   getMe,
+  googleLogin,
 } from "../api/authApi";
 
 const AuthContext = createContext();
@@ -40,6 +41,15 @@ export const AuthProvider = ({ children }) => {
     return await requestRegister(email, password);
   };
 
+  const loginGoogle = async (credential, nonce, guestChart, password) => {
+    const data = await googleLogin(credential, nonce, guestChart, password);
+    localStorage.setItem("access_token", data.access_token);
+    setUser(null);
+    setLoading(true);
+    setToken(data.access_token);
+    return data;
+  };
+
   const verifyRegistration = async (code, email, password, guestChart) => {
     const data = await verifyCode(code, email, password, guestChart);
     localStorage.setItem("access_token", data.access_token);
@@ -70,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         activeGuestChart,
         setActiveGuestChart,
         login: loginUser,
+        loginGoogle,
         logout,
         registerEmail,
         verifyRegistration,

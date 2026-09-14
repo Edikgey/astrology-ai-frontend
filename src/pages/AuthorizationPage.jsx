@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AuthorizationPage.css";
+import GoogleSignIn from "../components/GoogleSignIn";
 
 const AuthorizationPage = () => {
-  const { user, login, registerEmail, verifyRegistration } = useAuth();
+  const { user, login, loginGoogle, registerEmail, verifyRegistration } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const submitting = useRef(false);
@@ -117,6 +118,14 @@ const AuthorizationPage = () => {
     setIsCodeSent(false);
   };
 
+  const handleGoogle = async (credential, nonce, confirmationPassword) => {
+    if (submitting.current) throw new Error("Дождитесь завершения текущего входа.");
+    submitting.current = true;
+    setBusy(true); setError(""); setMessage("");
+    try { finishAuth(await loginGoogle(credential, nonce, guestChart, confirmationPassword)); }
+    finally { submitting.current = false; setBusy(false); }
+  };
+
   return (
     <div className="auth-page page">
       <aside className="auth-story"><p className="eyebrow">Ваше личное пространство</p><h2>Разговор,<br />к которому хочется<br /><span>вернуться.</span></h2>
@@ -128,6 +137,7 @@ const AuthorizationPage = () => {
         <h1 className="auth-title">{step === "login" ? "Рады видеть вас снова" : isCodeSent ? "Проверьте почту" : "Начните свой разговор"}</h1>
         <p className="auth-description">{step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
         {guestChart && <p className="notice">После входа попробуем сохранить открытую карту в ваш аккаунт. Ваш вопрос останется с вами.</p>}
+        <GoogleSignIn onSignIn={handleGoogle} disabled={busy} />
         <form onSubmit={step === "login" ? handleLogin : handleRegister} className="auth-form" aria-busy={busy}>
           <label htmlFor="auth-email">Email</label>
           <input id="auth-email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />

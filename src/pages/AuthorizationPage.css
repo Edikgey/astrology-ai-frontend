@@ -16,3 +16,9 @@
 .auth-switch-button { width: 100%; }
 @media (max-width: 850px) { .auth-page { gap: 32px; } .auth-container { padding: 28px; } }
 @media (max-width: 700px) { .auth-page { grid-template-columns: 1fr; max-width: 500px; padding-top: 32px; gap: 24px; } .auth-story { display: none; } .auth-container { padding: 28px 24px; } }
+
+.google-auth { margin: 24px 0; min-width: 0; }
+.google-auth > div { min-height: 44px; }
+.google-auth p { font-size: 12px; margin: 12px 0; }
+.google-auth form { display: grid; gap: 12px; margin: 16px 0; }
+.google-divider { color: var(--muted); border-bottom: 1px solid var(--line); padding: 12px 0; }
