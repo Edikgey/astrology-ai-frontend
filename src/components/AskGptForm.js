@@ -1,11 +1,10 @@
 import { API_URL } from "../config/api";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiError } from "../api/apiError";
 import { readChatResponse } from "../api/chatStream";
-import UsageSummary from "./UsageSummary";
 import { DialogClose } from "./UI";
 import "./AskGptChat.css";
 
@@ -25,7 +24,7 @@ const AskGptForm = (props) => {
 };
 
 const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = false, initialQuestion = "", onQuestionConsumed, guestSessionToken }) => {
-  const { refreshUsage, handleLimitError } = useUsage();
+  const { usage, usageLoading, usageError, refreshUsage, handleLimitError } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +41,16 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
   const navigate = useNavigate();
   const canChat = authenticated && !unsaved;
 
+  useLayoutEffect(() => {
+    const resize = () => {
+      if (!input.current) return;
+      input.current.style.height = "auto";
+      input.current.style.height = `${input.current.scrollHeight}px`;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [question]);
   useEffect(() => () => sending.current?.abort(), []);
   useEffect(() => {
     if (history.current && followBottom.current) history.current.scrollTop = history.current.scrollHeight;
@@ -133,24 +142,30 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
   };
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
   const latestSuggestions = !loading && messages[messages.length - 1]?.user === "GPT" ? messages[messages.length - 1].suggestions || [] : [];
+  const showStarters = !authenticated || (canChat && !historyLoading && !historyError &&
+    !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim()));
+  const allowance = usageError ? "Не удалось обновить лимиты аккаунта." : usage ?
+    `${usage.plan === "premium" ? "Premium" : "Free"} · ${usage.plan === "premium" && !usage.gpt_period_valid ?
+      "Нет действующего периода" : Number.isFinite(usage.gpt_messages_available) ?
+      `Доступно вопросов: ${usage.gpt_messages_available}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
+    usageLoading ? "Загрузка лимитов…" : null;
   const starters = <div className="predefined-questions">
     {QUESTIONS.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
       onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
     <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
   </div>;
   return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}`}>
-    <div className="chat-heading"><div><p className="eyebrow">Ваш персональный AI-астролог</p><h2>Поговорим о вас</h2><p>Задайте вопрос по карте или продолжите предыдущую мысль.</p></div><span className="badge badge-accent">AI · по вашей карте</span></div>
-    {authenticated && <details className="chat-usage"><summary>Ваш план и доступные вопросы</summary><UsageSummary /></details>}
+    <div className="chat-heading"><h2>Ваш персональный <span>AI-астролог</span></h2><p>Поговорим о вас и о том, что показывает ваша карта.</p></div>
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
     {error && <p role="alert">{error}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions"
       onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
-      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><strong>Lunaria</strong><div>{CHAT_INTRO}</div></div>}
+      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><div>{CHAT_INTRO}</div></div>}
       {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
-        <strong>{msg.user === "Вы" ? "Вы" : "Lunaria"}{msg.streaming && <span className="stream-indicator" role="status" aria-label="Lunaria отвечает"> ···</span>}</strong>
         <div>{msg.text || (msg.streaming ? "Обдумываю вашу карту и вопрос..." : "")}</div>
+        {msg.streaming && <span className="stream-indicator" role="status" aria-label="Lunaria отвечает">···</span>}
       </div>)}
     </div>
     {latestSuggestions.length > 0 && <div className="chat-follow-ups" role="group" aria-label="Следующие вопросы">
@@ -158,14 +173,15 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
         disabled={blocked} onClick={() => sendQuestion(suggestion)}><span aria-hidden="true">→ </span>{suggestion}</button>)}
     </div>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
-    {canChat && messages.length > 0 ? <details className="chat-starters"><summary>Другие темы для разговора</summary>{starters}</details> : starters}
+    {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
     <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
-      <textarea ref={input} aria-label="Ваш вопрос" rows={2} maxLength={4000} className="chat-input" value={question} disabled={blocked}
+      <textarea ref={input} aria-label="Ваш вопрос" rows={1} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
-        onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Что вам хотелось бы понять о себе?" />
+        onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Ваш вопрос…" />
       <button type="submit" className="chat-send" disabled={blocked || (authenticated && !question.trim())}>{loading ? "Отправка..." : "Спросить"}</button>
     </form>
+    {authenticated && allowance && <p className="chat-allowance" role="status" aria-busy={usageLoading}>{allowance}</p>}
 
     {gate && <dialog ref={dialog} className="chart-auth-gate" aria-labelledby="chart-auth-title" onCancel={() => setGate(false)}>
       <DialogClose onClose={() => setGate(false)} />

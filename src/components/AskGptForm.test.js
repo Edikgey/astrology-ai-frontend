@@ -79,6 +79,7 @@ test('real chunks render before completion; suggestions wait for done and scroll
   expect(history.scrollTop).toBe(80);
   expect(container.querySelector('.stream-indicator')).toBeNull();
   expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+  expect(container.querySelector('.chat-starters')).toBeNull();
   expect(container.querySelectorAll('.message.user')).toHaveLength(1);
   expect(container.querySelectorAll('.message.gpt')).toHaveLength(2);
   expect(global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'))).toHaveLength(1);
@@ -126,7 +127,7 @@ test("assistant chips send one ordinary user request even on immediate double-cl
   expect(JSON.parse(posts[1][1].body)).toEqual({ chart_id: 7, question: suggestions[0] });
   expect(posts[1][1].headers.Authorization).toBe('Bearer jwt');
   await act(async () => finish(response({ response: "Ответ о лидерстве" })));
-  expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).toContain('Вы' + suggestions[0]);
+  expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).toContain(suggestions[0]);
   expect(container.textContent).toContain('Ответ о лидерстве');
   expect(container.querySelector('.chat-follow-ups')).toBeNull();
 });
@@ -164,6 +165,43 @@ test("guest preview has static intro, four suggestions, no history, GPT requests
   expect(container.textContent).not.toMatch(/10|300|allowance/);
 });
 
+test('empty chat has starters until its first completed answer, including answers without suggestions', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Мой вопрос' });
+  expect(container.querySelector('h2').textContent).toBe('Ваш персональный AI-астролог');
+  expect(container.querySelector('.badge')).toBeNull();
+  expect(container.querySelector('.chat-usage')).toBeNull();
+  expect(container.querySelectorAll('.chat-starters button')).toHaveLength(4);
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: 'Начало ответа' });
+  expect(container.querySelector('.chat-starters')).not.toBeNull();
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  await stream.event({ type: 'done', response: 'Начало ответа', follow_up_suggestions: [] });
+  expect(container.querySelector('.chat-starters')).toBeNull();
+  expect(container.querySelector('.message.user strong')).toBeNull();
+  expect(container.querySelector('.message.gpt strong')).toBeNull();
+});
+
+test('composer grows with the draft and resets after one successful send', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render();
+  const textarea = container.querySelector('textarea');
+  Object.defineProperty(textarea, 'scrollHeight', { configurable: true, get: () => textarea.value.length > 50 ? 320 : 48 });
+  const question = 'Мой длинный вопрос\n'.repeat(12);
+  await act(async () => Simulate.change(textarea, { target: { value: question } }));
+  expect(textarea.style.height).toBe('320px'); // CSS max-height caps the rendered box, then scrolls internally.
+  global.fetch.mockResolvedValueOnce(response({ response: 'Ответ' }));
+  await click(button('Спросить'));
+  expect(JSON.parse(global.fetch.mock.calls[1][1].body).question).toBe(question.trim());
+  expect(textarea.value).toBe('');
+  expect(textarea.style.height).toBe('48px');
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes('/ask-gpt'))).toHaveLength(1);
+});
+
 test.each(["suggestion", "focus", "click", "input", "send"])("guest %s opens gate without any API request", async interaction => {
   await render();
   await act(async () => {
@@ -189,7 +227,7 @@ test.each([["Продолжить бесплатно", "register"], ["У мен�
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
-test("authenticated history, restored draft, suggestions and custom send use the same JWT flow", async () => {
+test("authenticated history hides starters; restored draft and custom send use the same JWT flow", async () => {
   authenticate();
   global.fetch.mockResolvedValueOnce(response([{ role: "user", content: "Old question" }, { role: "gpt", content: "Old answer" }]));
   const consumed = jest.fn();
@@ -198,7 +236,8 @@ test("authenticated history, restored draft, suggestions and custom send use the
   expect(container.querySelector("textarea").value).toBe("Pending question");
   expect(global.fetch).toHaveBeenCalledTimes(1);
   expect(global.fetch.mock.calls[0][1].headers).toEqual({ Authorization: "Bearer jwt" });
-  await click(button("Какая карьера мне подходит?"));
+  expect(container.querySelector('.chat-starters')).toBeNull();
+  await act(async () => Simulate.change(container.querySelector('textarea'), { target: { value: 'Какая карьера мне подходит?' } }));
   expect(container.querySelector("textarea").value).toBe("Какая карьера мне подходит?");
   expect(global.fetch).toHaveBeenCalledTimes(1);
   global.fetch.mockResolvedValueOnce(response({ response: "Career answer" }));

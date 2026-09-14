@@ -3,3 +3,16 @@
 .result-conversation { width: 100%; scroll-margin-top: var(--ln-space-24); }
 .result-page .page-heading h1 { overflow-wrap: anywhere; }
 .result-page .page-heading > .button { flex-shrink: 0; }
+
+/* Result-page control chrome only; the chart's SVG and layout stay untouched. */
+.result-page .chart-more > summary {
+  background: var(--ln-color-surface-tinted);
+  color: var(--ln-color-primary);
+  border: 1px solid var(--ln-color-border-control);
+  border-radius: var(--ln-radius-control);
+  padding: var(--ln-space-12) var(--ln-space-16);
+  cursor: pointer;
+}
+.result-page .chart-more > summary:hover { background: var(--ln-color-accent-soft); border-color: var(--ln-color-primary); }
+.result-page .chart-more > summary:active { background: var(--ln-color-primary); color: var(--ln-color-text-inverse); }
+.result-page .chart-more > summary:focus-visible { outline: 2px solid var(--ln-color-focus); outline-offset: 3px; }

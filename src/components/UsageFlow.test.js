@@ -123,12 +123,20 @@ test("overlapping refreshes for the same JWT keep the newest response", async ()
 test("successful GPT send keeps saved history and refreshes account usage", async () => {
   const consumed = jest.fn(); await render(<AskGptForm chartId={7} initialQuestion="Pending question" onQuestionConsumed={consumed} />);
   expect(container.textContent).toContain("Saved answer");
-  serverUsage = { ...FREE, gpt_messages_used: 4 };
+  serverUsage = { ...FREE, gpt_messages_used: 4, gpt_messages_available: 6 };
   global.fetch.mockResolvedValueOnce(ok({ response: "New answer" }));
   await click(button("Спросить"));
-  expect(container.textContent).toContain("New answer"); expect(container.textContent).toContain("4 / 10");
+  expect(container.textContent).toContain("New answer"); expect(container.querySelector('.chat-allowance').textContent).toBe("Free · Доступно вопросов: 6");
   expect(calls("/account/usage")).toHaveLength(2); expect(calls("/ask-gpt")).toHaveLength(1);
   expect(consumed).toHaveBeenCalledTimes(1); expect(container.querySelector("textarea").value).toBe("");
+});
+
+test('chat shows the server-provided Premium availability in a compact composer indicator', async () => {
+  serverUsage = { ...PREMIUM, gpt_messages_used: 12, gpt_messages_reserved: 1, gpt_messages_available: 287 };
+  await render(<AskGptForm chartId={7} />);
+  expect(container.querySelector('.chat-allowance').textContent).toBe('Premium · Доступно вопросов: 287');
+  expect(container.querySelector('.chat-usage')).toBeNull();
+  expect(button('Перейти на Premium')).toBeUndefined();
 });
 
 test.each(["GPT_LIMIT_REACHED", "gpt_limit_reached"])("%s retains pending question and opens Free paywall instead of generic error", async code => {
