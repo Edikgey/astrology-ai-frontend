@@ -41,3 +41,23 @@
   .chart-details > details > summary { padding-left: 20px; padding-right: 20px; }
   .pattern-source-list { padding-left: 20px; padding-right: 20px; }
 }
+
+/* Color-only compatibility for the existing chart controls and disclosures. */
+.chart-v2, .chart-summary, .chart-details {
+  --ink: var(--ln-color-text);
+  --muted: var(--ln-color-text-muted);
+  --line: var(--ln-color-border);
+  --accent: var(--ln-color-primary);
+  --soft: var(--ln-color-surface-tinted);
+  --shadow: 0 12px 40px color-mix(in srgb, var(--ln-color-primary) 6.27%, transparent);
+  --ln-legacy-ink: var(--ln-color-text);
+  --ln-legacy-muted: var(--ln-color-text-muted);
+  --ln-legacy-line: var(--ln-color-border);
+  --ln-legacy-surface: var(--ln-color-surface);
+  --ln-legacy-accent: var(--ln-color-primary);
+  --ln-legacy-accent-hover: var(--ln-color-primary-hover);
+  --ln-legacy-soft: var(--ln-color-surface-tinted);
+  --ln-legacy-border-hover: var(--ln-color-border-control);
+  --ln-legacy-control: var(--ln-color-border-control);
+  --ln-legacy-focus: var(--ln-color-focus);
+}

@@ -1,48 +1,48 @@
 .chart-v2 { width: 100%; min-width: 0; text-align: left; color: var(--ink); }
 .natal-wheel-svg { display: block; width: 100%; height: auto; aspect-ratio: 1; overflow: visible; touch-action: pan-y; }
-.wheel-surface { fill: #fafbf8; stroke: #728277; stroke-width: 1.2; }
-.wheel-ring { fill: #fff; stroke: #aab5ac; stroke-width: .8; }
-.zodiac-sign { color: #334b42; }
-.zodiac-sign line { stroke: #9bab9d; stroke-width: 1; }
-.degree-tick { stroke: #b3bdb5; stroke-width: .6; }
-.degree-tick.major { stroke: #617469; stroke-width: 1.1; }
+.wheel-surface { fill: var(--ln-color-surface-raised); stroke: var(--ln-color-border-control); stroke-width: 1.2; }
+.wheel-ring { fill: var(--ln-color-surface); stroke: var(--ln-color-border); stroke-width: .8; }
+.zodiac-sign { color: var(--ln-color-primary); }
+.zodiac-sign line { stroke: var(--ln-color-border-control); stroke-width: 1; }
+.degree-tick { stroke: var(--ln-color-border); stroke-width: .6; }
+.degree-tick.major { stroke: var(--ln-color-border-control); stroke-width: 1.1; }
 .house-hit { fill: transparent; cursor: pointer; }
-.house-sector.is-active .house-hit { fill: #e5ede38c; }
-.house-ray { stroke: #b6c2b8; stroke-width: .7; }
-.house-number { font-size: 12px; font-weight: 600; fill: #52665a; }
-.aspect-surface { fill: #fff; stroke: #e0e5dd; stroke-width: .7; }
-.wheel-aspect { color: #68766e; opacity: .67; transition: opacity .12s; }
-.wheel-aspect.hard { color: #984f49; }
-.wheel-aspect.soft { color: #327184; }
-.wheel-aspect.conjunction { color: #72628c; }
+.house-sector.is-active .house-hit { fill: var(--ln-color-accent-soft); }
+.house-ray { stroke: var(--ln-color-border-control); stroke-width: .7; }
+.house-number { font-size: 12px; font-weight: 600; fill: var(--ln-color-text-muted); }
+.aspect-surface { fill: var(--ln-color-surface); stroke: var(--ln-color-border-subtle); stroke-width: .7; }
+.wheel-aspect { color: var(--ln-color-text-subtle); opacity: .67; transition: opacity .12s; }
+.wheel-aspect.hard { color: var(--ln-color-accent); }
+.wheel-aspect.soft { color: var(--ln-color-secondary); }
+.wheel-aspect.conjunction { color: var(--ln-color-primary); }
 .aspect-stroke { fill: none; stroke: currentColor; stroke-width: 1.4; pointer-events: none; }
 .wheel-aspect.hard .aspect-stroke { stroke-width: 1.8; }
 .wheel-aspect.minor .aspect-stroke { stroke-width: 1; }
 .wheel-aspect.is-active { opacity: 1; }
 .wheel-aspect.is-active .aspect-stroke { stroke-width: 3; }
 .aspect-hit { fill: none; stroke: transparent; stroke-width: 11; cursor: pointer; }
-.conjunction-marker { fill: #fff; stroke: currentColor; stroke-width: 1.4; pointer-events: none; }
+.conjunction-marker { fill: var(--ln-color-surface); stroke: currentColor; stroke-width: 1.4; pointer-events: none; }
 .conjunction-hit { fill: transparent; cursor: pointer; }
 .angle-marker { cursor: pointer; }
-.angle-marker line { stroke: #42584b; stroke-width: 1.7; }
-.angle-marker text { font-size: 12px; font-weight: 800; fill: #223e32; }
-.angle-label-bg { fill: #fff; }
-.point-anchor { color: #354e43; pointer-events: none; }
+.angle-marker line { stroke: var(--ln-color-primary); stroke-width: 1.7; }
+.angle-marker text { font-size: 12px; font-weight: 800; fill: var(--ln-color-text); }
+.angle-label-bg { fill: var(--ln-color-surface); }
+.point-anchor { color: var(--ln-color-primary); pointer-events: none; }
 .point-anchor circle { fill: currentColor; }
-.anchor-leader { stroke: #789283; stroke-width: .85; fill: none; }
-.planet-label { color: #263f34; cursor: pointer; }
+.anchor-leader { stroke: var(--ln-color-border-control); stroke-width: .85; fill: none; }
+.planet-label { color: var(--ln-color-text); cursor: pointer; }
 .planet-hit { fill: transparent; }
-.planet-disc { fill: #fff; stroke: #d4ddd2; stroke-width: .7; pointer-events: none; }
+.planet-disc { fill: var(--ln-color-surface); stroke: var(--ln-color-border); stroke-width: .7; pointer-events: none; }
 .planet-label use, .planet-label text { pointer-events: none; }
-.planet-label.is-active .planet-disc { fill: #e5efdf; stroke: #45644f; stroke-width: 1.5; }
-.retrograde-mark { font-size: 10px; font-weight: 800; fill: #765b54; paint-order: stroke; stroke: #fff; stroke-width: 2px; }
-.planet-degree-v2 { font-size: 9px; fill: #405848; paint-order: stroke; stroke: #fff; stroke-width: 2.5px; }
+.planet-label.is-active .planet-disc { fill: var(--ln-color-surface-tinted); stroke: var(--ln-color-secondary); stroke-width: 1.5; }
+.retrograde-mark { font-size: 10px; font-weight: 800; fill: var(--ln-color-text-muted); paint-order: stroke; stroke: var(--ln-color-surface); stroke-width: 2px; }
+.planet-degree-v2 { font-size: 9px; fill: var(--ln-color-text-muted); paint-order: stroke; stroke: var(--ln-color-surface); stroke-width: 2.5px; }
 .cluster-count { font-size: 17px; font-weight: 800; }
 .is-dim { opacity: .16; }
-.stellium-focus { stroke: #2c5c4f; stroke-width: 6; fill: none; opacity: .6; pointer-events: none; }
-.natal-wheel-svg [role='button']:focus-visible { outline: none; filter: drop-shadow(0 0 3px #476e43); }
-.natal-wheel-svg [role='button']:focus-visible .planet-disc, .natal-wheel-svg .house-hit:focus-visible { stroke: #254d37; stroke-width: 3; }
-.natal-wheel-svg .aspect-hit:focus-visible { stroke: #b0c6a788; }
+.stellium-focus { stroke: var(--ln-color-accent); stroke-width: 6; fill: none; opacity: .6; pointer-events: none; }
+.natal-wheel-svg [role='button']:focus-visible { outline: none; filter: drop-shadow(0 0 3px var(--ln-color-focus)); }
+.natal-wheel-svg [role='button']:focus-visible .planet-disc, .natal-wheel-svg .house-hit:focus-visible { stroke: var(--ln-color-secondary); stroke-width: 3; }
+.natal-wheel-svg .aspect-hit:focus-visible { stroke: var(--ln-color-accent-soft); }
 .chart-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; }
 .chart-toolbar > button { font-size: 12px; padding: 8px 12px; min-height: 44px; }
 .chart-toolbar > button[aria-pressed='true'] { background: var(--soft); }
@@ -50,16 +50,16 @@
 .chart-toolbar select { font-size: 12px; padding: 8px 24px 8px 10px; width: auto; min-height: 44px; }
 .chart-more { border: 0; font-size: 12px; margin-left: auto; }
 .chart-more summary { padding: 10px; min-height: 44px; }
-.chart-more[open] > div { position: absolute; z-index: 5; right: 0; top: 100%; width: min(300px, 100%); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: #fff; box-shadow: var(--shadow); }
+.chart-more[open] > div { position: absolute; z-index: 5; right: 0; top: 100%; width: min(300px, 100%); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--ln-color-surface); box-shadow: var(--shadow); }
 .chart-more label { display: flex; align-items: center; gap: 12px; font-size: 12px; min-height: 44px; }
 .chart-more input { flex-shrink: 0; }
 .chart-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 14px; font-size: 10px; color: var(--muted); }
 .chart-legend span { display: inline-flex; gap: 5px; align-items: center; }
-.chart-legend span::before { content: ''; width: 16px; border-top: 2px solid #984f49; }
-.chart-legend .legend-soft::before { border-top: 1px dashed #327184; }
-.chart-legend .legend-conjunction::before { width: 7px; height: 7px; border: 1px solid #72628c; border-radius: 50%; }
-.chart-legend .legend-minor::before { border-top: 1px dotted #68766e; }
-.wheel-detail { padding: 16px; margin: 16px 0; min-height: 100px; border-radius: 12px; border: 1px solid var(--line); background: #f5f7f1; font-size: 13px; overflow-wrap: anywhere; }
+.chart-legend span::before { content: ''; width: 16px; border-top: 2px solid var(--ln-color-accent); }
+.chart-legend .legend-soft::before { border-top: 1px dashed var(--ln-color-secondary); }
+.chart-legend .legend-conjunction::before { width: 7px; height: 7px; border: 1px solid var(--ln-color-primary); border-radius: 50%; }
+.chart-legend .legend-minor::before { border-top: 1px dotted var(--ln-color-text-subtle); }
+.wheel-detail { padding: 16px; margin: 16px 0; min-height: 100px; border-radius: 12px; border: 1px solid var(--line); background: var(--ln-color-surface-raised); font-size: 13px; overflow-wrap: anywhere; }
 .wheel-detail p { margin: 8px 0; }
 .wheel-detail small { color: var(--muted); font-size: 11px; }
 .wheel-detail .wheel-clear { display: block; padding: 7px 10px; min-height: 40px; margin-top: 10px; font-size: 11px; }
@@ -75,7 +75,7 @@
 .is-compact .house-number { font-size: 18px; }
 .is-compact .angle-marker text { font-size: 20px; }
 .is-compact .cluster-count { font-size: 22px; }
-.is-compact .angle-label-bg { stroke: #fff; stroke-width: 5px; }
+.is-compact .angle-label-bg { stroke: var(--ln-color-surface); stroke-width: 5px; }
 .is-compact .chart-toolbar { gap: 6px; }
 .is-compact .chart-toolbar > label { gap: 5px; font-size: 10px; }
 .is-compact .chart-toolbar select { padding-right: 16px; font-size: 12px; }
