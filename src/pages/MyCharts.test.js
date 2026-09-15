@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import MyCharts from "./MyCharts";
 import NatalChartResultPage from "./NatalChartResultPage";
 import { chartRequest } from "../api/chartsApi";
+import { relationshipRequest } from "../api/relationshipsApi";
 
 let mockChartId;
 const mockNavigate = jest.fn();
@@ -14,6 +15,7 @@ jest.mock("react-router-dom", () => ({
 }), { virtual: true }); // CRA's Jest resolver predates React Router 7 package exports.
 jest.mock("../context/AuthContext", () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 jest.mock("../api/chartsApi", () => ({ chartRequest: jest.fn() }));
+jest.mock("../api/relationshipsApi", () => ({ relationshipRequest: jest.fn() }));
 jest.mock("../components/NatalChart", () => ({ chartId, children }) => <div data-chart={chartId}>{children}</div>);
 jest.mock("../components/AskGptForm", () => ({ chartId }) => <div data-chat={chartId} />);
 
@@ -25,6 +27,8 @@ beforeEach(() => {
   localStorage.setItem("access_token", "test-token");
   jest.clearAllMocks();
   chartRequest.mockReset();
+  relationshipRequest.mockReset();
+  relationshipRequest.mockResolvedValue({ relationships: [], count: 0 });
   mockChartId = undefined;
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -75,6 +79,34 @@ test("guests cannot load the saved user list", async () => {
   await render(<MyCharts />);
   expect(chartRequest).not.toHaveBeenCalled();
   expect(container.textContent).toContain("Войдите в аккаунт");
+});
+
+test("relationships stay separate, open independently and delete without removing natal charts", async () => {
+  chartRequest.mockResolvedValue({ charts: [summary], count: 1, limit: 3 });
+  relationshipRequest.mockResolvedValueOnce({ relationships: [{ id: 9, chart_a_id: 7, chart_b_id: 8,
+    person_a_label: "Анна", person_b_label: "Илья" }], count: 1 });
+  await render(<MyCharts />);
+  expect(container.textContent).toContain("Мои карты");
+  expect(container.textContent).toContain("Разборы отношений");
+  expect(container.textContent).toContain("Анна + Илья");
+  const open = [...container.querySelectorAll(".relationship-cards button")].find(el => el.textContent === "Открыть");
+  await click(open); expect(mockNavigate).toHaveBeenCalledWith("/relationships/9");
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  relationshipRequest.mockResolvedValueOnce(null).mockResolvedValueOnce({ relationships: [], count: 0 });
+  await click([...container.querySelectorAll(".relationship-cards button")].find(el => el.textContent === "Удалить"));
+  expect(relationshipRequest).toHaveBeenCalledWith("/9", { method: "DELETE" });
+  expect(chartRequest).not.toHaveBeenCalledWith("/natal-chart/7", expect.anything());
+  expect(container.textContent).toContain("Карта №7");
+});
+
+test("natal dependency conflict shows a useful relationship instruction", async () => {
+  chartRequest.mockResolvedValueOnce({ charts: [summary], count: 1, limit: 3 });
+  await render(<MyCharts />);
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  chartRequest.mockRejectedValueOnce(Object.assign(new Error("raw"), { code: "relationship_dependencies_exist" }));
+  await click([...container.querySelectorAll(".saved-charts-list button")].find(el => el.textContent === "Удалить"));
+  expect(container.textContent).toContain("Сначала удалите связанный разбор отношений");
+  expect(container.textContent).not.toContain("raw");
 });
 
 test("opening by URL fetches that ID and passes it to visualization and GPT history", async () => {

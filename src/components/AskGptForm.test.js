@@ -325,3 +325,50 @@ test.each([401, 403, 404, 409, 500])("send HTTP %s retains the draft and refresh
   expect(global.fetch.mock.calls.filter(([url]) => url.includes("/ask-gpt"))).toHaveLength(1);
   expect(global.fetch.mock.calls.every(([, options]) => !options.headers["X-Session-Token"])).toBe(true);
 });
+
+test('relationship subject uses isolated endpoints, starters, SSE and the shared usage refresh', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ subjectType: 'relationship', relationshipId: 42,
+    heading: <>Поговорите <span>об отношениях</span></>, intro: 'Разбор пары готов.' });
+  expect(global.fetch.mock.calls[0][0]).toContain('/relationships/42/messages');
+  expect(container.textContent).toContain('Разбор пары готов.');
+  expect(container.textContent).toContain('В чём наша главная сила как пары?');
+  expect(container.querySelector('.askgpt-container').classList).toContain('is-empty-chat');
+  await click(button('В чём наша главная сила как пары?'));
+  const stream = controlledStream(); global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  const request = global.fetch.mock.calls[1];
+  expect(request[0]).toContain('/relationships/42/ask');
+  expect(JSON.parse(request[1].body)).toEqual({ question: 'В чём наша главная сила как пары?' });
+  await stream.event({ type: 'delta', text: 'Ваша сила' });
+  expect(container.querySelector('.chat-starters')).not.toBeNull();
+  await stream.event({ type: 'done', response: 'Ваша сила', follow_up_suggestions: ['Как нам слушать друг друга?', 'Что поддерживает близость?', 'Как бережно спорить?'] });
+  expect(container.querySelector('.chat-starters')).toBeNull();
+  expect(container.querySelector('.askgpt-container').classList).not.toContain('is-empty-chat');
+  expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+});
+
+test('natal 42 and relationship 42 never share late history or request state', async () => {
+  authenticate(); let finishNatal;
+  global.fetch.mockImplementationOnce(() => new Promise(resolve => { finishNatal = resolve; }));
+  await render({ chartId: 42 });
+  global.fetch.mockResolvedValueOnce(response([{ role: 'gpt', content: 'Relationship history' }]));
+  await render({ chartId: 42, subjectType: 'relationship', relationshipId: 42 });
+  await act(async () => finishNatal(response([{ role: 'gpt', content: 'Wrong natal history' }])));
+  expect(container.textContent).toContain('Relationship history');
+  expect(container.textContent).not.toContain('Wrong natal history');
+  expect(global.fetch.mock.calls[0][0]).toContain('/gpt-messages?chart_id=42');
+  expect(global.fetch.mock.calls[1][0]).toContain('/relationships/42/messages');
+});
+
+test('switching relationships aborts the previous subject and ignores its late response', async () => {
+  authenticate(); let finishFirst;
+  global.fetch.mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve; }));
+  await render({ subjectType: 'relationship', relationshipId: 41 });
+  global.fetch.mockResolvedValueOnce(response([{ role: 'gpt', content: 'Second pair' }]));
+  await render({ subjectType: 'relationship', relationshipId: 42 });
+  await act(async () => finishFirst(response([{ role: 'gpt', content: 'First pair late' }])));
+  expect(container.textContent).toContain('Second pair');
+  expect(container.textContent).not.toContain('First pair late');
+});

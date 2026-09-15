@@ -1,0 +1,44 @@
+.relationship-page { max-width: 1080px; color: var(--ln-color-text); }
+.relationship-create { padding: var(--ln-space-32); }
+.relationship-selectors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ln-space-24); }
+.relationship-selectors fieldset { min-width: 0; margin: 0; padding: var(--ln-space-24); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-md); }
+.relationship-selectors legend { display: flex; align-items: center; gap: var(--ln-space-8); padding: 0 var(--ln-space-8); color: var(--ln-color-primary); font-weight: 800; }
+.relationship-selectors legend .orbit-mark { width: 30px; height: 30px; }
+.relationship-selectors label:not(:first-of-type) { margin-top: var(--ln-space-16); }
+.speaker-choice { display: flex; align-items: center; gap: var(--ln-space-8); font-weight: 600; }
+.speaker-choice input { width: 18px; min-height: 18px; margin: 0; accent-color: var(--ln-color-primary); }
+.relationship-create > .field-hint { margin: var(--ln-space-16) 0 var(--ln-space-24); }
+.relationship-overview { display: flex; align-items: center; gap: var(--ln-space-24); padding: var(--ln-space-24) var(--ln-space-32); margin-bottom: var(--ln-space-32); }
+.relationship-overview .orbit-mark { flex: 0 0 auto; width: 54px; height: 54px; color: var(--ln-color-primary); }
+.relationship-overview h2 { margin-bottom: var(--ln-space-8); font-size: var(--ln-text-24); }
+.relationship-overview p { margin: 0; color: var(--ln-color-text-muted); }
+.relationship-chat { margin-bottom: var(--ln-space-48); }
+.relationship-section-heading { display: flex; align-items: end; justify-content: space-between; gap: var(--ln-space-24); margin-bottom: var(--ln-space-24); }
+.relationship-section-heading .eyebrow { margin-bottom: var(--ln-space-8); }
+.relationship-section-heading h2 { margin: 0; }
+.relationship-details { margin-top: var(--ln-space-48); }
+.relationship-details details + details { margin-top: var(--ln-space-12); }
+.relationship-facts { list-style: none; margin: 0; padding: var(--ln-space-16) var(--ln-space-24) var(--ln-space-24); display: grid; gap: var(--ln-space-8); }
+.relationship-facts li { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: var(--ln-space-12); padding: var(--ln-space-12); background: var(--ln-color-surface-tinted); border-radius: var(--ln-radius-control); overflow-wrap: anywhere; }
+.relationship-facts li strong:last-of-type { text-align: right; }
+.relationship-facts small { color: var(--ln-color-text-muted); white-space: nowrap; }
+.relationship-detail-empty { padding: var(--ln-space-16) var(--ln-space-24); margin: 0; color: var(--ln-color-text-muted); }
+.relationship-overlays { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ln-space-16); padding: var(--ln-space-24); }
+.relationship-overlays section { min-width: 0; padding: var(--ln-space-16); background: var(--ln-color-surface-tinted); border-radius: var(--ln-radius-control); }
+.relationship-overlays h3 { font-size: var(--ln-text-16); overflow-wrap: anywhere; }
+.relationship-overlays ul { columns: 2; padding-left: 20px; margin-bottom: 0; }
+.relationship-overlays p, .relationship-overlays li { color: var(--ln-color-text-muted); font-size: var(--ln-text-13); }
+.relationship-limitation { margin: var(--ln-space-16) 0; color: var(--ln-color-text-muted); font-size: var(--ln-text-12); }
+.relationship-result-actions { display: flex; justify-content: space-between; gap: var(--ln-space-16); margin-top: var(--ln-space-32); }
+@media (max-width: 700px) {
+  .relationship-selectors { grid-template-columns: 1fr; }
+  .relationship-create { padding: var(--ln-space-20, 20px); }
+  .relationship-overview { align-items: flex-start; padding: var(--ln-space-24) var(--ln-space-16); }
+  .relationship-section-heading { align-items: flex-start; flex-direction: column; }
+  .relationship-facts li { grid-template-columns: minmax(0, 1fr) auto; }
+  .relationship-facts li strong:last-of-type { text-align: left; }
+  .relationship-facts small { grid-column: 1 / -1; }
+  .relationship-overlays { grid-template-columns: 1fr; padding: var(--ln-space-16); }
+  .relationship-result-actions { align-items: stretch; flex-direction: column; }
+  .relationship-result-actions > * { width: 100%; }
+}

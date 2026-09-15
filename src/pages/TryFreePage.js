@@ -3,7 +3,7 @@ import { API_URL } from "../config/api";
 import { saveChartPresentation } from "../api/chartPresentation";
 import { PageHeading, OrbitMark } from "../components/UI";
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiError } from "../api/apiError";
@@ -110,6 +110,7 @@ const TryFreePage = () => {
   const { user } = useAuth();
   const { refreshUsage, handleLimitError } = useUsage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     name: "",
     year: "2000",
@@ -237,7 +238,15 @@ const TryFreePage = () => {
     try {
       const result = await calculateNatalChart(finalData);
       refreshUsage();
-      navigate(`/natal-chart-result/${result.chart_id}`);
+      const returnTo = location.state?.returnTo === "/relationships/new" ? location.state.returnTo : null;
+      if (returnTo) {
+        navigate(returnTo, { replace: true, state: {
+          relationshipDraft: location.state?.relationshipDraft || null,
+          createdChartId: result.chart_id,
+        } });
+      } else {
+        navigate(`/natal-chart-result/${result.chart_id}`);
+      }
     } catch (error) {
       if (error.code === "ambiguous_birth_time") setTimeOptions(error.detail.options || []);
       if (!handleLimitError(error)) setSubmitError(error.message || "Не удалось создать карту. Попробуйте ещё раз.");

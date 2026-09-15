@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { chartRequest } from "../api/chartsApi";
+import { relationshipRequest } from "../api/relationshipsApi";
 import { useUsage } from "../context/UsageContext";
 import { PageHeading, LoadingState, EmptyState, OrbitMark } from "../components/UI";
 import { chartPresentation } from "../api/chartPresentation";
@@ -15,6 +16,9 @@ const MyCharts = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [deletingRelationship, setDeletingRelationship] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const [relationshipError, setRelationshipError] = useState("");
   const [reload, setReload] = useState(0);
   const hasToken = token && token !== "null";
   const currentResult = result?.token === token ? result.data : null;
@@ -26,10 +30,18 @@ const MyCharts = () => {
     const controller = new AbortController();
     setResult(null);
     setError(null);
+    setRelationshipError("");
     if (hasToken) {
-      chartRequest("/natal-charts", { authenticated: true, signal: controller.signal })
-        .then(data => { if (!controller.signal.aborted) { setResult({ token, data }); refreshUsage(); } })
-        .catch(err => { if (!controller.signal.aborted) setError(err); });
+      Promise.allSettled([
+        chartRequest("/natal-charts", { authenticated: true, signal: controller.signal }),
+        relationshipRequest("", { signal: controller.signal }),
+      ])
+        .then(([chartsResult, relationshipsResult]) => { if (!controller.signal.aborted) {
+          if (chartsResult.status === "rejected") { setError(chartsResult.reason); return; }
+          const relationships = relationshipsResult.status === "fulfilled" ? relationshipsResult.value.relationships || [] : [];
+          if (relationshipsResult.status === "rejected") setRelationshipError("Не удалось загрузить разборы отношений. Обновите страницу, чтобы повторить.");
+          setResult({ token, data: { ...chartsResult.value, relationships } }); refreshUsage();
+        } });
     }
     return () => controller.abort();
   }, [token, hasToken, user?.id, reload, refreshUsage]);
@@ -38,6 +50,7 @@ const MyCharts = () => {
     if (deleting !== null || !window.confirm(`Удалить карту №${chartId} и всю её GPT-историю? Это действие нельзя отменить.`)) return;
     setDeleting(chartId);
     setError(null);
+    setActionError("");
     try {
       await chartRequest(`/natal-chart/${chartId}`, { method: "DELETE", authenticated: true });
       refreshUsage();
@@ -47,10 +60,24 @@ const MyCharts = () => {
       }
       setReload(value => value + 1);
     } catch (err) {
-      setError(err);
+      if (err.code === "relationship_dependencies_exist") {
+        setActionError("Эта карта используется в разборе отношений. Сначала удалите связанный разбор отношений.");
+      } else setActionError(err.message);
     } finally {
       setDeleting(null);
     }
+  };
+
+  const deleteRelationship = async relationship => {
+    if (deletingRelationship !== null || !window.confirm(
+      `Удалить разбор «${relationship.person_a_label} + ${relationship.person_b_label}» и всю историю разговора? Обе натальные карты останутся.`
+    )) return;
+    setDeletingRelationship(relationship.id); setActionError("");
+    try {
+      await relationshipRequest(`/${relationship.id}`, { method: "DELETE" });
+      setReload(value => value + 1);
+    } catch (err) { setActionError(err.message); }
+    finally { setDeletingRelationship(null); }
   };
 
   const formatTime = (hour) => {
@@ -96,6 +123,7 @@ const MyCharts = () => {
         <>
           {user && <details className="account-plan"><summary>Ваш план и использование аккаунта</summary><UsageSummary /></details>}
           {error && <p role="alert">{error.message}</p>}
+          {actionError && <p role="alert">{actionError}</p>}
           {error && <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button>}
           {!currentResult && !error && <LoadingState text="Загрузка карт..." />}
           {currentResult && (
@@ -122,6 +150,25 @@ const MyCharts = () => {
                   </li>
                 ))}
               </ul>
+              <section className="relationships-dashboard" aria-labelledby="relationships-dashboard-title">
+                <div className="charts-toolbar"><div><strong id="relationships-dashboard-title">Разборы отношений</strong>
+                  <p>Сохранённые разговоры о динамике ваших отношений.</p></div>
+                  <button onClick={() => navigate("/relationships/new")}>Разобрать отношения</button></div>
+                {relationshipError && <p role="alert">{relationshipError}</p>}
+                {currentResult.relationships.length === 0 ? <EmptyState title="У вас пока нет разборов отношений.">
+                  <p>Выберите две сохранённые карты, чтобы исследовать общение, притяжение и сложные моменты.</p>
+                  <button onClick={() => navigate("/relationships/new")}>Разобрать отношения</button>
+                </EmptyState> : <ul className="relationship-cards">
+                  {currentResult.relationships.map(relationship => <li key={relationship.id}>
+                    <div className="saved-chart-heading"><OrbitMark /><span className="badge">Разбор</span></div>
+                    <h3>{relationship.person_a_label} + {relationship.person_b_label}</h3>
+                    <p>Отдельная история разговора с Lunaria</p>
+                    <div className="saved-chart-actions"><button onClick={() => navigate(`/relationships/${relationship.id}`)}>Открыть</button>
+                      <button className="button-danger" disabled={deletingRelationship !== null}
+                        onClick={() => deleteRelationship(relationship)}>{deletingRelationship === relationship.id ? "Удаление..." : "Удалить"}</button></div>
+                  </li>)}
+                </ul>}
+              </section>
             </>
           )}
         </>

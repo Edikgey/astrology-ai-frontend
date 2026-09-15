@@ -19,5 +19,11 @@
 .local-chart-profile > p { padding: var(--ln-space-24) var(--ln-space-24) 0; font-size: var(--ln-text-12); }
 .local-chart-profile form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ln-space-12); padding: 0 var(--ln-space-24) var(--ln-space-24); }
 .back-home { font-size: var(--ln-text-12); }
+.relationships-dashboard { margin-top: var(--ln-space-48); padding-top: var(--ln-space-16); border-top: 1px solid var(--ln-color-border); }
+.relationship-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; list-style: none; padding: 0; margin: 0; }
+.relationship-cards > li { min-width: 0; padding: var(--ln-space-24); display: flex; flex-direction: column; background: var(--ln-color-surface); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-lg); box-shadow: var(--ln-shadow-medium); }
+.relationship-cards h3 { margin-bottom: var(--ln-space-12); overflow-wrap: anywhere; }
+.relationship-cards p { color: var(--ln-color-text-muted); font-size: var(--ln-text-12); }
 @media (max-width: 1000px) { .saved-charts-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .saved-charts-list { grid-template-columns: 1fr; } .charts-toolbar { align-items: stretch; flex-direction: column; gap: 18px; } .charts-toolbar > button { width: 100%; } .local-chart-profile form { grid-template-columns: 1fr; padding: 0 var(--ln-space-16) 20px; } }
+@media (max-width: 1000px) { .relationship-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .saved-charts-list, .relationship-cards { grid-template-columns: 1fr; } .charts-toolbar { align-items: stretch; flex-direction: column; gap: 18px; } .charts-toolbar > button { width: 100%; } .local-chart-profile form { grid-template-columns: 1fr; padding: 0 var(--ln-space-16) 20px; } }

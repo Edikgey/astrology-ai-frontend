@@ -4,7 +4,8 @@ import { Simulate } from 'react-dom/test-utils';
 import TryFreePage, { calculateNatalChart } from './TryFreePage';
 
 const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }), { virtual: true });
+let mockLocation;
+jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate, useLocation: () => mockLocation }), { virtual: true });
 jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 jest.mock('../context/UsageContext', () => ({ useUsage: () => ({ refreshUsage: jest.fn(), handleLimitError: () => false }) }));
 jest.mock('../components/UsageSummary', () => () => null);
@@ -21,6 +22,7 @@ const selectCity = async () => {
 beforeEach(async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear(); localStorage.setItem('access_token', 'test-jwt');
+  mockLocation = { pathname: '/try-free', state: null };
   originalFetch = global.fetch; global.fetch = jest.fn(); mockNavigate.mockReset();
   container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
   await act(async () => root.render(<TryFreePage />));
@@ -46,6 +48,17 @@ test('optional name is attached to the created chart locally without changing th
   expect(JSON.parse(localStorage.getItem('chart-presentation:42'))).toEqual({ name: 'Моя карта' });
   const [, options] = global.fetch.mock.calls.find(([url]) => url.endsWith('/natal-chart'));
   expect(JSON.parse(options.body)).not.toHaveProperty('name');
+});
+
+test('authenticated second-person creation returns only to the allowlisted relationship route', async () => {
+  mockLocation = { pathname: '/try-free', state: { returnTo: '/relationships/new',
+    relationshipDraft: { chartAId: 7, labelA: 'Анна' } } };
+  await act(async () => root.unmount()); root = createRoot(container);
+  await act(async () => root.render(<TryFreePage />));
+  await selectCity(); global.fetch.mockResolvedValueOnce(ok({ chart_id: 8 })); await submit();
+  expect(mockNavigate).toHaveBeenCalledWith('/relationships/new', { replace: true, state: {
+    relationshipDraft: { chartAId: 7, labelA: 'Анна' }, createdChartId: 8,
+  } });
 });
 
 test('editing birthplace invalidates coordinates and timezone from the previous selection', async () => {

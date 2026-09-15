@@ -19,6 +19,8 @@ import TryFreePage from "./pages/TryFreePage";
 import PricingPage from "./pages/PricingPage";
 import MyCharts from "./pages/MyCharts";
 import NatalChartResultPage from "./pages/NatalChartResultPage";
+import RelationshipNewPage from "./pages/RelationshipNewPage";
+import RelationshipResultPage from "./pages/RelationshipResultPage";
 import { LoadingState } from "./components/UI";
 import DailyHoroscopePage from "./pages/DailyHoroscopePage";
 
@@ -62,6 +64,8 @@ function AppContent() {
         <Route path="/natal-chart-result/:chartId" element={<NatalChartResultPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/my-charts" element={<MyCharts />} />
+        <Route path="/relationships/new" element={<ProtectedRoute><RelationshipNewPage /></ProtectedRoute>} />
+        <Route path="/relationships/:relationshipId" element={<ProtectedRoute><RelationshipResultPage /></ProtectedRoute>} />
         <Route path="/daily-horoscope" element={<DailyHoroscopePage />} />
         <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/my-charts" replace /></ProtectedRoute>} />
       </Routes>

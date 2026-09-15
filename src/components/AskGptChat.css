@@ -38,6 +38,7 @@
 
 /* A bounded chat window keeps its composer next to the scrollable history. */
 .askgpt-container.is-chat-active { display: flex; flex-direction: column; height: clamp(600px, calc(100dvh - 48px), 920px); padding: var(--ln-space-24); }
+.askgpt-container.is-relationship-chat.is-empty-chat { height: auto; }
 .is-chat-active > * { flex-shrink: 0; }
 .is-chat-active .chat-heading { padding-bottom: var(--ln-space-12); }
 .is-chat-active .chat-heading h2 { font-size: var(--ln-text-32); margin-bottom: var(--ln-space-8); }

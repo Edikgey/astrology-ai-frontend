@@ -9,9 +9,10 @@ import { DialogClose } from "./UI";
 import "./AskGptChat.css";
 
 export const CHAT_INTRO = "Карта готова. Давайте поговорим о том, что важно для вас: характере, отношениях, работе или сильных сторонах.";
-const QUESTIONS = ["Какие у меня сильные стороны?", "Что у меня с отношениями?", "Какая карьера мне подходит?"];
-const requestError = status => status === 401 ? "Сессия истекла. Войдите снова." :
-  status === 403 || status === 404 ? "Чат этой карты недоступен для вашего аккаунта." :
+const NATAL_QUESTIONS = ["Какие у меня сильные стороны?", "Что у меня с отношениями?", "Какая карьера мне подходит?"];
+export const RELATIONSHIP_QUESTIONS = ["В чём наша главная сила как пары?", "Почему мы можем конфликтовать?", "Как мы проявляем чувства по-разному?", "Что нам важно понимать друг о друге?"];
+const requestError = (status, subjectType) => status === 401 ? "Сессия истекла. Войдите снова." :
+  status === 403 || status === 404 ? `Чат ${subjectType === "relationship" ? "этого разбора" : "этой карты"} недоступен для вашего аккаунта.` :
   status === 409 ? "Запрос сейчас недоступен. Попробуйте позже." : "Не удалось выполнить запрос. Попробуйте ещё раз.";
 
 // A keyed session isolates in-flight responses when the chart or user changes.
@@ -19,11 +20,14 @@ const AskGptForm = (props) => {
   const { user, loading: authLoading } = useAuth();
   const token = localStorage.getItem("access_token");
   const authenticated = Boolean(user && token && token !== "null" && !authLoading);
-  return <ChatSession key={`${props.chartId}:${user?.id || "guest"}:${token || ""}:${props.unsaved || false}`}
-    {...props} authenticated={authenticated} authLoading={authLoading} token={token} />;
+  const subjectType = props.subjectType === "relationship" ? "relationship" : "natal";
+  const subjectId = subjectType === "relationship" ? props.relationshipId : props.chartId;
+  return <ChatSession key={`${subjectType}:${subjectId}:${user?.id || "guest"}:${token || ""}:${props.unsaved || false}`}
+    {...props} subjectType={subjectType} subjectId={subjectId} authenticated={authenticated} authLoading={authLoading} token={token} />;
 };
 
-const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = false, initialQuestion = "", onQuestionConsumed, guestSessionToken }) => {
+const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoading, token, unsaved = false,
+  initialQuestion = "", onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions }) => {
   const { usage, usageLoading, usageError, refreshUsage, handleLimitError } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
@@ -62,13 +66,15 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
     followBottom.current = true;
     setHistoryError("");
     setHistoryLoading(canChat);
-    if (canChat && chartId) {
+    if (canChat && subjectId) {
       (async () => {
         try {
-          const response = await fetch(`${API_URL}/gpt-messages?chart_id=${chartId}`, {
+          const historyPath = subjectType === "relationship"
+            ? `/relationships/${subjectId}/messages` : `/gpt-messages?chart_id=${subjectId}`;
+          const response = await fetch(`${API_URL}${historyPath}`, {
             headers: { Authorization: `Bearer ${token}` }, signal: controller.signal,
           });
-          if (!response.ok) throw new Error(requestError(response.status));
+          if (!response.ok) throw new Error(requestError(response.status, subjectType));
           const data = await response.json();
           if (!controller.signal.aborted) setMessages(data.map(msg => ({ user: msg.role === "user" ? "Вы" : "GPT", text: msg.content })));
         } catch (err) {
@@ -79,7 +85,7 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
       })();
     }
     return () => controller.abort();
-  }, [canChat, chartId, token, reload]);
+  }, [canChat, subjectId, subjectType, token, reload]);
 
   const openGate = (pending = question) => { setQuestion(pending); setGate(true); };
   const startAuth = mode => {
@@ -103,13 +109,15 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
     if (suggestion) setQuestion(text);
     setMessages(previous => [...previous, { user: "Вы", text }, { user: "GPT", text: "", streaming: true }]);
     try {
-      const response = await fetch(`${API_URL}/ask-gpt`, {
+      const askPath = subjectType === "relationship" ? `/relationships/${subjectId}/ask` : "/ask-gpt";
+      const payload = subjectType === "relationship" ? { question: text } : { chart_id: Number(subjectId), question: text };
+      const response = await fetch(`${API_URL}${askPath}`, {
         method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ chart_id: Number(chartId), question: text }), signal: controller.signal,
+        body: JSON.stringify(payload), signal: controller.signal,
       });
       if (!response.ok) {
         const data = await response.json?.().catch(() => ({}));
-        throw apiError(response.status, data, requestError(response.status));
+        throw apiError(response.status, data, requestError(response.status, subjectType));
       }
       const data = await readChatResponse(response, delta => {
         if (!controller.signal.aborted) setMessages(previous => previous.map(msg =>
@@ -149,20 +157,21 @@ const ChatSession = ({ chartId, authenticated, authLoading, token, unsaved = fal
       "Нет действующего периода" : Number.isFinite(usage.gpt_messages_available) ?
       `Доступно вопросов: ${usage.gpt_messages_available}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
     usageLoading ? "Загрузка лимитов…" : null;
+  const questions = starterQuestions || (subjectType === "relationship" ? RELATIONSHIP_QUESTIONS : NATAL_QUESTIONS);
   const starters = <div className="predefined-questions">
-    {QUESTIONS.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
+    {questions.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
       onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
     <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
   </div>;
-  return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}`}>
-    <div className="chat-heading"><h2>Ваш персональный <span>AI-астролог</span></h2><p>Поговорим о вас и о том, что показывает ваша карта.</p></div>
+  return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}${subjectType === "relationship" ? " is-relationship-chat" : ""}${subjectType === "relationship" && showStarters ? " is-empty-chat" : ""}`}>
+    <div className="chat-heading"><h2>{heading || <>Ваш персональный <span>AI-астролог</span></>}</h2><p>{subtitle || "Поговорим о вас и о том, что показывает ваша карта."}</p></div>
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
     {error && <p role="alert">{error}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions"
       onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
-      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><div>{CHAT_INTRO}</div></div>}
+      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><div>{intro || CHAT_INTRO}</div></div>}
       {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
         <div>{msg.text || (msg.streaming ? "Обдумываю вашу карту и вопрос..." : "")}</div>
         {msg.streaming && <span className="stream-indicator" role="status" aria-label="Lunaria отвечает">···</span>}

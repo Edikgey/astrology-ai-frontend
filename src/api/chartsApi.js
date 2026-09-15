@@ -1,4 +1,5 @@
 import { API_URL } from "../config/api";
+import { apiError } from "./apiError";
 
 export async function chartRequest(path, { method = "GET", signal, authenticated = false, guestSessionToken } = {}) {
   const headers = {};
@@ -14,13 +15,9 @@ export async function chartRequest(path, { method = "GET", signal, authenticated
   const response = await fetch(`${API_URL}${path}`, { method, headers, signal });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    const error = new Error(
-      response.status === 401 ? "Войдите в аккаунт, чтобы продолжить." :
-      response.status === 404 ? "Карта не найдена или недоступна." :
-      typeof data.detail === "string" ? data.detail : "Не удалось выполнить запрос. Попробуйте ещё раз."
-    );
-    error.status = response.status;
-    throw error;
+    throw apiError(response.status, data, response.status === 404
+      ? "Карта не найдена или недоступна."
+      : "Не удалось выполнить запрос. Попробуйте ещё раз.");
   }
   return response.status === 204 ? null : response.json();
 }
