@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { RADII, ROMAN, project, buildHouseSectors, buildPlanetAnchors, layoutPlanetLabels, buildAspectEndpoints, arcPath, sectorPath } from './geometry';
 import { ANGLES, ANGLE_LABELS, SIGNS, longitudeText } from './model';
 import { Glyph, GlyphDefs } from './Glyphs';
@@ -7,7 +8,7 @@ import './ChartWheel.css';
 const keyActivate = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(); } };
 const pointLabel = point => `${point.name} · ${longitudeText(point.longitude)} · ${point.house != null ? `дом ${point.house}` : 'дом не передан'}${point.retrograde ? ' · ретроградная' : ''}`;
 
-export default function ChartWheel({ model, preview = false }) {
+export default function ChartWheel({ model, preview = false, referenceTarget = null }) {
   const container = useRef(null);
   const prefix = useId().replace(/:/g, '');
   const [compact, setCompact] = useState(false);
@@ -26,10 +27,10 @@ export default function ChartWheel({ model, preview = false }) {
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
-    const clearOutside = event => { if (!container.current?.contains(event.target)) { setSelected(null); setHover(null); } };
+    const clearOutside = event => { if (!container.current?.contains(event.target) && !referenceTarget?.contains(event.target)) { setSelected(null); setHover(null); } };
     document.addEventListener('pointerdown', clearOutside);
     return () => document.removeEventListener('pointerdown', clearOutside);
-  }, []);
+  }, [referenceTarget]);
   useEffect(() => { setSelected(null); setHover(null); }, [model]);
   const focus = selected || hover;
   const activePattern = focus?.kind === 'pattern' ? model.patterns.find(p => p.id === focus.id) : null;
@@ -65,6 +66,15 @@ export default function ChartWheel({ model, preview = false }) {
   const aspectLabel = aspect => `${model.byId[aspect.from]?.name || aspect.from} — ${aspect.name} — ${model.byId[aspect.to]?.name || aspect.to}. Орбис: ${aspect.orb || 'не передан'}`;
 
   if (!model.ready) return <div className="notice" role="status">Точные данные для круга неполны. {model.issues.join(' ')} Доступные положения перечислены ниже.</div>;
+  const referenceDetails = <>
+      <details className="wheel-text-details"><summary>Положения и аспекты списком</summary>
+        <div className="wheel-point-list">{model.points.map(point => <button type="button" key={point.id} className="button-secondary" onClick={() => select({ kind: 'point', id: point.id })}>{pointLabel(point)}</button>)}</div>
+        <div className="wheel-house-list">{model.cusps.map(house => <button type="button" className="button-secondary" key={house.id} onClick={() => select({ kind: 'house', id: house.id })}>Дом {ROMAN[house.number - 1]} · {longitudeText(house.longitude)}</button>)}</div>
+        <div className="wheel-aspect-list">{model.aspects.map(aspect => <button type="button" className="button-secondary" key={aspect.id} onClick={() => { setAspectMode('all'); select({ kind: 'aspect', id: aspect.id }); }}>{aspectLabel(aspect)}{!aspect.drawable && ' · нет долготы участника'}</button>)}</div>
+      </details>
+      {model.patterns.length > 0 && <details className="wheel-text-details"><summary>Конфигурации · {model.patterns.length}</summary><div className="pattern-focus-list">{model.patterns.map(pattern => <button className="button-secondary" type="button" key={pattern.id} disabled={!pattern.members.length} onClick={() => select({ kind: 'pattern', id: pattern.id })}>{pattern.name}<small>{pattern.sourceBodies.map(body => body.label || body.symbol).join(' · ')}</small></button>)}</div></details>}
+      {model.issues.length > 0 && <details className="wheel-text-details"><summary>Доступность данных</summary><ul>{model.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details>}
+  </>;
   return <div ref={container} className={`chart-v2 ${compact ? 'is-compact' : ''} ${preview ? 'is-preview' : ''}`}
     onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clear(); } }}>
     {!preview && <div className="chart-toolbar" aria-label="Отображение карты">
@@ -140,13 +150,7 @@ export default function ChartWheel({ model, preview = false }) {
         {activePoint ? <><strong>{activePoint.name}</strong><p>{pointLabel(activePoint)}</p><small>Долгота API: {activePoint.longitude}°</small></> : activeAspect ? <><strong>{model.byId[activeAspect.from]?.name || activeAspect.from} {activeAspect.type} {model.byId[activeAspect.to]?.name || activeAspect.to}</strong><p>{activeAspect.name}{activeAspect.angle != null ? ` · ${activeAspect.angle}°` : ''} · Орбис: {activeAspect.orb || 'не передан API'}</p></> : selectedHouse ? <><strong>Дом {ROMAN[selectedHouse.number - 1]}</strong><p>Куспид: {longitudeText(selectedHouse.longitude)}</p><small>Долгота API: {selectedHouse.longitude}°</small></> : activePattern ? <><strong>{activePattern.name}</strong><p>{activePattern.members.map(id => model.byId[id].name).join(' · ')}</p><small>Выделены переданные участники и их существующие аспекты.</small></> : group ? <><strong>Плотная группа · участников: {group.members.length}</strong><div className="group-members">{group.members.map(id => <button type="button" className="button-secondary" key={id} onClick={() => select({ kind: 'point', id })}>{model.byId[id].name}</button>)}</div></> : <p>Выберите планету, угол или аспект. Точные значения появятся здесь.</p>}
         {selected && <button className="wheel-clear button-secondary" onClick={clear}>Снять выделение</button>}
       </div>
-      <details className="wheel-text-details"><summary>Положения и аспекты списком</summary>
-        <div className="wheel-point-list">{model.points.map(point => <button type="button" key={point.id} className="button-secondary" onClick={() => select({ kind: 'point', id: point.id })}>{pointLabel(point)}</button>)}</div>
-        <div className="wheel-house-list">{model.cusps.map(house => <button type="button" className="button-secondary" key={house.id} onClick={() => select({ kind: 'house', id: house.id })}>Дом {ROMAN[house.number - 1]} · {longitudeText(house.longitude)}</button>)}</div>
-        <div className="wheel-aspect-list">{model.aspects.map(aspect => <button type="button" className="button-secondary" key={aspect.id} onClick={() => { setAspectMode('all'); select({ kind: 'aspect', id: aspect.id }); }}>{aspectLabel(aspect)}{!aspect.drawable && ' · нет долготы участника'}</button>)}</div>
-      </details>
-      {model.patterns.length > 0 && <details className="wheel-text-details"><summary>Конфигурации · {model.patterns.length}</summary><div className="pattern-focus-list">{model.patterns.map(pattern => <button className="button-secondary" type="button" key={pattern.id} disabled={!pattern.members.length} onClick={() => select({ kind: 'pattern', id: pattern.id })}>{pattern.name}<small>{pattern.sourceBodies.map(body => body.label || body.symbol).join(' · ')}</small></button>)}</div></details>}
-      {model.issues.length > 0 && <details className="wheel-text-details"><summary>Доступность данных</summary><ul>{model.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details>}
+      {referenceTarget ? createPortal(referenceDetails, referenceTarget) : referenceDetails}
     </>}
   </div>;
 }
