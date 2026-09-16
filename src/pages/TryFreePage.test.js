@@ -61,6 +61,17 @@ test('authenticated second-person creation returns only to the allowlisted relat
   } });
 });
 
+test('landing intent stays visible during onboarding and reaches the created chart', async () => {
+  const landingIntent = { topic: 'relationships', question: 'Почему меня снова привлекают похожие люди?', source: 'landing_use_case' };
+  mockLocation = { pathname: '/try-free', state: { landingIntent } };
+  await act(async () => root.unmount()); root = createRoot(container);
+  await act(async () => root.render(<TryFreePage />));
+  expect(container.textContent).toContain('Создадим вашу карту, чтобы посмотреть на этот вопрос через неё');
+  expect(container.querySelector('.create-intent').textContent).toContain(landingIntent.question);
+  await selectCity(); global.fetch.mockResolvedValueOnce(ok({ chart_id: 45 })); await submit();
+  expect(mockNavigate).toHaveBeenCalledWith('/natal-chart-result/45', { state: { landingIntent } });
+});
+
 test('editing birthplace invalidates coordinates and timezone from the previous selection', async () => {
   await selectCity(); await change('birthPlace', 'AB');
   expect(container.textContent).not.toContain('Europe/Berlin');

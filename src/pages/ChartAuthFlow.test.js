@@ -144,6 +144,18 @@ test("guest creation keeps the existing API flow, renders the result, and never 
   expect(global.fetch.mock.calls.some(([url]) => url.includes("/natal-charts"))).toBe(false);
 });
 
+test("landing question is restored in the existing guest chat composer after chart creation", async () => {
+  const landingIntent = { topic: "relationships", question: "Почему меня снова привлекают похожие люди?", source: "landing_use_case" };
+  mockLocation = { pathname: "/natal-chart-result/7", state: { landingIntent } };
+  global.fetch.mockResolvedValue(ok({ chart_id: 7, houses }));
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector("[data-chart]").dataset.chart).toBe("7");
+  expect(container.textContent).toContain("Ваша карта готова");
+  expect(container.textContent).toContain("Теперь можно вернуться к вопросу, с которого вы начали.");
+  expect(container.querySelector("textarea").value).toBe(landingIntent.question);
+  expect(gptCalls()).toHaveLength(0);
+});
+
 test("header auth uses only a successfully opened guest chart and forgets it on leaving", async () => {
   mockLocation = { pathname: "/natal-chart-result/7", state: null };
   global.fetch.mockResolvedValue(ok({ chart_id: 7, houses }));

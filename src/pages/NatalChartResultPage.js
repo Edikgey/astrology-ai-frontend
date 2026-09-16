@@ -8,6 +8,7 @@ import { chartPresentation } from '../api/chartPresentation';
 import './NatalChartResultPage.css';
 import NatalChart from '../components/NatalChart';
 import AskGptForm from '../components/AskGptForm'; // Подключаем компонент чата
+import { normalizeLandingIntent } from './landingIntent';
 
 const NatalChartResultPage = () => {
   const { chartId: routeChartId } = useParams();
@@ -22,6 +23,8 @@ const NatalChartResultPage = () => {
   const token = localStorage.getItem("access_token");
   const sessionToken = localStorage.getItem("session_token");
   const chartAuth = String(location.state?.chartAuth?.chartId) === String(chartId) ? location.state.chartAuth : null;
+  const landingIntent = normalizeLandingIntent(location.state?.landingIntent);
+  const pendingQuestion = chartAuth?.pendingQuestion || landingIntent?.question || "";
   const unsaved = Boolean(chartAuth && chartAuth.status !== "migrated");
   const guestSessionToken = unsaved ? chartAuth.sessionToken : undefined;
   const migrationNotice = chartAuth?.status === "limit_reached" ? `Вы вошли в аккаунт, но карта не сохранена: достигнут лимит сохранённых карт${usage ? ` (${usage.saved_charts_limit})` : ""}. Откройте «Мои карты», чтобы управлять сохранёнными картами.` :
@@ -37,10 +40,10 @@ const NatalChartResultPage = () => {
 
   useEffect(() => {
     if (chartData && !user && (!token || token === "null") && sessionToken) {
-      setActiveGuestChart?.({ chartId: chartData.chart_id, sessionToken, pendingQuestion: "" });
+      setActiveGuestChart?.({ chartId: chartData.chart_id, sessionToken, pendingQuestion });
     }
     return () => setActiveGuestChart?.(null);
-  }, [chartData, user, token, sessionToken, setActiveGuestChart]);
+  }, [chartData, user, token, sessionToken, pendingQuestion, setActiveGuestChart]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,8 +60,10 @@ const NatalChartResultPage = () => {
   }, [chartId, requestKey, reload, guestSessionToken]);
 
   const consumeQuestion = () => {
-    if (chartAuth?.pendingQuestion) navigate(location.pathname, { replace: true, state: {
-      ...location.state, chartAuth: { ...chartAuth, pendingQuestion: "" },
+    if (pendingQuestion) navigate(location.pathname, { replace: true, state: {
+      ...location.state,
+      ...(chartAuth ? { chartAuth: { ...chartAuth, pendingQuestion: "" } } : {}),
+      landingIntent: null,
     } });
   };
 
@@ -78,9 +83,9 @@ const NatalChartResultPage = () => {
 
   return (
     <div className="page result-page">
-   <PageHeading eyebrow="Ваш личный космос" title={chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
+   <PageHeading eyebrow="Ваш личный космос" title={landingIntent ? "Ваша карта готова" : chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
      action={<a className="button" href="#chart-conversation">Перейти к разговору ↓</a>}>
-     <p>Карта — отправная точка. Вы выбираете, о чём поговорить.</p>
+     <p>{landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>
      {chartData.timezone && <p className="result-metadata">Часовой пояс рождения: {chartData.timezone}</p>}
    </PageHeading>
    {migrationNotice && <p role="status" className="notice">{migrationNotice} <Link to="/my-charts">Мои карты</Link></p>}
@@ -97,7 +102,7 @@ const NatalChartResultPage = () => {
 >
   {/* ✅ Передаём чат как children */}
   <section id="chart-conversation" className="result-conversation" aria-label="Разговор о вашей карте">
-    <AskGptForm chartId={chartData.chart_id} unsaved={unsaved} initialQuestion={chartAuth?.pendingQuestion || ""}
+    <AskGptForm chartId={chartData.chart_id} unsaved={unsaved} initialQuestion={pendingQuestion}
       guestSessionToken={sessionToken} onQuestionConsumed={consumeQuestion} />
   </section>
 </NatalChart>

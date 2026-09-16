@@ -2,6 +2,9 @@
 .create-intro { padding-top: 20px; }
 .create-intro h1 { font-family: var(--ln-font-display); font-weight: 400; font-size: var(--ln-text-43); }
 .create-note { max-width: 320px; margin-top: 52px; padding-top: 28px; border-top: 1px solid var(--ln-color-border); }
+.create-intent { max-width: 360px; margin-top: var(--ln-space-32); padding: var(--ln-space-24); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-md); background: var(--ln-color-surface-tinted); }
+.create-intent span { display: block; margin-bottom: var(--ln-space-8); color: var(--ln-color-primary); font-size: var(--ln-text-11); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.create-intent p { margin: 0; color: var(--ln-color-text); font-family: var(--ln-font-display); font-size: var(--ln-text-17); line-height: 1.65; }
 .create-note .orbit-mark { width: 40px; height: 40px; color: var(--ln-color-primary); margin-bottom: 20px; }
 .create-note h3 { font-size: var(--ln-text-18); }
 .create-note p { color: var(--ln-color-text-muted); font-size: var(--ln-text-13); }
@@ -24,4 +27,4 @@
 .tryfree-form [role='alert'] { margin-top: var(--ln-space-12); }
 .tryfree-form label:has(select) { margin-top: 20px; }
 @media (max-width: 850px) { .tryfree-container { gap: var(--ln-space-32); grid-template-columns: 1fr 1.2fr; } .create-intro h1 { font-size: var(--ln-text-34); } .tryfree-form { padding: 28px; } }
-@media (max-width: 700px) { .tryfree-container { grid-template-columns: 1fr; gap: var(--ln-space-8); } .create-intro { padding: 0; } .create-note { display: none; } .tryfree-form { padding: var(--ln-space-24) 20px; } .date-selects { grid-template-columns: 1fr 1.35fr .75fr; gap: 6px; } .date-selects select { padding: 10px 6px; } }
+@media (max-width: 700px) { .tryfree-container { grid-template-columns: 1fr; gap: var(--ln-space-8); } .create-intro { padding: 0; } .create-note { display: none; } .create-intent { max-width: none; margin: var(--ln-space-24) 0; } .tryfree-form { padding: var(--ln-space-24) 20px; } .date-selects { grid-template-columns: 1fr 1.35fr .75fr; gap: 6px; } .date-selects select { padding: 10px 6px; } }

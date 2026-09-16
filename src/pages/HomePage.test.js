@@ -1,12 +1,11 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import HomePage from './HomePage';
-import { PLANS } from '../config/plans';
+import { LANDING_USE_CASES } from './landingIntent';
 
 jest.mock('react-router-dom', () => ({
-  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+  Link: ({ to, state, children, ...props }) => <a href={to} data-state={state ? JSON.stringify(state) : undefined} {...props}>{children}</a>,
 }), { virtual: true });
-jest.mock('../api/paddle', () => ({ paddleConfigured: false }));
 
 let root, container, originalFetch, originalObserver;
 beforeEach(async () => {
@@ -27,63 +26,63 @@ afterEach(async () => {
   global.ResizeObserver = originalObserver;
 });
 
-test('one H1 and meaningful H2/H3 hierarchy across distinct named sections', () => {
+test('renders the eight final landing sections with the specified hierarchy and copy', () => {
   expect(container.querySelectorAll('h1')).toHaveLength(1);
-  expect(container.querySelector('h1').textContent).toBe('Lunaria — ваш персональный AI-астролог');
+  expect(container.querySelector('h1').textContent).toBe('Не просто прочитайте свою натальную карту.Поговорите с ней.');
   const sections = [...container.querySelectorAll('.landing-v2 > section')];
-  expect(sections).toHaveLength(10);
+  expect(sections).toHaveLength(8);
   sections.forEach(section => {
     const heading = section.querySelector('h1, h2');
     expect(section.getAttribute('aria-labelledby')).toBe(heading.id);
   });
-  expect(container.querySelectorAll('h2')).toHaveLength(9);
-  expect(container.querySelectorAll('h3')).toHaveLength(8);
-  expect(container.querySelectorAll('h4,h5,h6')).toHaveLength(0);
+  expect(container.textContent).toContain('От вашей карты до первого вопроса — три шага');
+  expect(container.textContent).toContain('Одна карта — множество вопросов');
+  expect(container.textContent).toContain('Вернитесь к разговору с того места, где остановились');
+  expect(container.querySelector('.landing-pricing, .landing-faq, .landing-journey')).toBeNull();
 });
 
-test('creation/pricing routes and in-page actions resolve without placeholder links', () => {
+test('all landing navigation resolves to onboarding or an existing section', () => {
   [...container.querySelectorAll('a')].forEach(link => {
     const href = link.getAttribute('href');
     if (href.startsWith('#')) expect(container.querySelector(href)).not.toBeNull();
-    else expect(['/try-free', '/pricing']).toContain(href);
+    else expect(href).toBe('/try-free');
   });
-  expect(container.querySelector('.landing-hero .button').getAttribute('href')).toBe('/try-free');
-  expect(container.querySelector('.landing-final .button').getAttribute('href')).toBe('/try-free');
-  expect(container.querySelector('.landing-plan-premium .button').getAttribute('href')).toBe('/pricing');
+  expect(container.querySelector('.landing-hero .landing-text-link').getAttribute('href')).toBe('#conversation-demo');
+  expect(container.querySelectorAll('.landing-arrow').length).toBeGreaterThan(0);
 });
 
-test('demo chips switch static first-person questions without network, auth or quota actions', async () => {
+test('demo adds precisely one selected continuation without network or chat controls', async () => {
   const demo = container.querySelector('#conversation-demo .landing-demo');
-  const buttons = [...demo.querySelectorAll('button')];
+  const buttons = [...demo.querySelectorAll('.landing-demo-options button')];
   expect(buttons).toHaveLength(3);
-  const initial = demo.querySelector('.landing-demo-thread').textContent;
-  for (const button of buttons) {
-    await act(async () => button.click());
-    expect(button.getAttribute('aria-pressed')).toBe('true');
-    expect(buttons.filter(b => b.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
-    expect(demo.querySelector('.landing-bubble-user').textContent).toBe(button.textContent.replace('↳ ', ''));
-    expect(demo.querySelector('.landing-demo-thread').textContent).not.toBe(initial);
-  }
-  expect(demo.textContent).toContain('Демонстрация · без запросов к AI');
+  expect(demo.querySelectorAll('.landing-message')).toHaveLength(2);
+  await act(async () => buttons[1].click());
+  expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
+  expect(demo.querySelectorAll('.landing-message')).toHaveLength(4);
+  expect(demo.textContent).toContain('Мне сложно доверять');
+  await act(async () => buttons[2].click());
+  expect(demo.querySelectorAll('.landing-message')).toHaveLength(4);
+  expect(demo.textContent).toContain('Я отдаляюсь, когда становится серьёзно');
   expect(global.fetch).not.toHaveBeenCalled();
   expect(container.querySelector('form,textarea')).toBeNull();
 });
 
-test('static chart preview needs no observer and pricing retains shared limits and price component', () => {
+test('use-case questions carry the exact validated landing intent into onboarding', () => {
+  const links = [...container.querySelectorAll('.landing-case-question')];
+  expect(links).toHaveLength(3);
+  links.forEach((link, index) => {
+    expect(link.getAttribute('href')).toBe('/try-free');
+    expect(link.textContent).toContain(LANDING_USE_CASES[index].question);
+    expect(JSON.parse(link.dataset.state)).toEqual({ landingIntent: {
+      topic: LANDING_USE_CASES[index].topic,
+      question: LANDING_USE_CASES[index].question,
+      source: 'landing_use_case',
+    } });
+  });
+});
+
+test('static chart preview stays independent from the frozen renderer runtime', () => {
   expect(container.querySelector('#chart-showcase .chart-v2.is-preview svg')).not.toBeNull();
   expect(container.querySelector('#chart-showcase .chart-toolbar')).toBeNull();
   expect(global.ResizeObserver).not.toHaveBeenCalled();
-  const plans = container.querySelector('.landing-plan-grid').textContent;
-  expect(plans).toContain(`До ${PLANS.free.chartLimit} сохранённых карт`);
-  expect(plans).toContain(`${PLANS.free.gptLimit} AI-вопросов за всё время аккаунта`);
-  expect(plans).toContain(`До ${PLANS.premium.chartLimit} сохранённых карт`);
-  expect(plans).toContain(`${PLANS.premium.gptLimit} AI-вопросов за расчётный период`);
-  expect(plans).toContain('$9.99 USD / месяц');
-});
-
-test('FAQ covers product decisions without the former technical birth-time topics', () => {
-  const faq = container.querySelector('.landing-faq');
-  expect(faq.querySelectorAll('details > summary')).toHaveLength(5);
-  expect(faq.textContent).toContain('Сохраняет ли Lunaria мои карты и разговоры?');
-  expect(faq.textContent).not.toMatch(/точное время|точного времени|часов[оы]й пояс|Europe\/|DST|минут|куспид/i);
 });
