@@ -29,7 +29,8 @@ afterEach(async () => {
   global.fetch = originalFetch;
 });
 const render = async props => act(async () => root.render(<AskGptForm chartId={7} {...props} />));
-const button = text => [...container.querySelectorAll("button")].find(el => el.textContent.replace(/^→ /, '') === text);
+const button = text => [...container.querySelectorAll("button")].find(el => (el.querySelector('.chat-follow-up-text')?.textContent || el.textContent) === text);
+const semanticSuggestions = texts => texts.map((text, index) => ({ type: ['deepen', 'personalize', 'explore'][index], text }));
 const click = async el => act(async () => el.click());
 const response = data => ({ ok: true, json: async () => data });
 const authenticate = () => { mockAuth = { user: { id: 1 }, loading: false }; localStorage.setItem("access_token", "jwt"); };
@@ -74,7 +75,7 @@ test('real chunks render before completion; suggestions wait for done and scroll
   await stream.bytes(bytes.slice(split));
   expect(container.textContent).toContain('Мой путь 🌙');
   expect(history.scrollTop).toBe(80);
-  const suggestions = ['Как мне раскрыть свои силы?', 'Что мне важно в отношениях?', 'Как мне выбрать направление?'];
+  const suggestions = semanticSuggestions(['Что усиливает эту реакцию?', 'Как мне заметить это в жизни?', 'Как это связано с доверием?']);
   await stream.event({ type: 'done', response: 'Мой путь 🌙', follow_up_suggestions: suggestions });
   expect(history.scrollTop).toBe(80);
   expect(container.querySelector('.stream-indicator')).toBeNull();
@@ -343,10 +344,42 @@ test('relationship subject uses isolated endpoints, starters, SSE and the shared
   expect(JSON.parse(request[1].body)).toEqual({ question: 'В чём наша главная сила как пары?' });
   await stream.event({ type: 'delta', text: 'Ваша сила' });
   expect(container.querySelector('.chat-starters')).not.toBeNull();
-  await stream.event({ type: 'done', response: 'Ваша сила', follow_up_suggestions: ['Как нам слушать друг друга?', 'Что поддерживает близость?', 'Как бережно спорить?'] });
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  await stream.event({ type: 'done', response: 'Ваша сила', follow_up_suggestions: semanticSuggestions(['Что поддерживает нашу близость?', 'Как нам слушать друг друга?', 'Как бережно спорить?']) });
   expect(container.querySelector('.chat-starters')).toBeNull();
   expect(container.querySelector('.askgpt-container').classList).not.toContain('is-empty-chat');
   expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+});
+
+test.each(['natal', 'relationship'])('typed %s follow-ups use one ordinary send, replace old suggestions and clear on subject switch', async subjectType => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ subjectType, chartId: 42, relationshipId: 42, initialQuestion: 'Мой вопрос' });
+  const suggestions = semanticSuggestions(['Что усиливает эту реакцию?', 'Как мне замечать её в жизни?', 'Как это связано с доверием?']);
+  global.fetch.mockResolvedValueOnce(response({ response: 'Ответ', follow_up_suggestions: suggestions }));
+  await click(button('Спросить'));
+  expect([...container.querySelectorAll('.chat-follow-up-label')].map(el => el.textContent)).toEqual([
+    'Разобрать глубже', 'Применить к ситуации', 'Исследовать дальше',
+  ]);
+  expect([...container.querySelectorAll('.chat-follow-up-text')].map(el => el.textContent)).toEqual(suggestions.map(item => item.text));
+  expect(container.querySelector('.chat-starters')).toBeNull();
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button(suggestions[1].text));
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  const posts = global.fetch.mock.calls.filter(([, options]) => options.method === 'POST');
+  expect(posts).toHaveLength(2);
+  expect(JSON.parse(posts[1][1].body)).toEqual(subjectType === 'relationship'
+    ? { question: suggestions[1].text } : { chart_id: 42, question: suggestions[1].text });
+  await stream.event({ type: 'delta', text: 'Продолжение' });
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  const next = semanticSuggestions(['Что лежит за этой потребностью?', 'Как мне обсудить это спокойно?', 'Что помогает мне сближаться?']);
+  await stream.event({ type: 'done', response: 'Продолжение', follow_up_suggestions: next });
+  expect([...container.querySelectorAll('.chat-follow-up-text')].map(el => el.textContent)).toEqual(next.map(item => item.text));
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ subjectType: subjectType === 'natal' ? 'relationship' : 'natal', chartId: 42, relationshipId: 42 });
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  expect(container.querySelector('.chat-starters')).not.toBeNull();
 });
 
 test('natal 42 and relationship 42 never share late history or request state', async () => {

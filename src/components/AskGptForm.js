@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiError } from "../api/apiError";
 import { readChatResponse } from "../api/chatStream";
+import { FOLLOW_UP_LABELS, normalizeFollowUps } from "./followUpSuggestions";
 import { DialogClose } from "./UI";
 import "./AskGptChat.css";
 
@@ -125,13 +126,10 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       });
       refreshUsage();
       if (controller.signal.aborted) return;
-      const candidates = data.follow_up_suggestions;
-      const suggestions = Array.isArray(candidates) && candidates.length >= 3 && candidates.length <= 4 &&
-        candidates.every(item => typeof item === "string" && item.trim() && item.length <= 100)
-        ? [...new Set(candidates.map(item => item.trim()))] : [];
+      const suggestions = normalizeFollowUps(data.follow_up_suggestions);
       setMessages(previous => previous.map(msg => msg.streaming ? {
         user: "GPT", text: data.response || "GPT не дал ответа.",
-        suggestions: suggestions.length >= 3 ? suggestions : [],
+        suggestions,
       } : msg));
       setQuestion("");
       onQuestionConsumed?.();
@@ -178,8 +176,11 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       </div>)}
     </div>
     {latestSuggestions.length > 0 && <div className="chat-follow-ups" role="group" aria-label="Следующие вопросы">
-      {latestSuggestions.map(suggestion => <button key={suggestion} type="button" className="preset-btn"
-        disabled={blocked} onClick={() => sendQuestion(suggestion)}><span aria-hidden="true">→ </span>{suggestion}</button>)}
+      {latestSuggestions.map(suggestion => <button key={suggestion.type || suggestion.text} type="button" className="preset-btn"
+        disabled={blocked} onClick={() => sendQuestion(suggestion.text)}>
+        {suggestion.type && <span className="chat-follow-up-label">{FOLLOW_UP_LABELS[suggestion.type]}</span>}
+        <span className="chat-follow-up-text">{suggestion.text}</span>
+      </button>)}
     </div>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
     {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
