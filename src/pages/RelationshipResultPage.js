@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { relationshipRequest } from "../api/relationshipsApi";
 import AskGptForm from "../components/AskGptForm";
-import { LoadingState, OrbitMark, PageHeading } from "../components/UI";
+import { LoadingState, PageHeading } from "../components/UI";
+import SynastryChart from "../components/synastry/SynastryChart";
 import "./Relationships.css";
 
 const aspectNames = { "☌": "соединение", "⚹": "секстиль", "□": "квадрат", "△": "тригон", "☍": "оппозиция" };
@@ -54,10 +55,7 @@ export default function RelationshipResultPage() {
       <p>Почему вас так тянет друг к другу — и почему вам бывает сложно вместе? Исследуйте динамику бережно, без оценок и предсказаний.</p>
     </PageHeading>
     {error && <p role="alert">{error}</p>}
-    <section className="relationship-overview card" aria-labelledby="relationship-overview-title">
-      <OrbitMark /><div><h2 id="relationship-overview-title">Две истории, одна динамика</h2>
-      <p>{aspects.length ? `В сохранённом разборе найдено ${aspects.length} межкарточных аспектов.` : "Разбор сохранён. Доступные детали приведены ниже."} Lunaria поможет связать факты с вашим вопросом.</p></div>
-    </section>
+    <SynastryChart key={relationship.id} relationship={relationship} />
     <section className="relationship-chat" aria-label="Разговор о ваших отношениях">
       <AskGptForm subjectType="relationship" relationshipId={relationship.id}
         heading={<>Поговорите с Lunaria <span>о ваших отношениях</span></>}

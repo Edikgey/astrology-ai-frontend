@@ -1,0 +1,755 @@
+{
+  "id": 42,
+  "chart_a_id": 42,
+  "chart_b_id": 43,
+  "person_a_label": "Вячеслав",
+  "person_b_label": "Анна",
+  "speaker_person": "A",
+  "ruleset_version": "synastry-major-8-v1",
+  "calculation": {
+    "schema_version": 1,
+    "ruleset_version": "synastry-major-8-v1",
+    "orb_limit_deg": 8.0,
+    "inputs": {
+      "A": {
+        "chart_id": 42,
+        "positions": {
+          "☉": 281.4096390503348,
+          "☽": 235.52878610954252,
+          "☿": 273.4807328300605,
+          "♀": 242.800614295309,
+          "♂": 328.7551597349795,
+          "♃": 25.296399547608914,
+          "♄": 40.376234035590585,
+          "♅": 314.8608456670523,
+          "♆": 303.2294043028484,
+          "♇": 251.490464144041
+        },
+        "angles": {
+          "AS": 80.34286337450281,
+          "MC": 316.50839651032
+        },
+        "cusps": [
+          80.34286337450281,
+          98.63057028740255,
+          116.0137492113849,
+          136.50839651031998,
+          165.53642084388116,
+          210.58258721808994,
+          260.3428633745028,
+          278.6305702874025,
+          296.0137492113849,
+          316.50839651032,
+          345.53642084388116,
+          30.58258721808994
+        ],
+        "house_system": "Placidus",
+        "overlays_unavailable_reason": null,
+        "time_provenance": {
+          "timezone": "UTC",
+          "birth_utc": "2000-01-02T12:00:00"
+        }
+      },
+      "B": {
+        "chart_id": 43,
+        "positions": {
+          "☉": 142.3,
+          "☽": 220.7,
+          "☿": 144.1,
+          "♀": 146.2,
+          "♂": 149.3,
+          "♃": 274.8,
+          "♄": 358.9,
+          "♅": 278.2,
+          "♆": 281.8,
+          "♇": 241.1
+        },
+        "angles": {
+          "AS": 80.34286337450281,
+          "MC": 316.50839651032
+        },
+        "cusps": [
+          80.34286337450281,
+          98.63057028740255,
+          116.0137492113849,
+          136.50839651031998,
+          165.53642084388116,
+          210.58258721808994,
+          260.3428633745028,
+          278.6305702874025,
+          296.0137492113849,
+          316.50839651032,
+          345.53642084388116,
+          30.58258721808994
+        ],
+        "house_system": "Placidus",
+        "overlays_unavailable_reason": null,
+        "time_provenance": {
+          "timezone": "UTC",
+          "birth_utc": "1996-08-14T09:30:00"
+        }
+      }
+    },
+    "input_fingerprint": "b7145cc3c0a32c96bb2657d180c2a1b2e9f87355740cd42e661505a5caefbd98",
+    "aspects": [
+      {
+        "participant_a": "A",
+        "body_a": "☉",
+        "participant_b": "B",
+        "body_b": "☽",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 60.70963905033483,
+        "orb_deg": 0.7096390503348289,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☉",
+        "participant_b": "B",
+        "body_b": "♃",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 6.609639050334806,
+        "orb_deg": 6.609639050334806,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☉",
+        "participant_b": "B",
+        "body_b": "♅",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 3.209639050334829,
+        "orb_deg": 3.209639050334829,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☉",
+        "participant_b": "B",
+        "body_b": "♆",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 0.39036094966519386,
+        "orb_deg": 0.39036094966519386,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☽",
+        "participant_b": "B",
+        "body_b": "☉",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 93.22878610954251,
+        "orb_deg": 3.2287861095425114,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☽",
+        "participant_b": "B",
+        "body_b": "☿",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 91.42878610954253,
+        "orb_deg": 1.4287861095425285,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☽",
+        "participant_b": "B",
+        "body_b": "♀",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 89.32878610954253,
+        "orb_deg": 0.6712138904574658,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☽",
+        "participant_b": "B",
+        "body_b": "♂",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 86.22878610954251,
+        "orb_deg": 3.7712138904574886,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☽",
+        "participant_b": "B",
+        "body_b": "♄",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 123.37121389045745,
+        "orb_deg": 3.3712138904574545,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☽",
+        "participant_b": "B",
+        "body_b": "♇",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 5.5712138904574715,
+        "orb_deg": 5.5712138904574715,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☿",
+        "participant_b": "B",
+        "body_b": "☽",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 52.780732830060515,
+        "orb_deg": 7.219267169939485,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☿",
+        "participant_b": "B",
+        "body_b": "♀",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 127.28073283006051,
+        "orb_deg": 7.280732830060515,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☿",
+        "participant_b": "B",
+        "body_b": "♂",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 124.18073283006049,
+        "orb_deg": 4.180732830060492,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☿",
+        "participant_b": "B",
+        "body_b": "♃",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 1.3192671699395078,
+        "orb_deg": 1.3192671699395078,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☿",
+        "participant_b": "B",
+        "body_b": "♄",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 85.41926716993947,
+        "orb_deg": 4.580732830060526,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "☿",
+        "participant_b": "B",
+        "body_b": "♅",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 4.719267169939485,
+        "orb_deg": 4.719267169939485,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♀",
+        "participant_b": "B",
+        "body_b": "♀",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 96.60061429530901,
+        "orb_deg": 6.600614295309015,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♀",
+        "participant_b": "B",
+        "body_b": "♂",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 93.50061429530899,
+        "orb_deg": 3.500614295308992,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♀",
+        "participant_b": "B",
+        "body_b": "♄",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 116.09938570469097,
+        "orb_deg": 3.900614295309026,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♀",
+        "participant_b": "B",
+        "body_b": "♇",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 1.700614295309009,
+        "orb_deg": 1.700614295309009,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♂",
+        "participant_b": "B",
+        "body_b": "☉",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 173.54484026502053,
+        "orb_deg": 6.455159734979475,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♂",
+        "participant_b": "B",
+        "body_b": "☿",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 175.3448402650205,
+        "orb_deg": 4.655159734979492,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♂",
+        "participant_b": "B",
+        "body_b": "♀",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 177.4448402650205,
+        "orb_deg": 2.5551597349794974,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♂",
+        "participant_b": "B",
+        "body_b": "♂",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 179.45515973497947,
+        "orb_deg": 0.5448402650205253,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♂",
+        "participant_b": "B",
+        "body_b": "♃",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 53.955159734979475,
+        "orb_deg": 6.044840265020525,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♂",
+        "participant_b": "B",
+        "body_b": "♇",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 87.65515973497949,
+        "orb_deg": 2.3448402650205082,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♃",
+        "participant_b": "B",
+        "body_b": "☉",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 117.0036004523911,
+        "orb_deg": 2.9963995476089025,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♃",
+        "participant_b": "B",
+        "body_b": "☿",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 118.80360045239108,
+        "orb_deg": 1.1963995476089195,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♃",
+        "participant_b": "B",
+        "body_b": "♀",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 120.90360045239107,
+        "orb_deg": 0.9036004523910748,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♃",
+        "participant_b": "B",
+        "body_b": "♂",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 124.0036004523911,
+        "orb_deg": 4.0036004523910975,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♄",
+        "participant_b": "B",
+        "body_b": "☽",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 179.6762340355906,
+        "orb_deg": 0.32376596440940375,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♄",
+        "participant_b": "B",
+        "body_b": "♃",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 125.57623403559057,
+        "orb_deg": 5.5762340355905735,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♄",
+        "participant_b": "B",
+        "body_b": "♅",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 122.1762340355906,
+        "orb_deg": 2.1762340355905962,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♄",
+        "participant_b": "B",
+        "body_b": "♆",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 118.57623403559057,
+        "orb_deg": 1.4237659644094265,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♅",
+        "participant_b": "B",
+        "body_b": "☉",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 172.56084566705226,
+        "orb_deg": 7.439154332947737,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♅",
+        "participant_b": "B",
+        "body_b": "☽",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 94.16084566705229,
+        "orb_deg": 4.1608456670522855,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♆",
+        "participant_b": "B",
+        "body_b": "☽",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 82.52940430284843,
+        "orb_deg": 7.470595697151566,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♆",
+        "participant_b": "B",
+        "body_b": "♄",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 55.670595697151555,
+        "orb_deg": 4.329404302848445,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♆",
+        "participant_b": "B",
+        "body_b": "♇",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 62.12940430284843,
+        "orb_deg": 2.129404302848428,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♃",
+        "participant_b": "B",
+        "body_b": "AS",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 55.0464638268939,
+        "orb_deg": 4.953536173106102,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♄",
+        "participant_b": "B",
+        "body_b": "MC",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 83.8678375252706,
+        "orb_deg": 6.132162474729398,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♅",
+        "participant_b": "B",
+        "body_b": "AS",
+        "aspect": "△",
+        "aspect_angle": 120,
+        "separation_deg": 125.48201770745055,
+        "orb_deg": 5.482017707450552,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♅",
+        "participant_b": "B",
+        "body_b": "MC",
+        "aspect": "☌",
+        "aspect_angle": 0,
+        "separation_deg": 1.6475508432677088,
+        "orb_deg": 1.6475508432677088,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "A",
+        "body_a": "♇",
+        "participant_b": "B",
+        "body_b": "MC",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 65.01793236627898,
+        "orb_deg": 5.017932366278984,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "B",
+        "body_a": "☉",
+        "participant_b": "A",
+        "body_b": "AS",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 61.9571366254972,
+        "orb_deg": 1.9571366254971991,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "B",
+        "body_a": "☉",
+        "participant_b": "A",
+        "body_b": "MC",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 174.20839651031997,
+        "orb_deg": 5.791603489680028,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "B",
+        "body_a": "☽",
+        "participant_b": "A",
+        "body_b": "MC",
+        "aspect": "□",
+        "aspect_angle": 90,
+        "separation_deg": 95.80839651032,
+        "orb_deg": 5.808396510319994,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "B",
+        "body_a": "☿",
+        "participant_b": "A",
+        "body_b": "AS",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 63.75713662549718,
+        "orb_deg": 3.757136625497182,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "B",
+        "body_a": "☿",
+        "participant_b": "A",
+        "body_b": "MC",
+        "aspect": "☍",
+        "aspect_angle": 180,
+        "separation_deg": 172.40839651032,
+        "orb_deg": 7.591603489680011,
+        "orb_limit_deg": 8.0
+      },
+      {
+        "participant_a": "B",
+        "body_a": "♀",
+        "participant_b": "A",
+        "body_b": "AS",
+        "aspect": "⚹",
+        "aspect_angle": 60,
+        "separation_deg": 65.85713662549718,
+        "orb_deg": 5.857136625497176,
+        "orb_limit_deg": 8.0
+      }
+    ],
+    "angle_availability": {
+      "A": {
+        "AS": true,
+        "MC": true
+      },
+      "B": {
+        "AS": true,
+        "MC": true
+      }
+    },
+    "house_overlays": [
+      {
+        "planet_participant": "A",
+        "house_participant": "B",
+        "available": true,
+        "reason": null,
+        "placements": [
+          {
+            "body": "☉",
+            "house": 8
+          },
+          {
+            "body": "☽",
+            "house": 6
+          },
+          {
+            "body": "☿",
+            "house": 7
+          },
+          {
+            "body": "♀",
+            "house": 6
+          },
+          {
+            "body": "♂",
+            "house": 10
+          },
+          {
+            "body": "♃",
+            "house": 11
+          },
+          {
+            "body": "♄",
+            "house": 12
+          },
+          {
+            "body": "♅",
+            "house": 9
+          },
+          {
+            "body": "♆",
+            "house": 9
+          },
+          {
+            "body": "♇",
+            "house": 6
+          }
+        ]
+      },
+      {
+        "planet_participant": "B",
+        "house_participant": "A",
+        "available": true,
+        "reason": null,
+        "placements": [
+          {
+            "body": "☉",
+            "house": 4
+          },
+          {
+            "body": "☽",
+            "house": 6
+          },
+          {
+            "body": "☿",
+            "house": 4
+          },
+          {
+            "body": "♀",
+            "house": 4
+          },
+          {
+            "body": "♂",
+            "house": 4
+          },
+          {
+            "body": "♃",
+            "house": 7
+          },
+          {
+            "body": "♄",
+            "house": 11
+          },
+          {
+            "body": "♅",
+            "house": 7
+          },
+          {
+            "body": "♆",
+            "house": 8
+          },
+          {
+            "body": "♇",
+            "house": 6
+          }
+        ]
+      }
+    ]
+  }
+}

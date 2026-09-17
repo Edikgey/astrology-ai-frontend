@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import RelationshipNewPage from "./RelationshipNewPage";
 import RelationshipResultPage from "./RelationshipResultPage";
+import biwheelFixture from "../components/synastry/fixtures/relationship.json";
 import { chartRequest } from "../api/chartsApi";
 import { relationshipRequest } from "../api/relationshipsApi";
 
@@ -106,4 +107,25 @@ test("result deletion explains scope and returns safely without deleting charts"
   expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Обе натальные карты останутся"));
   expect(relationshipRequest).toHaveBeenLastCalledWith("/9", { method: "DELETE" });
   expect(mockNavigate).toHaveBeenCalledWith("/my-charts", { replace: true });
+});
+
+test('bi-wheel and adjacent selected detail precede chat, with reference facts below', async () => {
+  relationshipRequest.mockResolvedValue(biwheelFixture);
+  await render(<RelationshipResultPage />);
+  const wheel = container.querySelector('.synastry-chart'), chat = container.querySelector('.relationship-chat');
+  expect(wheel.querySelector('svg')).not.toBeNull();
+  expect(wheel.querySelector('.synastry-detail')).not.toBeNull();
+  expect(wheel.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(chat.compareDocumentPosition(container.querySelector('.relationship-details')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test('loading and failed relationship fetch do not mount a renderer with invented data', async () => {
+  let reject;
+  relationshipRequest.mockImplementation(() => new Promise((_, fail) => { reject = fail; }));
+  await render(<RelationshipResultPage />);
+  expect(container.textContent).toContain('Загрузка разбора');
+  expect(container.querySelector('.synastry-chart')).toBeNull();
+  await act(async () => reject(new Error('Разбор недоступен')));
+  expect(container.querySelector('[role="alert"]').textContent).toBe('Разбор недоступен');
+  expect(container.querySelector('.synastry-chart')).toBeNull();
 });

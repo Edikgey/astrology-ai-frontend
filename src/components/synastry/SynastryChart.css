@@ -1,0 +1,57 @@
+.synastry-chart { margin: 0 0 var(--ln-space-32); padding: var(--ln-space-24); border: 1px solid var(--ln-color-border-subtle); border-radius: var(--ln-radius-lg); background: var(--ln-color-surface); box-shadow: var(--ln-shadow-small); min-width: 0; }
+.synastry-heading h2 { margin: var(--ln-space-8) 0 var(--ln-space-16); font-size: var(--ln-text-28); }
+.synastry-legend { display: flex; flex-wrap: wrap; gap: var(--ln-space-24); list-style: none; padding: 0; margin: 0 0 var(--ln-space-16); }
+.synastry-legend li { display: flex; align-items: center; gap: var(--ln-space-8); min-width: 0; overflow-wrap: anywhere; font-size: var(--ln-text-14); }
+.synastry-legend small { display: block; color: var(--ln-color-text-muted); font-size: var(--ln-text-11); }
+.synastry-chart .person-A { --person-color: var(--ln-color-primary); }
+.synastry-chart .person-B { --person-color: var(--ln-color-secondary); }
+.synastry-legend-marker { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid var(--person-color); border-radius: 50%; background: var(--person-color); }
+.person-B .synastry-legend-marker { background: var(--ln-color-surface); }
+.synastry-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .4fr); align-items: center; gap: var(--ln-space-24); }
+.synastry-wheel { min-width: 0; }
+.synastry-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.synastry-rings { color: var(--ln-color-primary); }
+.synastry-rings circle, .synastry-rings line { stroke: var(--ln-color-border); stroke-width: 1; }
+.synastry-zodiac-surface { fill: var(--ln-color-surface-tinted); }
+.synastry-wheel-surface { fill: var(--ln-color-surface); }
+.synastry-ring { fill: none; }
+.synastry-rings .synastry-cusp { stroke: var(--ln-color-border-subtle); }
+.synastry-rings .synastry-angle { stroke: var(--ln-color-border-control); stroke-dasharray: 3 5; }
+.synastry-house, .synastry-angle-label { text-anchor: middle; dominant-baseline: central; font-family: var(--ln-font-body); fill: var(--ln-color-text-muted); font-size: 17px; }
+.synastry-angle-label { fill: var(--ln-color-primary); font-size: 16px; font-weight: 700; paint-order: stroke; stroke: var(--ln-color-surface); stroke-width: 4px; }
+.synastry-aspect { color: var(--ln-color-primary); cursor: pointer; }
+.synastry-aspect.soft { color: var(--ln-color-secondary); }
+.synastry-aspect.hard { color: var(--ln-color-accent); }
+.synastry-aspect-line { stroke: currentColor; stroke-width: 1.4; opacity: .28; }
+.synastry-aspect-hit { stroke: transparent; stroke-width: 12; pointer-events: stroke; }
+.synastry-aspect.is-dim .synastry-aspect-line { opacity: .08; }
+.synastry-aspect.is-selected .synastry-aspect-line, .synastry-aspect:focus-visible .synastry-aspect-line { opacity: 1; stroke-width: 3; }
+.synastry-aspect:focus { outline: none; }
+.synastry-leader { stroke: var(--person-color); stroke-width: 1; opacity: .28; }
+.synastry-leader.is-selected { opacity: 1; stroke-width: 2; }
+.synastry-anchor circle { fill: var(--person-color); stroke: var(--person-color); stroke-width: 1.5; }
+.synastry-anchor.person-B circle { fill: var(--ln-color-surface); }
+.synastry-exact-guide { stroke: var(--person-color); stroke-width: 1.5; stroke-dasharray: 2 5; opacity: .5; }
+.synastry-planet { color: var(--ln-color-text-inverse); cursor: pointer; outline: none; }
+.synastry-planet-hit { fill: transparent; }
+.synastry-marker { fill: var(--person-color); stroke: var(--person-color); stroke-width: 2; }
+.synastry-planet.person-B { color: var(--person-color); }
+.synastry-planet.person-B .synastry-marker { fill: var(--ln-color-surface); }
+.synastry-planet.is-selected .synastry-planet-hit, .synastry-planet:focus-visible .synastry-planet-hit { fill: var(--ln-color-accent-soft); stroke: var(--ln-color-focus); stroke-width: 2; }
+.synastry-group-count { fill: var(--ln-color-text); stroke: var(--ln-color-surface); paint-order: stroke; stroke-width: 5px; font-size: 19px; font-weight: 700; text-anchor: middle; }
+.synastry-detail { min-width: 0; overflow-wrap: anywhere; padding: var(--ln-space-24); border-radius: var(--ln-radius-md); background: var(--ln-color-surface-raised); }
+.synastry-detail h3 { font-size: var(--ln-text-24); margin: var(--ln-space-8) 0 var(--ln-space-12); }
+.synastry-detail p { font-size: var(--ln-text-14); }
+.synastry-detail-person { color: var(--person-color, var(--ln-color-primary)); font-weight: 700; margin: 0; }
+.synastry-frame, .synastry-detail .synastry-overlay { font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
+.synastry-frame { margin: var(--ln-space-12) 0 0; overflow-wrap: anywhere; }
+.synastry-clear { margin-top: var(--ln-space-12); font-size: var(--ln-text-12); }
+.synastry-group-members { display: grid; gap: var(--ln-space-8); }
+.synastry-group-members button, .synastry-aspect-picker button { text-align: left; white-space: normal; min-height: 44px; overflow-wrap: anywhere; font-size: var(--ln-text-12); background: var(--ln-color-surface); color: var(--ln-color-primary); border: 1px solid var(--ln-color-border); }
+.synastry-group-members small { display: block; color: var(--ln-color-text-muted); }
+.synastry-aspect-picker { margin-top: var(--ln-space-16); }
+.synastry-aspect-picker p { padding: 0 var(--ln-space-16); font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
+.synastry-aspect-picker > div { display: grid; gap: var(--ln-space-8); max-height: 260px; overflow-y: auto; padding: var(--ln-space-16); }
+.synastry-aspect-picker button[aria-pressed="true"] { border-color: var(--ln-color-primary); background: var(--ln-color-surface-tinted); }
+@media (max-width: 950px) { .synastry-layout { grid-template-columns: minmax(0, 1fr); } .synastry-svg { max-width: 720px; margin-inline: auto; } }
+@media (max-width: 600px) { .synastry-chart { padding: var(--ln-space-16) var(--ln-space-8); } .synastry-heading, .synastry-legend, .synastry-frame { margin-inline: var(--ln-space-8); } .synastry-heading h2 { font-size: var(--ln-text-24); } .synastry-legend { gap: var(--ln-space-12); } .synastry-detail { padding: var(--ln-space-16); } }
