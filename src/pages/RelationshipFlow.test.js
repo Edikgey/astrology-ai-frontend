@@ -113,10 +113,17 @@ test('bi-wheel and adjacent selected detail precede chat, with reference facts b
   relationshipRequest.mockResolvedValue(biwheelFixture);
   await render(<RelationshipResultPage />);
   const wheel = container.querySelector('.synastry-chart'), chat = container.querySelector('.relationship-chat');
+  const aspectReference = container.querySelector('.relationship-synastry-reference');
   expect(wheel.querySelector('svg')).not.toBeNull();
   expect(wheel.querySelector('.synastry-detail')).not.toBeNull();
+  expect(wheel.querySelector('.synastry-aspect-picker')).toBeNull();
   expect(wheel.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(chat.compareDocumentPosition(container.querySelector('.relationship-details')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(chat.compareDocumentPosition(aspectReference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(aspectReference.compareDocumentPosition(container.querySelector('.relationship-details')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  aspectReference.open = true;
+  await act(async () => aspectReference.querySelector('button').click());
+  expect(wheel.querySelector('.synastry-detail').textContent).toContain('Межкартовый аспект');
+  expect(wheel.querySelectorAll('.synastry-anchor.is-selected')).toHaveLength(2);
 });
 
 test('loading and failed relationship fetch do not mount a renderer with invented data', async () => {

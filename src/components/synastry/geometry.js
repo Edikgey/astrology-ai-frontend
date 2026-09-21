@@ -2,7 +2,10 @@
 import { normalizeDegrees, project } from '../natal/geometry';
 
 export const CENTER = { x: 360, y: 360 };
-export const TRACKS = { A: { anchor: 230, lanes: [194, 158], aspect: 96 }, B: { anchor: 307, lanes: [278, 262], aspect: 108 } };
+export const TRACKS = {
+  A: { anchor: 230, lanes: [194, 158], aspect: 96, bounds: [150, 236], guide: [218, 236] },
+  B: { anchor: 296, lanes: [278, 262], aspect: 108, bounds: [254, 302], guide: [284, 302] },
+};
 export const pointAt = (longitude, reference, radius) => project(longitude, reference, radius, CENTER);
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 

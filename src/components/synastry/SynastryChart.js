@@ -3,7 +3,7 @@ import { Glyph, GlyphDefs } from '../natal/Glyphs';
 import { SIGNS, longitudeText } from '../natal/model';
 import { normalizeDegrees, ROMAN } from '../natal/geometry';
 import { normalizeSynastry, orbText } from './model';
-import { pointAt, layoutSynastry } from './geometry';
+import { pointAt, layoutSynastry, TRACKS } from './geometry';
 import './SynastryChart.css';
 
 const activation = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(); } };
@@ -36,13 +36,15 @@ const Rings = memo(function Rings({ model, prefix }) {
   </g>;
 });
 
-export default function SynastryChart({ relationship }) {
+export default function SynastryChart({ relationship, selection: controlledSelection, onSelectionChange }) {
   const model = useMemo(() => normalizeSynastry(relationship?.calculation), [relationship?.calculation]);
   const geometry = useMemo(() => model ? layoutSynastry(model) : null, [model]);
   const prefix = `synastry-${useId().replace(/:/g, '')}`;
-  const [selection, setSelection] = useState(null);
-  const selected = selection?.model === model && selection?.relationshipId === relationship?.id ? selection : null;
-  const select = value => setSelection({ ...value, model, relationshipId: relationship?.id });
+  const [internalSelection, setInternalSelection] = useState(null);
+  const selection = controlledSelection === undefined ? internalSelection : controlledSelection;
+  const setSelection = onSelectionChange || setInternalSelection;
+  const selected = selection?.relationshipId === relationship?.id ? selection : null;
+  const select = value => setSelection({ ...value, relationshipId: relationship?.id });
   const labels = { A: relationship?.person_a_label || 'Участник A', B: relationship?.person_b_label || 'Участник B' };
   const pointName = point => `${labels[point.person]} · ${point.name}`;
   const activeAspect = selected?.kind === 'aspect' ? model.aspects.find(aspect => aspect.id === selected.id) : null;
@@ -81,7 +83,10 @@ export default function SynastryChart({ relationship }) {
             {geometry.anchors.map(anchor => <g key={anchor.id} data-synastry-anchor={anchor.id} data-longitude={anchor.longitude}
               className={`synastry-anchor person-${anchor.person}${activeIds.includes(anchor.id) ? ' is-selected' : ''}`} aria-hidden="true">
               <circle cx={anchor.x} cy={anchor.y} r={activeIds.includes(anchor.id) ? 6 : 3} />
-              {activeIds.includes(anchor.id) && <line {...line(pointAt(anchor.longitude, model.reference, 114), anchor)} className="synastry-exact-guide" />}
+              {activeIds.includes(anchor.id) && <line {...line(
+                pointAt(anchor.longitude, model.reference, TRACKS[anchor.person].guide[0]),
+                pointAt(anchor.longitude, model.reference, TRACKS[anchor.person].guide[1]),
+              )} className="synastry-exact-guide" />}
             </g>)}
             {geometry.labels.map(label => {
               const grouped = label.members.length > 1, active = label.members.some(id => activeIds.includes(id));
@@ -92,7 +97,9 @@ export default function SynastryChart({ relationship }) {
                 onClick={action} onKeyDown={activation(action)}>
                 <circle r={33} className="synastry-planet-hit" /><circle r={25} className="synastry-marker" />
                 <Glyph id={model.byId[label.id].body} prefix={prefix} x={grouped ? -5 : 0} y={0} size={30} />
-                {grouped && <text x={18} y={-18} className="synastry-group-count">{label.members.length}</text>}
+                {grouped && <g transform="translate(20 -20)" className="synastry-group-badge" data-count={label.members.length} aria-hidden="true">
+                  <circle r={12} /><text y={1}>{label.members.length}</text>
+                </g>}
               </g>;
             })}
           </svg>
@@ -110,10 +117,22 @@ export default function SynastryChart({ relationship }) {
         </div>
       </div>
       {model.incomplete && <p role="status" className="synastry-frame">Часть положений планет отсутствует в сохранённых данных.</p>}
-      <details className="synastry-aspect-picker"><summary>Межкартовые аспекты планет ({model.aspects.length})</summary>
-        <p>Только связи между двумя картами. Список помогает выбрать линии, которые пересекаются на круге.</p>
-        <div>{model.aspects.map(aspect => <button key={aspect.id} type="button" aria-pressed={activeAspect?.id === aspect.id} onClick={() => select({ kind: 'aspect', id: aspect.id })}>{aspectName(aspect)}</button>)}</div>
-      </details>
     </>}
   </section>;
+}
+
+export function SynastryAspectReference({ relationship, selection, onSelectionChange }) {
+  const model = useMemo(() => normalizeSynastry(relationship?.calculation), [relationship?.calculation]);
+  if (!model?.points.length) return null;
+  const labels = { A: relationship?.person_a_label || 'Участник A', B: relationship?.person_b_label || 'Участник B' };
+  const pointName = point => `${labels[point.person]} · ${point.name}`;
+  const activeId = selection?.relationshipId === relationship?.id && selection?.kind === 'aspect' ? selection.id : null;
+  const aspectName = aspect => `${pointName(model.byId[aspect.from])} · ${aspect.type} ${aspect.name} · ${pointName(model.byId[aspect.to])} · орб ${orbText(aspect.orb)}`;
+  const select = aspect => onSelectionChange?.({ kind: 'aspect', id: aspect.id, relationshipId: relationship?.id });
+
+  return <details className="synastry-aspect-picker relationship-synastry-reference">
+    <summary>Межкартовые аспекты планет ({model.aspects.length})</summary>
+    <p>Только связи между двумя картами. Выбранный аспект подсвечивается на круге и открывается в карточке деталей.</p>
+    <div>{model.aspects.map(aspect => <button key={aspect.id} type="button" aria-pressed={activeId === aspect.id} onClick={() => select(aspect)}>{aspectName(aspect)}</button>)}</div>
+  </details>;
 }

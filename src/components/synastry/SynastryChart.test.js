@@ -5,6 +5,7 @@ import SynastryChart from './SynastryChart';
 import fixture from './fixtures/relationship.json';
 import { normalizeSynastry } from './model';
 import { longitudeText } from '../natal/model';
+import { CENTER, TRACKS } from './geometry';
 
 let root, container;
 beforeEach(() => { global.IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
@@ -34,6 +35,10 @@ test.each(['A', 'B'])('%s planet selection shows correct person, saved longitude
   expect(detail).toContain(fixture[`person_${person.toLowerCase()}_label`]);
   expect(detail).toContain(point.name); expect(detail).toContain(longitudeText(point.longitude));
   expect(container.querySelector(`[data-synastry-anchor="${id}"]`).classList).toContain('is-selected');
+  const guide = container.querySelector(`[data-synastry-anchor="${id}"] .synastry-exact-guide`);
+  const radius = (x, y) => Math.hypot(Number(x) - CENTER.x, Number(y) - CENTER.y);
+  expect(radius(guide.getAttribute('x1'), guide.getAttribute('y1'))).toBeCloseTo(TRACKS[person].guide[0], 8);
+  expect(radius(guide.getAttribute('x2'), guide.getAttribute('y2'))).toBeCloseTo(TRACKS[person].guide[1], 8);
 });
 
 test('dense group highlights every exact anchor and exposes individually selectable members', async () => {
@@ -43,6 +48,10 @@ test('dense group highlights every exact anchor and exposes individually selecta
   const group = [...container.querySelectorAll('.synastry-planet.person-A')].find(el => el.dataset.members.includes(','));
   await click(group);
   const members = group.dataset.members.split(',');
+  const badge = group.querySelector('.synastry-group-badge');
+  expect(badge.dataset.count).toBe(String(members.length));
+  expect(badge.querySelector('circle')).not.toBeNull();
+  expect(badge.querySelector('text').textContent).toBe(String(members.length));
   for (const id of members) expect(container.querySelector(`[data-synastry-anchor="${id}"]`).classList).toContain('is-selected');
   expect(container.querySelectorAll('.synastry-group-members button')).toHaveLength(members.length);
   await click(container.querySelector('.synastry-group-members button'));

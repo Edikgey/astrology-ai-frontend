@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { relationshipRequest } from "../api/relationshipsApi";
 import AskGptForm from "../components/AskGptForm";
 import { LoadingState, PageHeading } from "../components/UI";
-import SynastryChart from "../components/synastry/SynastryChart";
+import SynastryChart, { SynastryAspectReference } from "../components/synastry/SynastryChart";
 import "./Relationships.css";
 
 const aspectNames = { "☌": "соединение", "⚹": "секстиль", "□": "квадрат", "△": "тригон", "☍": "оппозиция" };
@@ -20,13 +20,14 @@ export default function RelationshipResultPage() {
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [reload, setReload] = useState(0);
+  const [synastrySelection, setSynastrySelection] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
     setRelationship(null); setError("");
     if (!/^[1-9]\d*$/.test(String(relationshipId))) { setError("Разбор отношений не выбран."); return () => controller.abort(); }
     relationshipRequest(`/${relationshipId}`, { signal: controller.signal })
-      .then(data => { if (!controller.signal.aborted) setRelationship(data); })
+      .then(data => { if (!controller.signal.aborted) { setRelationship(data); setSynastrySelection(null); } })
       .catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
   }, [relationshipId, reload]);
@@ -55,13 +56,14 @@ export default function RelationshipResultPage() {
       <p>Почему вас так тянет друг к другу — и почему вам бывает сложно вместе? Исследуйте динамику бережно, без оценок и предсказаний.</p>
     </PageHeading>
     {error && <p role="alert">{error}</p>}
-    <SynastryChart key={relationship.id} relationship={relationship} />
+    <SynastryChart key={relationship.id} relationship={relationship} selection={synastrySelection} onSelectionChange={setSynastrySelection} />
     <section className="relationship-chat" aria-label="Разговор о ваших отношениях">
       <AskGptForm subjectType="relationship" relationshipId={relationship.id}
         heading={<>Поговорите с Lunaria <span>о ваших отношениях</span></>}
         subtitle={`Разговор ${relationship.person_a_label} + ${relationship.person_b_label} хранится отдельно от ваших натальных чатов.`}
         intro="Разбор готов. С чего начнём: с притяжения, общения, эмоциональных потребностей или сложных моментов?" />
     </section>
+    <SynastryAspectReference relationship={relationship} selection={synastrySelection} onSelectionChange={setSynastrySelection} />
     <section className="relationship-details" aria-labelledby="relationship-details-title">
       <div className="relationship-section-heading"><div><span className="eyebrow">Сохранённые факты</span><h2 id="relationship-details-title">Детали разбора</h2></div>
         <span className="badge">Правила: {relationship.ruleset_version}</span></div>

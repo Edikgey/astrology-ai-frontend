@@ -38,7 +38,8 @@
 .synastry-planet.person-B { color: var(--person-color); }
 .synastry-planet.person-B .synastry-marker { fill: var(--ln-color-surface); }
 .synastry-planet.is-selected .synastry-planet-hit, .synastry-planet:focus-visible .synastry-planet-hit { fill: var(--ln-color-accent-soft); stroke: var(--ln-color-focus); stroke-width: 2; }
-.synastry-group-count { fill: var(--ln-color-text); stroke: var(--ln-color-surface); paint-order: stroke; stroke-width: 5px; font-size: 19px; font-weight: 700; text-anchor: middle; }
+.synastry-group-badge circle { fill: var(--ln-color-surface); stroke: var(--person-color); stroke-width: 2; }
+.synastry-group-badge text { fill: var(--ln-color-text); font-size: 16px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
 .synastry-detail { min-width: 0; overflow-wrap: anywhere; padding: var(--ln-space-24); border-radius: var(--ln-radius-md); background: var(--ln-color-surface-raised); }
 .synastry-detail h3 { font-size: var(--ln-text-24); margin: var(--ln-space-8) 0 var(--ln-space-12); }
 .synastry-detail p { font-size: var(--ln-text-14); }
@@ -49,7 +50,7 @@
 .synastry-group-members { display: grid; gap: var(--ln-space-8); }
 .synastry-group-members button, .synastry-aspect-picker button { text-align: left; white-space: normal; min-height: 44px; overflow-wrap: anywhere; font-size: var(--ln-text-12); background: var(--ln-color-surface); color: var(--ln-color-primary); border: 1px solid var(--ln-color-border); }
 .synastry-group-members small { display: block; color: var(--ln-color-text-muted); }
-.synastry-aspect-picker { margin-top: var(--ln-space-16); }
+.synastry-aspect-picker { margin: 0 0 var(--ln-space-16); }
 .synastry-aspect-picker p { padding: 0 var(--ln-space-16); font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
 .synastry-aspect-picker > div { display: grid; gap: var(--ln-space-8); max-height: 260px; overflow-y: auto; padding: var(--ln-space-16); }
 .synastry-aspect-picker button[aria-pressed="true"] { border-color: var(--ln-color-primary); background: var(--ln-color-surface-tinted); }

@@ -1,6 +1,6 @@
 import fixture from './fixtures/relationship.json';
 import { normalizeSynastry, orbText } from './model';
-import { layoutSynastry, pointAt, TRACKS } from './geometry';
+import { CENTER, layoutSynastry, pointAt, TRACKS } from './geometry';
 
 const copy = () => JSON.parse(JSON.stringify(fixture.calculation));
 
@@ -86,12 +86,26 @@ test('all-same-longitude and wraparound dense tracks remain deterministic and bo
     expect(layout.labels.some(label => label.members.length > 1)).toBe(true);
     for (const anchor of layout.anchors) {
       expect({ x: anchor.x, y: anchor.y }).toEqual(pointAt(anchor.longitude, model.reference, TRACKS[anchor.person].anchor));
+      expect(Math.hypot(anchor.x - CENTER.x, anchor.y - CENTER.y)).toBeCloseTo(TRACKS[anchor.person].anchor, 8);
     }
     for (const label of layout.labels) {
+      const [minimum, maximum] = TRACKS[label.person].bounds;
+      const labelRadius = Math.hypot(label.x - CENTER.x, label.y - CENTER.y);
+      expect(labelRadius).toBeGreaterThanOrEqual(minimum);
+      expect(labelRadius).toBeLessThanOrEqual(maximum);
       expect(Math.abs(((label.displayLongitude - model.byId[label.id].longitude + 540) % 360) - 180)).toBeLessThanOrEqual(18.000001);
       expect(label.x - 33).toBeGreaterThan(0); expect(label.x + 33).toBeLessThan(720);
       expect(label.y - 33).toBeGreaterThan(0); expect(label.y + 33).toBeLessThan(720);
       for (const other of layout.labels.filter(item => item !== label)) expect(Math.hypot(label.x - other.x, label.y - other.y)).toBeGreaterThanOrEqual(67.99999);
+      for (const id of label.members) {
+        const anchor = layout.anchors.find(point => point.id === id);
+        for (const step of [0, .25, .5, .75, 1]) {
+          const x = label.x + (anchor.x - label.x) * step, y = label.y + (anchor.y - label.y) * step;
+          const radius = Math.hypot(x - CENTER.x, y - CENTER.y);
+          expect(radius).toBeGreaterThanOrEqual(minimum);
+          expect(radius).toBeLessThanOrEqual(maximum);
+        }
+      }
     }
     expect(JSON.stringify(data)).toBe(before);
   }
