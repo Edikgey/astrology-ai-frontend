@@ -12,7 +12,8 @@ const mockNavigate = jest.fn();
 jest.mock("../context/AuthContext", () => ({ useAuth: () => mockAuth }));
 jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
-  Link: ({ to, children }) => <a href={to}>{children}</a>,
+  useLocation: () => ({ pathname: "/try-free", state: null }),
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
 }), { virtual: true });
 
 const FREE = { plan: "free", saved_charts_used: 3, saved_charts_limit: 3,
@@ -184,11 +185,11 @@ test("chart creation refreshes usage and navigates to the created ID", async () 
 
 test("My Charts uses account limit 10 over an older list limit, then refreshes on deletion without resetting GPT usage", async () => {
   serverUsage = PREMIUM; await render(<MyCharts />);
-  expect(container.textContent).toContain("3 / 10"); expect(button("Создать карту").disabled).toBe(false);
+  expect(container.textContent).toContain("3 из 10"); expect(button("Создать новую карту").disabled).toBe(false);
   jest.spyOn(window, "confirm").mockReturnValue(true);
   serverUsage = { ...PREMIUM, saved_charts_used: 2 };
   global.fetch.mockResolvedValueOnce({ ok: true, status: 204 });
-  await click(button("Удалить"));
-  expect(container.textContent).toContain("2 / 10"); expect(container.textContent).toContain("3 / 300");
+  await click(button("Удалить карту"));
+  expect(container.textContent).toContain("2 из 10"); expect(container.textContent).toContain("Осталось 7 из 300");
   expect(calls("/natal-chart/7")[0][1].method).toBe("DELETE");
 });

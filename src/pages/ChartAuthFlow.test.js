@@ -106,7 +106,7 @@ test.each(["login", "verify-code", "google"].flatMap(flow => ["migrated", "limit
     expect(container.querySelector("[data-chart]").dataset.chart).toBe("7");
     expect(global.fetch.mock.calls.some(([url]) => url.includes("/ask-gpt"))).toBe(false);
     await render(<MyCharts />);
-    expect(container.textContent.includes("Карта №7")).toBe(status === "migrated");
+    expect(container.querySelectorAll(".saved-charts-list > li").length > 0).toBe(status === "migrated");
   });
 
 test("ordinary login ignores old cached IDs and returns to its existing destination", async () => {
