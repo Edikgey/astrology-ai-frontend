@@ -86,3 +86,16 @@ test('static chart preview stays independent from the frozen renderer runtime', 
   expect(container.querySelector('#chart-showcase .chart-toolbar')).toBeNull();
   expect(global.ResizeObserver).not.toHaveBeenCalled();
 });
+
+test('one-card section shows a static chart conversation and follow-up options', () => {
+  const section = container.querySelector('.landing-difference');
+  const visual = section.querySelector('.landing-conversation-preview');
+  expect(visual).not.toBeNull();
+  expect(section.querySelector('.landing-flow')).toBeNull();
+  expect(visual.textContent).toContain('Ваша натальная карта');
+  expect(visual.textContent).toContain('Почему мне так сложно решиться на перемены?');
+  expect(visual.textContent).toContain('Lunaria');
+  expect(visual.querySelectorAll('.landing-preview-follow-ups li')).toHaveLength(3);
+  expect(visual.querySelector('button, form, textarea')).toBeNull();
+  expect(global.fetch).not.toHaveBeenCalled();
+});
