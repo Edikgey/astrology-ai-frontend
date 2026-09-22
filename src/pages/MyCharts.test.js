@@ -211,6 +211,7 @@ test("long participant labels stay intact and cards provide keyboard-usable nati
   const menu = container.querySelector('.relationship-cards summary[aria-label^="Действия с разбором"]');
   expect(menu).not.toBeNull();
   expect(menu.parentElement.tagName).toBe("DETAILS");
+  expect(menu.querySelectorAll('.dashboard-menu-dots[aria-hidden="true"] > span')).toHaveLength(3);
 });
 
 test("dashboard makes only the two collection requests and no AI request", async () => {

@@ -65,7 +65,7 @@ function AccountStatus() {
 
 function CardMenu({ label, deleting, onDelete, deleteLabel }) {
   return <details className="dashboard-card-menu">
-    <summary aria-label={label}><span aria-hidden="true">•••</span></summary>
+    <summary aria-label={label}><span className="dashboard-menu-dots" aria-hidden="true"><span /><span /><span /></span></summary>
     <div className="dashboard-card-menu-popover">
       <button type="button" className="button-danger" disabled={deleting} onClick={onDelete}>
         {deleting ? "Удаление…" : deleteLabel}

@@ -4,13 +4,16 @@
 .dashboard-page .page-heading .page-description { font-size: var(--ln-text-17); }
 .dashboard-kicker { margin: 0 0 var(--ln-space-8); color: var(--ln-color-primary); font-size: var(--ln-text-11); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 
-.dashboard-next { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr); gap: var(--ln-space-32); align-items: center; padding: clamp(28px, 4vw, 48px); border-radius: var(--ln-radius-lg); background: var(--ln-gradient-cosmic); color: var(--ln-color-text-inverse); box-shadow: var(--ln-shadow-large); }
-.dashboard-next .dashboard-kicker { color: var(--ln-color-text-inverse-muted); }
+.dashboard-next { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr); gap: var(--ln-space-32); align-items: center; padding: clamp(28px, 4vw, 48px); border-radius: var(--ln-radius-lg); background: var(--ln-gradient-primary); color: var(--ln-color-text-inverse); box-shadow: var(--ln-shadow-large); }
+.dashboard-next .dashboard-kicker { color: var(--ln-color-text-inverse); }
 .dashboard-next h2 { max-width: 640px; margin: 0 0 var(--ln-space-12); color: inherit; font-family: var(--ln-font-display); font-size: clamp(var(--ln-text-27), 3vw, var(--ln-text-38)); font-weight: 400; }
-.dashboard-next p:not(.dashboard-kicker) { max-width: 620px; margin: 0; color: var(--ln-color-text-inverse-muted); }
+.dashboard-next p:not(.dashboard-kicker) { max-width: 620px; margin: 0; color: var(--ln-color-text-inverse); }
 .dashboard-next-actions { display: grid; gap: var(--ln-space-12); }
+.dashboard-next-actions > button { background: var(--ln-color-surface); color: var(--ln-color-primary); }
+.dashboard-next-actions > button:hover { background: var(--ln-color-surface-tinted); color: var(--ln-color-primary-hover); }
 .dashboard-next-actions .button-secondary { background: var(--ln-color-inverse-glass); color: var(--ln-color-text-inverse); border-color: var(--ln-color-inverse-border); }
 .dashboard-next-actions .button-secondary:hover { background: rgba(255,255,255,.12); color: var(--ln-color-text-inverse); border-color: var(--ln-color-text-inverse-muted); }
+.dashboard-next-actions > :focus-visible { outline-color: var(--ln-color-text-inverse); }
 
 .dashboard-plan { display: flex; align-items: center; justify-content: space-between; gap: var(--ln-space-24); margin: var(--ln-space-24) 0 var(--ln-space-64); padding: 20px var(--ln-space-24); border-bottom: 1px solid var(--ln-color-border-subtle); }
 .dashboard-plan-copy { min-width: 0; }
@@ -41,8 +44,10 @@
 .dashboard-card-link:hover span { transform: translateX(3px); }
 
 .dashboard-card-menu { position: relative; border: 0; background: transparent; }
-.dashboard-card-menu > summary { width: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-pill); color: var(--ln-color-text-muted); cursor: pointer; list-style: none; letter-spacing: 2px; }
+.dashboard-card-menu > summary { width: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-pill); color: var(--ln-color-text-muted); cursor: pointer; list-style: none; }
 .dashboard-card-menu > summary::-webkit-details-marker { display: none; }
+.dashboard-menu-dots { display: grid; grid-template-columns: repeat(3, 4px); gap: 3px; place-items: center; }
+.dashboard-menu-dots > span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 .dashboard-card-menu[open] > summary { border: 1px solid var(--ln-color-primary); background: var(--ln-color-surface-tinted); color: var(--ln-color-primary); }
 .dashboard-card-menu-popover { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: var(--ln-z-dropdown); width: max-content; min-width: 180px; padding: var(--ln-space-8); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-control); background: var(--ln-color-surface-raised); box-shadow: var(--ln-shadow-medium); }
 .dashboard-card-menu-popover button { width: 100%; min-height: 42px; justify-content: flex-start; padding: var(--ln-space-8) var(--ln-space-12); font-size: var(--ln-text-13); }
