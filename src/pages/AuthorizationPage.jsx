@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AuthorizationPage.css";
 import GoogleSignIn from "../components/GoogleSignIn";
+import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent } from "./landingIntent";
 
 const AuthorizationPage = () => {
   const { user, login, loginGoogle, registerEmail, verifyRegistration } = useAuth();
@@ -41,6 +42,8 @@ const AuthorizationPage = () => {
       navigate(`/natal-chart-result/${guestChart.chartId}`, {
         replace: true,
         state: {
+          ...(isLandingRelationshipIntent(guestChart.landingRelationshipIntent) ?
+            { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT } : {}),
           chartAuth: {
             chartId: guestChart.chartId,
             status: migrated ? "migrated" : (result?.status === "migrated" ? "not_found" : result?.status || "not_requested"),

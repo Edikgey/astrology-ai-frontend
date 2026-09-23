@@ -6,6 +6,10 @@ export const LANDING_USE_CASES = [
 
 export const landingIntent = useCase => ({ topic: useCase.topic, question: useCase.question, source: 'landing_use_case' });
 
+export const LANDING_RELATIONSHIP_INTENT = Object.freeze({ topic: 'relationships', source: 'landing_relationship' });
+export const isLandingRelationshipIntent = value => value?.topic === LANDING_RELATIONSHIP_INTENT.topic &&
+  value?.source === LANDING_RELATIONSHIP_INTENT.source;
+
 export const normalizeLandingIntent = value => {
   if (!value || value.source !== 'landing_use_case') return null;
   const useCase = LANDING_USE_CASES.find(item => item.topic === value.topic && item.question === value.question);

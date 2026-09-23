@@ -8,7 +8,7 @@ import { chartPresentation } from '../api/chartPresentation';
 import './NatalChartResultPage.css';
 import NatalChart from '../components/NatalChart';
 import AskGptForm from '../components/AskGptForm'; // Подключаем компонент чата
-import { normalizeLandingIntent } from './landingIntent';
+import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent, normalizeLandingIntent } from './landingIntent';
 
 const NatalChartResultPage = () => {
   const { chartId: routeChartId } = useParams();
@@ -24,6 +24,7 @@ const NatalChartResultPage = () => {
   const sessionToken = localStorage.getItem("session_token");
   const chartAuth = String(location.state?.chartAuth?.chartId) === String(chartId) ? location.state.chartAuth : null;
   const landingIntent = normalizeLandingIntent(location.state?.landingIntent);
+  const relationshipIntent = isLandingRelationshipIntent(location.state?.landingRelationshipIntent);
   const pendingQuestion = chartAuth?.pendingQuestion || landingIntent?.question || "";
   const unsaved = Boolean(chartAuth && chartAuth.status !== "migrated");
   const guestSessionToken = unsaved ? chartAuth.sessionToken : undefined;
@@ -40,10 +41,11 @@ const NatalChartResultPage = () => {
 
   useEffect(() => {
     if (chartData && !user && (!token || token === "null") && sessionToken) {
-      setActiveGuestChart?.({ chartId: chartData.chart_id, sessionToken, pendingQuestion });
+      setActiveGuestChart?.({ chartId: chartData.chart_id, sessionToken, pendingQuestion,
+        ...(relationshipIntent ? { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT } : {}) });
     }
     return () => setActiveGuestChart?.(null);
-  }, [chartData, user, token, sessionToken, pendingQuestion, setActiveGuestChart]);
+  }, [chartData, user, token, sessionToken, pendingQuestion, relationshipIntent, setActiveGuestChart]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -83,11 +85,20 @@ const NatalChartResultPage = () => {
 
   return (
     <div className="page result-page">
-   <PageHeading eyebrow="Ваш личный космос" title={landingIntent ? "Ваша карта готова" : chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
-     action={<a className="button" href="#chart-conversation">Перейти к разговору ↓</a>}>
-     <p>{landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>
+   <PageHeading eyebrow="Ваш личный космос" title={relationshipIntent ? "Первая карта готова" : landingIntent ? "Ваша карта готова" : chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
+     action={relationshipIntent ? null : <a className="button" href="#chart-conversation">Перейти к разговору ↓</a>}>
+     <p>{relationshipIntent ? "Теперь можно сохранить её и добавить карту другого человека для разбора отношений." :
+       landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>
      {chartData.timezone && <p className="result-metadata">Часовой пояс рождения: {chartData.timezone}</p>}
    </PageHeading>
+   {relationshipIntent && <aside className="notice" aria-label="Следующий шаг для разбора отношений">
+     <p>{user ? "Первая карта готова. Теперь добавьте карту другого человека, чтобы исследовать динамику ваших отношений." :
+       "Первая карта готова. Сохраните её в аккаунте, затем добавьте карту другого человека для разбора отношений."}</p>
+     {user ? <Link to="/relationships/new">Продолжить разбор отношений →</Link> :
+       <Link to="/authorization" state={{ mode: "register", returnTo: `/natal-chart-result/${chartData.chart_id}`,
+         guestChart: { chartId: chartData.chart_id, sessionToken, pendingQuestion,
+           landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT } }}>Сохранить карту и продолжить →</Link>}
+   </aside>}
    {migrationNotice && <p role="status" className="notice">{migrationNotice} <Link to="/my-charts">Мои карты</Link></p>}
    <NatalChart
   key={requestKey}

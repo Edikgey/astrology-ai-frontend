@@ -2,11 +2,12 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import TryFreePage, { calculateNatalChart } from './TryFreePage';
+import { LANDING_RELATIONSHIP_INTENT } from './landingIntent';
 
 const mockNavigate = jest.fn();
-let mockLocation;
+let mockLocation, mockUser;
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate, useLocation: () => mockLocation }), { virtual: true });
-jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
 jest.mock('../context/UsageContext', () => ({ useUsage: () => ({ refreshUsage: jest.fn(), handleLimitError: () => false }) }));
 jest.mock('../components/UsageSummary', () => () => null);
 let root, container, originalFetch;
@@ -22,6 +23,7 @@ const selectCity = async () => {
 beforeEach(async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear(); localStorage.setItem('access_token', 'test-jwt');
+  mockUser = { id: 1 };
   mockLocation = { pathname: '/try-free', state: null };
   originalFetch = global.fetch; global.fetch = jest.fn(); mockNavigate.mockReset();
   container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
@@ -70,6 +72,32 @@ test('landing intent stays visible during onboarding and reaches the created cha
   expect(container.querySelector('.create-intent').textContent).toContain(landingIntent.question);
   await selectCity(); global.fetch.mockResolvedValueOnce(ok({ chart_id: 45 })); await submit();
   expect(mockNavigate).toHaveBeenCalledWith('/natal-chart-result/45', { state: { landingIntent } });
+});
+
+test('relationship intent sends authenticated first chart to the existing second-chart flow', async () => {
+  mockLocation = { pathname: '/try-free', state: { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT,
+    returnTo: '/relationships/new' } };
+  await act(async () => root.unmount()); root = createRoot(container);
+  await act(async () => root.render(<TryFreePage />));
+  expect(container.textContent).toContain('Начните с первой карты для разбора отношений');
+  await selectCity(); global.fetch.mockResolvedValueOnce(ok({ chart_id: 45 })); await submit();
+  expect(mockNavigate).toHaveBeenCalledWith('/relationships/new', { replace: true, state: {
+    relationshipDraft: null, createdChartId: 45,
+  } });
+});
+
+test('guest relationship intent keeps first chart and does not enter a protected dead end', async () => {
+  mockUser = null;
+  localStorage.removeItem('access_token');
+  localStorage.setItem('session_token', '12345678-1234-4234-8234-123456789abc');
+  mockLocation = { pathname: '/try-free', state: { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT,
+    returnTo: '/relationships/new' } };
+  await act(async () => root.unmount()); root = createRoot(container);
+  await act(async () => root.render(<TryFreePage />));
+  await selectCity(); global.fetch.mockResolvedValueOnce(ok({ chart_id: 46 })); await submit();
+  expect(mockNavigate).toHaveBeenCalledWith('/natal-chart-result/46', { state: {
+    landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT,
+  } });
 });
 
 test('editing birthplace invalidates coordinates and timezone from the previous selection', async () => {

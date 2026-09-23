@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiError } from "../api/apiError";
 import UsageSummary from "../components/UsageSummary";
-import { normalizeLandingIntent } from "./landingIntent";
+import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent, normalizeLandingIntent } from "./landingIntent";
 import "./TryFreePage.css";
 
 const years = Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => 1900 + i);
@@ -113,6 +113,7 @@ const TryFreePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedIntent = normalizeLandingIntent(location.state?.landingIntent);
+  const relationshipIntent = !selectedIntent && isLandingRelationshipIntent(location.state?.landingRelationshipIntent);
   const [formData, setFormData] = useState({
     name: "",
     year: "2000",
@@ -240,7 +241,7 @@ const TryFreePage = () => {
     try {
       const result = await calculateNatalChart(finalData);
       refreshUsage();
-      const returnTo = location.state?.returnTo === "/relationships/new" ? location.state.returnTo : null;
+      const returnTo = user && location.state?.returnTo === "/relationships/new" ? location.state.returnTo : null;
       if (returnTo) {
         navigate(returnTo, { replace: true, state: {
           relationshipDraft: location.state?.relationshipDraft || null,
@@ -248,6 +249,7 @@ const TryFreePage = () => {
         } });
       } else {
         if (selectedIntent) navigate(`/natal-chart-result/${result.chart_id}`, { state: { landingIntent: selectedIntent } });
+        else if (relationshipIntent) navigate(`/natal-chart-result/${result.chart_id}`, { state: { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT } });
         else navigate(`/natal-chart-result/${result.chart_id}`);
       }
     } catch (error) {
@@ -263,13 +265,18 @@ const TryFreePage = () => {
       <aside className="create-intro">
         <PageHeading eyebrow="Начните с себя" title={selectedIntent
           ? "Создадим вашу карту, чтобы посмотреть на этот вопрос через неё"
+          : relationshipIntent ? "Начните с первой карты для разбора отношений"
           : "Ваша история начинается здесь."}>
           <p>{selectedIntent
             ? "Дата, время и место рождения помогут построить персональную точку отсчёта для разговора."
+            : relationshipIntent ? "После первой карты вы сможете добавить карту другого человека и исследовать вашу динамику вместе с Lunaria."
             : "Несколько деталей рождения — и перед вами ваша персональная натальная карта."}</p>
         </PageHeading>
         {selectedIntent && <div className="create-intent" aria-label="Выбранный вопрос">
           <span>Ваш вопрос</span><p>«{selectedIntent.question}»</p>
+        </div>}
+        {relationshipIntent && <div className="create-intent" aria-label="Цель создания карты">
+          <span>Ваш следующий шаг</span><p>Добавить карту другого человека для разбора отношений</p>
         </div>}
         <div className="create-note"><OrbitMark /><h3>Время имеет значение</h3><p>Укажите местное время рождения, включая минуты. Часовой пояс определится по выбранному месту.</p><p>Чем точнее исходные данные, тем полезнее разбор.</p></div>
         {user && <UsageSummary />}

@@ -8,6 +8,7 @@ import NatalChartResultPage from "./NatalChartResultPage";
 import TryFreePage from "./TryFreePage";
 import MyCharts from "./MyCharts";
 import Header from "../components/Header";
+import { LANDING_RELATIONSHIP_INTENT } from "./landingIntent";
 
 let mockLocation, mockChartId;
 const mockNavigate = jest.fn();
@@ -15,7 +16,7 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
   useLocation: () => mockLocation,
   useParams: () => ({ chartId: mockChartId }),
-  Link: ({ to, children }) => <a href={to}>{children}</a>,
+  Link: ({ to, state, children }) => <a href={to} data-state={state ? JSON.stringify(state) : undefined}>{children}</a>,
 }), { virtual: true });
 jest.mock("../components/NatalChart", () => props => <div data-chart={props.chartId} data-houses={JSON.stringify(props.houses)}>{props.children}</div>);
 jest.mock("../components/GoogleSignIn", () => props => <button data-google-sign-in onClick={() => props.onSignIn('google-credential', 'a'.repeat(64))}>Google test</button>);
@@ -154,6 +155,34 @@ test("landing question is restored in the existing guest chat composer after cha
   expect(container.textContent).toContain("Теперь можно вернуться к вопросу, с которого вы начали.");
   expect(container.querySelector("textarea").value).toBe(landingIntent.question);
   expect(gptCalls()).toHaveLength(0);
+});
+
+test("guest Relationship intent survives chart migration and resumes at the second-chart step", async () => {
+  mockLocation = { pathname: "/natal-chart-result/7", state: { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT } };
+  global.fetch.mockImplementation(async url => {
+    if (url.includes("/auth/me")) return ok({ id: 1, email: "person@example.com" });
+    if (url.includes("/auth/login")) return ok({ access_token: "jwt", guest_chart_migration: { status: "migrated", chart_id: 7 } });
+    if (url.includes("/account/usage")) return ok({ plan: "free", saved_charts_used: 1, saved_charts_limit: 3 });
+    if (url.includes("/natal-chart/7")) return ok({ chart_id: 7, houses });
+    if (url.includes("/gpt-messages")) return ok([]);
+    throw new Error(`Unexpected request ${url}`);
+  });
+  await render(<NatalChartResultPage />);
+  const save = container.querySelector('a[href="/authorization"]');
+  expect(save.textContent).toContain("Сохранить карту и продолжить");
+  const authState = JSON.parse(save.dataset.state);
+  expect(authState.guestChart.landingRelationshipIntent).toEqual(LANDING_RELATIONSHIP_INTENT);
+  mockLocation = { pathname: "/authorization", state: { ...authState, mode: 'login' } };
+  await render(<AuthorizationPage />);
+  await change('input[type="email"]', "person@example.com");
+  await change('input[type="password"]', "test-password-only");
+  await submit();
+  const returnCall = mockNavigate.mock.calls.find(([, options]) => options?.state?.chartAuth);
+  expect(returnCall[1].state.landingRelationshipIntent).toEqual(LANDING_RELATIONSHIP_INTENT);
+  mockLocation = { pathname: returnCall[0], state: returnCall[1].state };
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('a[href="/relationships/new"]')).not.toBeNull();
+  expect(gptCalls().filter(([url]) => url.includes('/ask-gpt'))).toHaveLength(0);
 });
 
 test("header auth uses only a successfully opened guest chart and forgets it on leaving", async () => {

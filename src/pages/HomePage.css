@@ -52,6 +52,28 @@
 .landing-v2 .landing-process-action { display: flex; align-items: center; gap: var(--ln-space-16); }
 .landing-v2 .landing-process-action > span { color: var(--ln-color-text-muted); font-size: var(--ln-text-12); }
 
+.landing-v2 .landing-relationships { background: var(--ln-color-surface-tinted); }
+.landing-v2 .landing-relationship-grid { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: center; gap: var(--ln-space-64); }
+.landing-v2 .landing-relationship-grid > * { min-width: 0; }
+.landing-v2 .landing-relationship-questions { display: grid; gap: var(--ln-space-8); margin: var(--ln-space-32) 0; padding: 0; list-style: none; }
+.landing-v2 .landing-relationship-questions li { padding: var(--ln-space-12) var(--ln-space-16); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-control); background: var(--ln-color-surface); color: var(--ln-color-primary); font-weight: 600; line-height: 1.55; }
+.landing-v2 .landing-relationship-cta { display: inline-flex; align-items: center; gap: var(--ln-space-12); }
+.landing-v2 .landing-relationship-preview { padding: var(--ln-space-24); border: 1px solid var(--ln-color-border-subtle); border-radius: var(--ln-radius-lg); background: var(--ln-color-surface); box-shadow: var(--ln-shadow-medium); }
+.landing-v2 .landing-relationship-preview-head { display: flex; align-items: center; gap: var(--ln-space-12); padding-bottom: var(--ln-space-16); border-bottom: 1px solid var(--ln-color-border-subtle); }
+.landing-v2 .landing-relationship-preview-head .orbit-mark { width: 32px; height: 32px; flex: 0 0 auto; color: var(--ln-color-primary); }
+.landing-v2 .landing-relationship-preview-head strong, .landing-v2 .landing-relationship-preview-head span { display: block; }
+.landing-v2 .landing-relationship-preview-head strong { font-size: var(--ln-text-15); }
+.landing-v2 .landing-relationship-preview-head span, .landing-v2 .landing-relationship-preview > p { color: var(--ln-color-text-muted); font-size: var(--ln-text-11); }
+.landing-v2 .landing-relationship-legend { display: flex; flex-wrap: wrap; gap: var(--ln-space-8) var(--ln-space-24); margin-top: var(--ln-space-16); font-size: var(--ln-text-12); }
+.landing-v2 .landing-relationship-legend span { display: inline-flex; align-items: center; gap: var(--ln-space-8); }
+.landing-v2 .landing-relationship-legend i { width: 11px; height: 11px; flex: 0 0 auto; border: 2px solid var(--ln-color-primary); border-radius: 50%; background: var(--ln-color-primary); }
+.landing-v2 .landing-relationship-legend span:last-child i { border-color: var(--ln-color-secondary); background: var(--ln-color-surface); }
+.landing-v2 .landing-relationship-wheel.synastry-chart { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.landing-v2 .landing-relationship-wheel .synastry-svg { max-width: 480px; margin: 0 auto; }
+.landing-v2 .landing-relationship-wheel .synastry-aspect-line { opacity: .62; stroke-width: 2; }
+.landing-v2 .landing-relationship-wheel .synastry-aspect, .landing-v2 .landing-relationship-wheel .synastry-planet { cursor: default; pointer-events: none; }
+.landing-v2 .landing-relationship-preview > p { margin: 0; text-align: center; }
+
 .landing-v2 .landing-situations { background: var(--ln-color-bg-subtle); }
 .landing-v2 .landing-use-cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ln-space-24); margin-top: var(--ln-space-48); }
 .landing-v2 .landing-case { padding: var(--ln-space-32); background: var(--ln-color-surface); border-radius: var(--ln-radius-lg); min-width: 0; }
@@ -110,6 +132,8 @@
 }
 @media (max-width: 800px) {
   .landing-v2 .landing-hero-grid, .landing-v2 .landing-split { grid-template-columns: 1fr; }
+  .landing-v2 .landing-relationship-grid { grid-template-columns: 1fr; gap: var(--ln-space-32); }
+  .landing-v2 .landing-relationship-preview { max-width: 580px; width: 100%; margin: auto; }
   .landing-v2 .landing-hero { padding: 56px 0; }
   .landing-v2 .landing-hero-copy { max-width: 680px; }
   .landing-v2 .landing-hero-product { max-width: 580px; width: 100%; margin: var(--ln-space-24) auto 0; padding: var(--ln-space-24); }
@@ -136,6 +160,8 @@
   .landing-v2 .landing-steps li { padding: var(--ln-space-16) 0; }
   .landing-v2 .landing-step-index { margin-bottom: var(--ln-space-12); }
   .landing-v2 .landing-process-action { align-items: flex-start; flex-direction: column; }
+  .landing-v2 .landing-relationship-preview { padding: var(--ln-space-16); }
+  .landing-v2 .landing-relationship-questions { margin: var(--ln-space-24) 0; }
   .landing-v2 .landing-use-cases { margin-top: var(--ln-space-32); }
   .landing-v2 .landing-case { padding: var(--ln-space-24) var(--ln-space-16); }
   .landing-v2 .landing-conversation-preview { padding: var(--ln-space-16); }
