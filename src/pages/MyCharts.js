@@ -60,6 +60,8 @@ function AccountStatus() {
     {!premium && <button type="button" className="button-secondary" onClick={openUpgrade}>Перейти на Premium</button>}
     {premium && usage.can_manage_subscription && <button type="button" className="button-secondary"
       disabled={billing.busy} onClick={billing.manageSubscription}>Управление подпиской</button>}
+    {usage.can_cancel_subscription && <button type="button" className="button-secondary"
+      disabled={billing.busy} onClick={billing.cancelLavaSubscription}>Отключить продление Lava</button>}
   </aside>;
 }
 

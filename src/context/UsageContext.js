@@ -85,7 +85,7 @@ export function UsageProvider({ children }) {
   const openUpgrade = () => { if (usage?.plan === "free") setModal({ key, plan: "free" }); };
 
   return <UsageContext.Provider value={{ usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade }}>
-    <BillingProvider refreshUsage={refreshUsage}>
+    <BillingProvider refreshUsage={refreshUsage} usage={usage}>
     {children}
     {modal && <UsageModal state={modal} usage={usage} onClose={() => setModal(null)} />}
     </BillingProvider>

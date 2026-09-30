@@ -39,8 +39,14 @@ export default function UsageModal({ state, usage, onClose }) {
         <section><h3>Premium</h3><p>{PLANS.premium.chartLimit} карт</p><p>{PLANS.premium.gptLimit} AI-вопросов в месяц — за расчётный период, на весь аккаунт</p></section>
       </div>
       <PremiumPrice />
+      <p>Международная оплата · Paddle</p>
       <button type="button" className="usage-button" disabled={!billing.configured || billing.busy} onClick={billing.startCheckout}>Перейти на Premium</button>
       {!billing.configured && <p>Оплата пока не настроена.</p>}
+      {billing.lavaConfigured && <section aria-label="Оплата в рублях">
+        <p>Российская оплата · Lava.top</p><p>799 ₽ / месяц</p>
+        <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.startLavaCheckout}>Оплатить в RUB</button>
+        <p>Доступные способы оплаты указаны на странице Lava.top.</p>
+      </section>}
     </> : <p>{plan === "premium" ? "Ваш текущий план — Premium." : "Лимит определяет сервер."}{end && plan === "premium" ? ` Конец расчётного периода: ${end} (UTC).` : ""}</p>}
     {billing.message && <p role="status">{billing.message}</p>}
     {billing.error && <p role="alert">{billing.error}</p>}

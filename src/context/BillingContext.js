@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { billingRequest, getPaddle, onPaddleEvent, paddleConfigured, PREMIUM_PRICE_ID } from "../api/paddle";
+import { lavaRequest, checkoutUrl } from "../api/lava";
 
 const BillingContext = createContext({ configured: false, busy: false, checkoutVisible: false });
 export const useBilling = () => useContext(BillingContext);
 
-export function BillingProvider({ children, refreshUsage }) {
+export function BillingProvider({ children, refreshUsage, usage }) {
   const { user, token, loading } = useAuth();
   const identity = `${user?.id || "guest"}:${token || ""}`;
   const current = useRef(identity);
@@ -46,11 +47,56 @@ export function BillingProvider({ children, refreshUsage }) {
       }
       if (event.name === "checkout.error") setError("Paddle не смог завершить оплату. Проверьте данные в checkout.");
     });
+    // Return status is navigation only. Only /account/usage can confirm access.
+    if (token && new URLSearchParams(window.location.search).get("billing") === "lava") {
+      setMessage("Ожидаем подтверждение оплаты от сервера…");
+      poll(0);
+    }
     return () => {
       active.current = false; unsubscribe(); clearTimeout(timer.current);
       checkoutRef.current?.Checkout.close(); checkoutRef.current = null;
     };
   }, [identity, token]);
+
+  const startLavaCheckout = async () => {
+    if (inFlight.current || !user || !token || loading || !usage?.lava_checkout_available) return;
+    const origin = identity;
+    const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
+    // Keep the current conversation/draft in its tab, as with Paddle's portal.
+    const tab = window.open("about:blank", "_blank");
+    if (tab) tab.opener = null;
+    if (!tab) { setError("Разрешите всплывающие окна и попробуйте снова."); return; }
+    inFlight.current = true; setBusy(true); setError("");
+    try {
+      const result = await lavaRequest("checkout", token);
+      if (!valid()) { tab.close(); return; }
+      tab.location.href = checkoutUrl(result.url);
+      setMessage("Оплата открыта в новой вкладке. После оплаты обновите лимиты аккаунта.");
+    } catch (err) {
+      tab.close();
+      if (valid()) setError(err.message || "Не удалось открыть оплату.");
+    } finally {
+      if (valid()) { setBusy(false); inFlight.current = false; }
+    }
+  };
+
+  const cancelLavaSubscription = async () => {
+    if (inFlight.current || !user || !token || loading || usage?.payment_provider !== "lava") return;
+    if (!window.confirm("Отключить продление подписки? Оплаченный доступ сохранится до даты, подтверждённой Lava.")) return;
+    const origin = identity;
+    const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
+    inFlight.current = true; setBusy(true); setError("");
+    try {
+      await lavaRequest("cancel", token);
+      if (!valid()) return;
+      setMessage("Запрос на отмену продления отправлен. Ожидаем подтверждение Lava.");
+      await refresh.current();
+    } catch (err) {
+      if (valid()) setError(err.message || "Не удалось запросить отмену.");
+    } finally {
+      if (valid()) { setBusy(false); inFlight.current = false; }
+    }
+  };
 
   const startCheckout = async () => {
     if (inFlight.current || !user || !token || loading || !paddleConfigured) return;
@@ -103,5 +149,6 @@ export function BillingProvider({ children, refreshUsage }) {
   };
 
   return <BillingContext.Provider value={{ configured: paddleConfigured, busy, checkoutVisible,
-    message, error, startCheckout, manageSubscription }}>{children}</BillingContext.Provider>;
+    message, error, startCheckout, manageSubscription, startLavaCheckout, cancelLavaSubscription,
+    lavaConfigured: Boolean(usage?.lava_checkout_available) }}>{children}</BillingContext.Provider>;
 }

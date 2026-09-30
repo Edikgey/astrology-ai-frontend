@@ -30,8 +30,9 @@ export default function UsageSummary() {
     {premium && !usage.gpt_period_valid && <p>Нет действующего расчётного периода Premium. AI-чат станет доступен после обновления периода.</p>}
     <UpgradeCTA />
     {usage.cancel_at_period_end && <p>Продление отменено. Доступ до {formatPeriodDate(usage.scheduled_cancel_at)} (UTC).</p>}
-    {usage.subscription_status === "past_due" && <p>Не удалось продлить подписку. Обновите способ оплаты в Paddle.</p>}
+    {usage.subscription_status === "past_due" && <p>Не удалось продлить подписку. Проверьте оплату у платёжного провайдера.</p>}
     {usage.can_manage_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.manageSubscription}>Управлять подпиской</button>}
+    {usage.can_cancel_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.cancelLavaSubscription}>Отключить продление Lava</button>}
     {billing.message && <p role="status">{billing.message}</p>}
     {billing.error && <p role="alert">{billing.error}</p>}
   </section>;
