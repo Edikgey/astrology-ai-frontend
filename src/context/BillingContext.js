@@ -21,10 +21,12 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   const [checkoutVisible, setVisible] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [feedbackProvider, setFeedbackProvider] = useState(null);
 
   useEffect(() => {
     active.current = true;
     setBusy(false); setVisible(false); setError(""); setMessage(""); inFlight.current = false;
+    setFeedbackProvider(null);
     const valid = () => active.current && current.current === identity && localStorage.getItem("access_token") === token;
     const poll = async attempt => {
       if (!valid()) return;
@@ -36,6 +38,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     };
     const unsubscribe = onPaddleEvent(event => {
       if (!valid() || !checkoutRef.current) return;
+      setFeedbackProvider("paddle");
       if (event.name === "checkout.completed") {
         setMessage("Оплата получена. Ожидаем подтверждение Premium от сервера…");
         clearTimeout(timer.current); poll(0);
@@ -49,8 +52,15 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     });
     // Return status is navigation only. Only /account/usage can confirm access.
     if (token && new URLSearchParams(window.location.search).get("billing") === "lava") {
-      setMessage("Ожидаем подтверждение оплаты от сервера…");
-      poll(0);
+      setFeedbackProvider("lava");
+      const returned = new URLSearchParams(window.location.search).get("status");
+      if (returned === "failed" || returned === "cancelled") {
+        setMessage("Оплата не завершена. Можно снова открыть Lava; доступность другого способа проверит сервер.");
+        refresh.current();
+      } else {
+        setMessage("Ожидаем подтверждение оплаты от сервера…");
+        poll(0);
+      }
     }
     return () => {
       active.current = false; unsubscribe(); clearTimeout(timer.current);
@@ -60,6 +70,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
 
   const startLavaCheckout = async () => {
     if (inFlight.current || !user || !token || loading || !usage?.lava_checkout_available) return;
+    setFeedbackProvider("lava"); setError(""); setMessage("");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
     // Keep the current conversation/draft in its tab, as with Paddle's portal.
@@ -83,6 +94,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   const cancelLavaSubscription = async () => {
     if (inFlight.current || !user || !token || loading || usage?.payment_provider !== "lava") return;
     if (!window.confirm("Отключить продление подписки? Оплаченный доступ сохранится до даты, подтверждённой Lava.")) return;
+    setFeedbackProvider("lava"); setMessage("");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
     inFlight.current = true; setBusy(true); setError("");
@@ -100,6 +112,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
 
   const startCheckout = async () => {
     if (inFlight.current || !user || !token || loading || !paddleConfigured) return;
+    setFeedbackProvider("paddle");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
     inFlight.current = true; setBusy(true); setError(""); setMessage("");
@@ -129,6 +142,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
 
   const manageSubscription = async () => {
     if (inFlight.current || !user || !token || loading) return;
+    setFeedbackProvider("paddle"); setMessage("");
     const origin = identity;
     const tab = window.open("about:blank", "_blank");
     if (tab) tab.opener = null;
@@ -149,6 +163,6 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   };
 
   return <BillingContext.Provider value={{ configured: paddleConfigured, busy, checkoutVisible,
-    message, error, startCheckout, manageSubscription, startLavaCheckout, cancelLavaSubscription,
+    message, error, feedbackProvider, startCheckout, manageSubscription, startLavaCheckout, cancelLavaSubscription,
     lavaConfigured: Boolean(usage?.lava_checkout_available) }}>{children}</BillingContext.Provider>;
 }

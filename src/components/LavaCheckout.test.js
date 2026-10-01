@@ -79,8 +79,33 @@ test("price/configuration errors retain Free and draft", async () => {
   global.fetch.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ detail: "Цена требует проверки" }) });
   await click("Оплатить в RUB");
   expect(container.textContent).toContain("Цена требует проверки");
+  const lava = container.querySelector('[aria-label="Оплата в рублях — Lava.top"]');
+  const paddle = container.querySelector('[aria-label="Международная оплата — Paddle"]');
+  expect(lava.querySelector('[role="alert"]').textContent).toBe("Цена требует проверки");
+  expect(paddle.querySelector('[role="alert"]')).toBeNull();
   expect(container.textContent).toContain("План: Free");
   expect(container.querySelector("textarea").value).toBe("Мой вопрос");
+});
+
+test("payment cards share controls and keep Lava reusable after opening", async () => {
+  await render(); await click("Перейти на Premium");
+  const cards = [...container.querySelectorAll('.payment-option')];
+  expect(cards).toHaveLength(2);
+  expect(cards.map(c => c.querySelector('button').className)).toEqual(['usage-button', 'usage-button']);
+  await click("Оплатить в RUB");
+  expect(cards[1].querySelector('button').disabled).toBe(false);
+  await click("Оплатить в RUB");
+  expect(global.fetch.mock.calls.filter(([url]) => url.endsWith('/payments/lava/checkout'))).toHaveLength(2);
+});
+
+test("failed return does not claim payment received or start success polling", async () => {
+  jest.useFakeTimers(); window.history.replaceState({}, "", "/my-charts?billing=lava&status=failed");
+  await render();
+  expect(container.textContent).toContain("Оплата не завершена");
+  const count = global.fetch.mock.calls.length;
+  await act(async () => jest.advanceTimersByTime(60000));
+  expect(global.fetch.mock.calls.length).toBe(count);
+  expect(container.textContent).toContain("План: Free");
 });
 
 test("Lava subscriber gets confirmation and Lava cancel endpoint, never Paddle portal", async () => {

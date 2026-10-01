@@ -78,7 +78,7 @@ test("Free upgrade preserves comparison modal and disables checkout when env is 
   const modal = container.querySelector("dialog[open]");
   expect(modal.textContent).toContain("3 карты"); expect(modal.textContent).toContain("10 AI-вопросов за всё время");
   expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 AI-вопросов в месяц");
-  const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Перейти на Premium");
+  const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Оплатить через Paddle");
   expect(upgrade.disabled).toBe(true); await click(upgrade);
   expect(modal.textContent).toContain("Оплата пока не настроена."); expect(global.fetch).toHaveBeenCalledTimes(1);
   await click(button("Закрыть")); expect(container.querySelector("dialog")).toBeNull();
