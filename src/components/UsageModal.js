@@ -47,9 +47,9 @@ export default function UsageModal({ state, usage, onClose }) {
         <section><h3>Premium</h3><p>{PLANS.premium.chartLimit} карт</p><p>{PLANS.premium.gptLimit} AI-вопросов в месяц — за расчётный период, на весь аккаунт</p></section>
       </div>
       <div className="payment-options">
-        <section className="payment-option" aria-label="Международная оплата — Paddle">
+        <section className="payment-option" aria-label="Оплата — Paddle">
           <div className="payment-option-content">
-            <h3>Paddle</h3><p className="payment-option-description">Международная оплата</p>
+            <h3>Оплата</h3><p className="payment-option-description">Paddle</p>
             <PremiumPrice />
           </div>
           <button type="button" className="usage-button" disabled={!billing.configured || billing.busy} onClick={billing.startCheckout}>Оплатить через Paddle</button>
@@ -57,7 +57,7 @@ export default function UsageModal({ state, usage, onClose }) {
         </section>
         {billing.lavaConfigured && <section className="payment-option" aria-label="Оплата в рублях — Lava.top">
           <div className="payment-option-content">
-            <h3>Lava.top</h3><p className="payment-option-description">Оплата в рублях</p>
+            <h3>Оплата в рублях</h3><p className="payment-option-description">Lava.top</p>
             <p className="payment-option-price">799 ₽ / месяц</p>
             <p className="payment-option-note">Без пробного периода. Способы оплаты — на странице Lava.top.</p>
           </div>

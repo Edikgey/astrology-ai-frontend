@@ -80,7 +80,7 @@ test("price/configuration errors retain Free and draft", async () => {
   await click("Оплатить в RUB");
   expect(container.textContent).toContain("Цена требует проверки");
   const lava = container.querySelector('[aria-label="Оплата в рублях — Lava.top"]');
-  const paddle = container.querySelector('[aria-label="Международная оплата — Paddle"]');
+  const paddle = container.querySelector('[aria-label="Оплата — Paddle"]');
   expect(lava.querySelector('[role="alert"]').textContent).toBe("Цена требует проверки");
   expect(paddle.querySelector('[role="alert"]')).toBeNull();
   expect(container.textContent).toContain("План: Free");
