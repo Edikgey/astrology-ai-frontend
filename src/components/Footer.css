@@ -9,3 +9,4 @@
 
 .site-footer .brand, .site-footer .brand span { color: var(--ln-color-text-inverse); }
 .footer-links a:hover { color: var(--ln-color-text-inverse); text-decoration: underline; }
+.footer-legal { margin-top: var(--ln-space-24); padding-top: var(--ln-space-24); border-top: 1px solid var(--ln-color-inverse-border); }

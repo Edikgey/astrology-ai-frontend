@@ -12,6 +12,7 @@ import CookieConsent from "react-cookie-consent";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import { TermsPage, PrivacyPage, RefundPage, SupportPage } from "./pages/LegalPages";
 
 import HomePage from "./pages/HomePage";
 import AuthorizationPage from "./pages/AuthorizationPage";
@@ -33,8 +34,12 @@ function ProtectedRoute({ children }) {
 
 // 🔸 Основное содержимое приложения
 function AppContent() {
-  const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (hash && document.getElementById(hash.slice(1))) {
+      document.getElementById(hash.slice(1)).scrollIntoView();
+    } else window.scrollTo(0, 0);
+  }, [pathname, hash]);
 
   return (
     <>
@@ -63,6 +68,10 @@ function AppContent() {
         <Route path="/natal-chart-result" element={<NatalChartResultPage />} />
         <Route path="/natal-chart-result/:chartId" element={<NatalChartResultPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refunds" element={<RefundPage />} />
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/my-charts" element={<MyCharts />} />
         <Route path="/relationships/new" element={<ProtectedRoute><RelationshipNewPage /></ProtectedRoute>} />
         <Route path="/relationships/:relationshipId" element={<ProtectedRoute><RelationshipResultPage /></ProtectedRoute>} />
