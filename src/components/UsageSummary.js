@@ -2,6 +2,7 @@ import React from "react";
 import { useUsage } from "../context/UsageContext";
 import { useBilling } from "../context/BillingContext";
 import { formatPeriodDate } from "./UsageModal";
+import SubscriptionManagement from './SubscriptionManagement';
 import "./Usage.css";
 
 export function UpgradeCTA() {
@@ -19,20 +20,20 @@ export default function UsageSummary() {
   </section>;
   if (!usage) return usageLoading ? <p role="status">Загрузка лимитов...</p> : null;
   const premium = usage.plan === "premium";
+  const beta = usage.free_beta_enabled === true;
   const start = formatPeriodDate(usage.current_period_start);
   const end = formatPeriodDate(usage.current_period_end);
   return <section className="usage-summary" aria-label="Использование аккаунта" aria-busy={usageLoading}>
     <strong>План: {premium ? "Premium" : usage.plan === "free" ? "Free" : usage.plan}</strong>
-    <p>Сохранено карт: {usage.saved_charts_used} / {usage.saved_charts_limit}</p>
-    <p>AI-вопросы: {usage.gpt_messages_used} / {usage.gpt_messages_limit} — {usage.gpt_limit_type === "billing_period" ? "за расчётный период" : "за всё время аккаунта"}</p>
-    {usage.gpt_messages_reserved > 0 && <p>Запросов в обработке: {usage.gpt_messages_reserved}. Они временно занимают лимит.</p>}
+    {beta && <p>Бесплатный бета-тест: карты и AI-вопросы без лимита.</p>}
+    <p>Сохранено карт: {usage.saved_charts_used} / {beta ? "без лимита" : usage.saved_charts_limit}</p>
+    <p>AI-вопросы: {usage.gpt_messages_used} / {beta ? "без лимита" : usage.gpt_messages_limit}{!beta && <> — {usage.gpt_limit_type === "billing_period" ? "за расчётный период" : "за всё время аккаунта"}</>}</p>
+    {usage.gpt_messages_reserved > 0 && <p>Запросов в обработке: {usage.gpt_messages_reserved}. {!beta && "Они временно занимают лимит."}</p>}
     {premium && start && end && <p>Расчётный период: {start} — {end} (UTC).</p>}
-    {premium && !usage.gpt_period_valid && <p>Нет действующего расчётного периода Premium. AI-чат станет доступен после обновления периода.</p>}
+    {premium && !beta && !usage.gpt_period_valid && <p>Нет действующего расчётного периода Premium. AI-чат станет доступен после обновления периода.</p>}
     <UpgradeCTA />
-    {usage.cancel_at_period_end && <p>Продление отменено. Доступ до {formatPeriodDate(usage.scheduled_cancel_at)} (UTC).</p>}
     {usage.subscription_status === "past_due" && <p>Не удалось продлить подписку. Проверьте оплату у платёжного провайдера.</p>}
-    {usage.can_manage_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.manageSubscription}>Управлять подпиской</button>}
-    {usage.can_cancel_subscription && <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.cancelLavaSubscription}>Отключить продление Lava</button>}
+    <SubscriptionManagement usage={usage} />
     {billing.message && <p role="status">{billing.message}</p>}
     {billing.error && <p role="alert">{billing.error}</p>}
   </section>;

@@ -16,8 +16,10 @@ jest.mock("react-router-dom", () => ({
 }), { virtual: true });
 jest.mock("../api/chartsApi", () => ({ chartRequest: jest.fn() }));
 jest.mock("../api/relationshipsApi", () => ({ relationshipRequest: jest.fn() }));
-jest.mock("../context/UsageContext", () => ({ useUsage: () => ({ usage: { plan: "free", saved_charts_used: 2,
-  saved_charts_limit: 3 }, handleLimitError: jest.fn() }) }));
+let mockUsage;
+const mockHandleLimitError = jest.fn();
+jest.mock("../context/UsageContext", () => ({ useUsage: () => ({ usage: mockUsage,
+  handleLimitError: mockHandleLimitError }) }));
 jest.mock("../components/AskGptForm", () => props => <div data-subject={props.subjectType} data-id={props.relationshipId}>{props.subtitle}</div>);
 
 let root, container;
@@ -32,6 +34,8 @@ const relationship = { id: 9, chart_a_id: 7, chart_b_id: 8, person_a_label: "А�
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true; localStorage.clear(); localStorage.setItem("access_token", "jwt");
   mockNavigate.mockReset(); chartRequest.mockReset(); relationshipRequest.mockReset();
+  mockHandleLimitError.mockReset();
+  mockUsage = { plan: "free", saved_charts_used: 2, saved_charts_limit: 3 };
   mockLocation = { pathname: "/relationships/new", state: null }; mockParams = { relationshipId: "9" };
   container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
 });
@@ -135,4 +139,36 @@ test('loading and failed relationship fetch do not mount a renderer with invente
   await act(async () => reject(new Error('Разбор недоступен')));
   expect(container.querySelector('[role="alert"]').textContent).toBe('Разбор недоступен');
   expect(container.querySelector('.synastry-chart')).toBeNull();
+});
+
+
+test.each([
+  ["empty beta account", { plan: "free", free_beta_enabled: true, saved_charts_used: 0, saved_charts_limit: null }, []],
+  ["beta account above both normal chart limits", { plan: "free", free_beta_enabled: true, saved_charts_used: 12, saved_charts_limit: null }, charts],
+  ["Premium beta account", { plan: "premium", free_beta_enabled: true, saved_charts_used: 12, saved_charts_limit: null }, charts],
+  ["explicit unlimited server limit", { plan: "free", saved_charts_used: 12, saved_charts_limit: null }, charts],
+  ["Free below limit", { plan: "free", saved_charts_used: 2, saved_charts_limit: 3 }, charts],
+  ["Premium below limit", { plan: "premium", saved_charts_used: 9, saved_charts_limit: 10 }, charts],
+  ["usage still loading", null, charts],
+  ["missing limit", { plan: "free", saved_charts_used: 2 }, charts],
+])("add-person button opens chart creation for %s and preserves the relationship draft", async (_, usage, availableCharts) => {
+  mockUsage = usage;
+  mockLocation.state = { relationshipDraft: { chartAId: 7, labelA: "Анна", speaker: "A" } };
+  chartRequest.mockResolvedValue({ charts: availableCharts, count: availableCharts.length, limit: usage?.saved_charts_limit });
+  await render(<RelationshipNewPage />);
+  await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "Добавить карту другого человека").click());
+  expect(mockHandleLimitError).not.toHaveBeenCalled();
+  expect(mockNavigate).toHaveBeenCalledWith("/try-free", { state: { returnTo: "/relationships/new",
+    relationshipDraft: { chartAId: 7, chartBId: null, labelA: "Анна", labelB: "", speaker: "A" } } });
+});
+
+test.each([
+  ["free", 3, 3], ["free", 4, 3], ["premium", 10, 10],
+])("add-person button preserves the real %s chart limit (%s/%s) outside beta", async (plan, used, limit) => {
+  mockUsage = { plan, free_beta_enabled: false, saved_charts_used: used, saved_charts_limit: limit };
+  chartRequest.mockResolvedValue({ charts, count: used, limit });
+  await render(<RelationshipNewPage />);
+  await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "Добавить карту другого человека").click());
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockHandleLimitError).toHaveBeenCalledWith({ code: "chart_limit_reached", detail: { used, limit, plan } });
 });

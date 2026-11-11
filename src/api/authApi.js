@@ -1,6 +1,14 @@
+import {analyticsHeaders, productAnalytics} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
 
 const BASE_URL = API_URL;
+
+function authError(message, response) {
+  const error = new Error(message);
+  const retry = Number(response.headers?.get?.('Retry-After'));
+  error.retryAfter = response.status === 429 && Number.isFinite(retry) ? Math.min(86400, Math.max(1, retry)) : 0;
+  return error;
+}
 
 // Вспомогательная функция получения session_token
 function getSessionToken() {
@@ -15,12 +23,13 @@ function getSessionToken() {
 /**
  * Запрашивает отправку кода подтверждения на email и пароль
  */
-export async function requestRegister(email, password) {
+export async function requestRegister(email, password, confirmation) {
+  productAnalytics.emit('registration_started', {method: 'email'});
 
   const response = await fetch(`${BASE_URL}/auth/request-register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(confirmation !== undefined ? { password_confirmation: confirmation } : {}) }),
   });
 
   const data = await response.json();
@@ -28,7 +37,7 @@ export async function requestRegister(email, password) {
     const errorMessage = Array.isArray(data.detail)
       ? data.detail.map((d) => d.msg).join(", ")
       : data.detail || "Ошибка регистрации";
-    throw new Error(errorMessage);
+    throw authError(errorMessage, response);
   }
   return data;
 }
@@ -36,16 +45,16 @@ export async function requestRegister(email, password) {
 /**
  * Подтверждает код и завершает регистрацию (возвращает токен)
  */
-export async function verifyCode(code, email, password, guestChart = null) {
+export async function verifyCode(code, email, password, guestChart = null, confirmation) {
   const sessionToken = guestChart?.sessionToken || getSessionToken();
 
-  const response = await fetch(`${BASE_URL}/auth/verify-code?code=${code}`, {
+  const response = await fetch(`${BASE_URL}/auth/verify-code`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json", ...analyticsHeaders(),
       "X-Session-Token": sessionToken,
     },
-    body: JSON.stringify({ email, password, ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
+    body: JSON.stringify({ email, password, code, ...(confirmation !== undefined ? { password_confirmation: confirmation } : {}), ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
   });
 
   const data = await response.json();
@@ -53,7 +62,7 @@ export async function verifyCode(code, email, password, guestChart = null) {
     const errorMessage = Array.isArray(data.detail)
       ? data.detail.map((d) => d.msg).join(", ")
       : data.detail || "Ошибка регистрации";
-    throw new Error(errorMessage);
+    throw authError(errorMessage, response);
   }
 
   // Keep guest access when no transfer occurred (including a full account).
@@ -70,7 +79,7 @@ export async function login(email, password, guestChart = null) {
   const response = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json", ...analyticsHeaders(),
       "X-Session-Token": sessionToken,
     },
     body: JSON.stringify({ email, password, ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
@@ -81,7 +90,7 @@ export async function login(email, password, guestChart = null) {
     const errorMessage = Array.isArray(data.detail)
       ? data.detail.map((d) => d.msg).join(", ")
       : data.detail || "Ошибка входа";
-    throw new Error(errorMessage);
+    throw authError(errorMessage, response);
   }
 
   // Retain the token: other guest charts must not be migrated or lost here.
@@ -97,7 +106,7 @@ export async function getMe(token) {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json", ...analyticsHeaders(),
     },
   });
 
@@ -118,7 +127,7 @@ export async function googleLogin(credential, nonce, guestChart = null, password
   try {
     response = await fetch(`${BASE_URL}/auth/google`, {
       method: 'POST', credentials: 'omit',
-      headers: { 'Content-Type': 'application/json', ...(guestChart ? { 'X-Session-Token': guestChart.sessionToken } : {}) },
+      headers: { 'Content-Type': 'application/json', ...analyticsHeaders(), ...(guestChart ? { 'X-Session-Token': guestChart.sessionToken } : {}) },
       body: JSON.stringify({ credential, nonce, ...(password ? { password } : {}),
         ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
     });
@@ -134,3 +143,31 @@ export async function googleLogin(credential, nonce, guestChart = null, password
   if (typeof data.access_token !== 'string' || !data.access_token) throw new Error('Сервер не подтвердил вход. Повторите попытку.');
   return data;
 }
+
+async function recoveryRequest(endpoint, body) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const response = await fetch(`${BASE_URL}/auth/${endpoint}`, {
+      method: 'POST', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer',
+      headers: {'Content-Type': 'application/json', ...analyticsHeaders()}, body: JSON.stringify(body), signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = data.detail;
+      throw authError(Array.isArray(detail) ? detail.map(e => e.msg).join(' ') :
+        typeof detail === 'string' ? detail : 'Не удалось выполнить запрос. Попробуйте позже.', response);
+    }
+    return data;
+  } catch (error) {
+    if (error.name === 'AbortError' || error instanceof TypeError) {
+      throw new Error('Не удалось связаться с сервером. Попробуйте ещё раз.');
+    }
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+
+export const requestPasswordReset = email => recoveryRequest('request-password-reset', {email});
+export const resetPassword = (token, password, passwordConfirmation) => recoveryRequest('reset-password', {
+  token, password, password_confirmation: passwordConfirmation,
+});

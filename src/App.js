@@ -1,3 +1,4 @@
+import ProductAnalyticsObserver from './components/ProductAnalyticsObserver';
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -8,10 +9,15 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { UsageProvider } from "./context/UsageContext";
-import CookieConsent from "react-cookie-consent";
+import CookiePreferences from './components/CookiePreferences';
+import AnalyticsRouteGuard from './components/AnalyticsRouteGuard';
+import PublicBehavior from './components/PublicBehavior';
 
 import Header from "./components/Header";
+import FreeBetaNotice from "./components/FreeBetaNotice";
+import { ServiceConfigProvider } from "./context/ServiceConfigContext";
 import Footer from "./components/Footer";
+import FeedbackWidget from "./components/FeedbackWidget";
 import { TermsPage, PrivacyPage, RefundPage, SupportPage } from "./pages/LegalPages";
 
 import HomePage from "./pages/HomePage";
@@ -24,6 +30,7 @@ import RelationshipNewPage from "./pages/RelationshipNewPage";
 import RelationshipResultPage from "./pages/RelationshipResultPage";
 import { LoadingState } from "./components/UI";
 import DailyHoroscopePage from "./pages/DailyHoroscopePage";
+import PasswordResetPage from './pages/PasswordResetPage';
 
 // 🔹 Приватные маршруты
 function ProtectedRoute({ children }) {
@@ -43,28 +50,19 @@ function AppContent() {
 
   return (
     <>
-      <CookieConsent
-        location="bottom"
-        buttonText="Принять"
-        declineButtonText="Отклонить"
-        enableDeclineButton
-        cookieName="userCookieConsent"
-        disableStyles
-        containerClasses="cookie-banner"
-        buttonWrapperClasses="cookie-actions"
-        declineButtonClasses="button-secondary"
-        expires={365}
-      >
-        Разрешить необязательные cookie? Ваш выбор будет сохранён на этом устройстве.
-      </CookieConsent>
+      <CookiePreferences />
+      <ProductAnalyticsObserver />
+      <PublicBehavior />
 
       <a className="skip-link" href="#main-content">К содержимому</a>
       <Header />
+      <FreeBetaNotice />
       <main id="main-content" tabIndex={-1}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/try-free" element={<TryFreePage />} />
         <Route path="/authorization" element={<AuthorizationPage />} />
+        <Route path="/reset-password" element={<PasswordResetPage />} />
         <Route path="/natal-chart-result" element={<NatalChartResultPage />} />
         <Route path="/natal-chart-result/:chartId" element={<NatalChartResultPage />} />
         <Route path="/pricing" element={<PricingPage />} />
@@ -80,6 +78,7 @@ function AppContent() {
       </Routes>
       </main>
       <Footer />
+      <FeedbackWidget />
 
       
     </>
@@ -89,13 +88,17 @@ function AppContent() {
 // 🔧 Обёртка приложения с провайдером
 function App() {
   return (
+    <Router>
+    <AnalyticsRouteGuard>
     <AuthProvider>
+      <ServiceConfigProvider>
       <UsageProvider>
-      <Router>
         <AppContent />
-      </Router>
       </UsageProvider>
+      </ServiceConfigProvider>
     </AuthProvider>
+    </AnalyticsRouteGuard>
+    </Router>
   );
 }
 

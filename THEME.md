@@ -29,7 +29,7 @@ button descendants are excluded from new global overrides.
 
 - Frozen renderer styles and visual constants, including legacy pattern SVGs.
 - The frozen `.hero-preview .responsive-svg` rule in `HomePage.css`.
-- Vendor-rendered Google/Paddle UI and static assets are outside the theme scope.
+- Vendor-rendered Google/Stripe UI and static assets are outside the theme scope.
 - Existing layout measurements and frozen global baseline radii/transitions remain
   exact where changing them could affect chart controls. New theme values use tokens.
 

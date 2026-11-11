@@ -7,6 +7,7 @@ import { chartRequest } from "../api/chartsApi";
 import { relationshipRequest } from "../api/relationshipsApi";
 import { LoadingState, OrbitMark, PageHeading } from "../components/UI";
 import { chartPresentation } from "../api/chartPresentation";
+import SubscriptionManagement from '../components/SubscriptionManagement';
 import "./MyCharts.css";
 
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
@@ -42,26 +43,24 @@ function AccountStatus() {
   </aside> : null;
 
   const premium = usage.plan === "premium";
+  const beta = usage.free_beta_enabled === true;
   const hasAvailable = Number.isFinite(usage.gpt_messages_available) && Number.isFinite(usage.gpt_messages_limit);
   return <aside className="dashboard-plan" aria-label="Статус аккаунта" aria-busy={usageLoading}>
     <div className="dashboard-plan-copy">
       <p className="dashboard-kicker">{premium ? "Premium" : "Free"}</p>
-      <strong>{premium ? "Premium" : "Бесплатный план"}</strong>
-      {hasAvailable && <p>Осталось {usage.gpt_messages_available} из {usage.gpt_messages_limit} AI-вопросов
+      <strong>{beta ? "Бесплатный бета-тест" : premium ? "Premium" : "Бесплатный план"}</strong>
+      {beta && <p>Сохранённые карты и AI-вопросы без лимита.</p>}
+      {!beta && hasAvailable && <p>Осталось {usage.gpt_messages_available} из {usage.gpt_messages_limit} AI-вопросов
         {usage.gpt_limit_type === "billing_period" ? " в текущем периоде" : " за всё время аккаунта"}.</p>}
-      {!hasAvailable && Number.isFinite(usage.gpt_messages_used) && Number.isFinite(usage.gpt_messages_limit) &&
+      {!beta && !hasAvailable && Number.isFinite(usage.gpt_messages_used) && Number.isFinite(usage.gpt_messages_limit) &&
         <p>Использовано {usage.gpt_messages_used} из {usage.gpt_messages_limit} AI-вопросов.</p>}
-      {premium && !usage.gpt_period_valid && <p className="dashboard-plan-note">Доступ к AI возобновится после обновления расчётного периода.</p>}
-      {usage.cancel_at_period_end && <p className="dashboard-plan-note">Продление подписки отключено.</p>}
+      {premium && !beta && !usage.gpt_period_valid && <p className="dashboard-plan-note">Доступ к AI возобновится после обновления расчётного периода.</p>}
       {usage.subscription_status === "past_due" && <p className="dashboard-plan-note">Нужно обновить способ оплаты.</p>}
       {billing.message && <p role="status" className="dashboard-plan-note">{billing.message}</p>}
       {billing.error && <p role="alert">{billing.error}</p>}
     </div>
     {!premium && <button type="button" className="button-secondary" onClick={openUpgrade}>Перейти на Premium</button>}
-    {premium && usage.can_manage_subscription && <button type="button" className="button-secondary"
-      disabled={billing.busy} onClick={billing.manageSubscription}>Управление подпиской</button>}
-    {usage.can_cancel_subscription && <button type="button" className="button-secondary"
-      disabled={billing.busy} onClick={billing.cancelLavaSubscription}>Отключить продление Lava</button>}
+    <SubscriptionManagement usage={usage} />
   </aside>;
 }
 
@@ -86,13 +85,13 @@ export default function MyCharts() {
   const [deletingRelationship, setDeletingRelationship] = useState(null);
   const [actionError, setActionError] = useState("");
   const [reload, setReload] = useState(0);
-  const [formData, setFormData] = useState({ name: "", birthDate: "", birthTime: "", birthPlace: "" });
   const navigate = useNavigate();
   const currentResult = result?.token === token ? result : null;
   const charts = currentResult?.charts?.charts || [];
   const relationships = currentResult?.relationships?.relationships || [];
   const savedCount = usage?.saved_charts_used ?? currentResult?.charts?.count;
-  const savedLimit = usage?.saved_charts_limit ?? currentResult?.charts?.limit;
+  // null is an explicit unlimited server value, not a missing counter.
+  const savedLimit = usage ? usage.saved_charts_limit : currentResult?.charts?.limit;
   const chartLimitReached = Number.isFinite(savedCount) && Number.isFinite(savedLimit) && savedCount >= savedLimit;
 
   useEffect(() => {
@@ -117,13 +116,6 @@ export default function MyCharts() {
     }
     return () => controller.abort();
   }, [token, hasToken, user?.id, reload, refreshUsage]);
-
-  useEffect(() => {
-    const savedData = localStorage.getItem("userData");
-    if (savedData) {
-      try { setFormData(JSON.parse(savedData)); } catch { /* Optional device data may be malformed. */ }
-    }
-  }, []);
 
   const retry = () => setReload(value => value + 1);
   const createChart = () => {
@@ -165,12 +157,6 @@ export default function MyCharts() {
       setReload(value => value + 1);
     } catch (error) { setActionError(error.message); }
     finally { setDeletingRelationship(null); }
-  };
-
-  const handleProfileChange = event => setFormData(previous => ({ ...previous, [event.target.name]: event.target.value }));
-  const saveProfile = () => {
-    localStorage.setItem("userData", JSON.stringify(formData));
-    window.alert("Данные сохранены на этом устройстве.");
   };
 
   return <div className="charts-container dashboard-page page">
@@ -269,17 +255,6 @@ export default function MyCharts() {
       </>}
     </>}
 
-    <details className="local-chart-profile">
-      <summary>Данные для следующей карты</summary>
-      <p className="muted">Сохраняются только на этом устройстве и не изменяют готовые карты.</p>
-      <form>
-        <input type="text" aria-label="Имя" name="name" placeholder="Имя" value={formData.name} onChange={handleProfileChange} />
-        <input type="date" aria-label="Дата рождения" name="birthDate" value={formData.birthDate} onChange={handleProfileChange} />
-        <input type="time" aria-label="Время рождения" name="birthTime" value={formData.birthTime} onChange={handleProfileChange} />
-        <input type="text" aria-label="Место рождения" name="birthPlace" placeholder="Место рождения" value={formData.birthPlace} onChange={handleProfileChange} />
-        <button type="button" onClick={saveProfile}>Сохранить на устройстве</button>
-      </form>
-    </details>
     <Link className="back-home" to="/">Вернуться на главную</Link>
   </div>;
 }

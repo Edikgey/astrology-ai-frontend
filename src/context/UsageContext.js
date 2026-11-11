@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { API_URL } from "../config/api";
 import { apiError } from "../api/apiError";
 import UsageModal from "../components/UsageModal";
+import {clarityAnalytics} from '../analytics/clarity';
 
 const UsageContext = createContext({ usage: null, usageLoading: false, usageError: null,
   refreshUsage: async () => null, handleLimitError: () => false, openUpgrade: () => {} });
@@ -40,6 +41,7 @@ export function UsageProvider({ children }) {
       if (!response.ok) throw apiError(response.status, data);
       if (!controller.signal.aborted && active.current && identity.current === key && localStorage.getItem("access_token") === token) {
         setRecord({ key, data });
+        clarityAnalytics.confirmPremium(data);
         // A fresh server plan also replaces any older plan in a limit response.
         setModal(previous => previous?.key === key ? { ...previous, plan: data.plan } : null);
         return data;
@@ -82,7 +84,9 @@ export function UsageProvider({ children }) {
     refreshUsage();
     return true;
   }, [token, key, authenticated, refreshUsage]);
-  const openUpgrade = () => { if (usage?.plan === "free") setModal({ key, plan: "free" }); };
+  const openUpgrade = () => { if (usage?.plan === "free") {
+    setModal({ key, plan: "free" });
+  } };
 
   return <UsageContext.Provider value={{ usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade }}>
     <BillingProvider refreshUsage={refreshUsage} usage={usage}>

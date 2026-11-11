@@ -1,0 +1,19 @@
+.feedback-trigger { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(var(--feedback-bottom), env(safe-area-inset-bottom)); z-index: 20; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 24px; background: linear-gradient(135deg, var(--ln-color-primary, #6941c6), #5144a5); color: white; box-shadow: 0 4px 18px #52368b26; font-size: 13px; transition: transform .16s ease, box-shadow .16s ease; }
+.feedback-trigger[hidden] { visibility: hidden; pointer-events: none; }
+.feedback-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 22px #52368b3b; }
+.feedback-dialog { width: min(420px, calc(100% - 24px)); margin: auto 16px 16px auto; padding: 24px; border-radius: 20px; }
+.feedback-dialog { opacity: 0; transform: translateY(8px); transition: opacity .18s ease, transform .18s ease, display .18s allow-discrete, overlay .18s allow-discrete; }
+.feedback-dialog[open] { opacity: 1; transform: none; animation: feedback-in .18s ease-out; }
+.feedback-dialog h2 { font-size: 23px; padding-right: 26px; margin-bottom: 10px; }
+.feedback-dialog p { font-size: 13px; line-height: 1.6; }
+.feedback-dialog label { margin: 16px 0 6px; }
+.feedback-dialog select, .feedback-dialog textarea { font-size: 16px; }
+.feedback-dialog textarea { resize: vertical; max-height: 35svh; }
+.feedback-dialog .feedback-close { float: right; width: 32px; min-height: 32px; padding: 0; font-size: 24px; }
+.feedback-counter { text-align: right; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.feedback-hint, #feedback-subtitle { color: var(--ln-color-text-muted); }
+.feedback-dialog button[type=submit] { width: 100%; margin-top: 12px; }
+.feedback-thanks { padding: 20px 0; color: var(--ln-color-primary, #6941c6); }
+@keyframes feedback-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 600px) { .feedback-trigger { width: 44px; height: 44px; padding: 12px; } .feedback-trigger span { display: none; } .feedback-dialog { margin: auto auto 12px; padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { .feedback-dialog[open] { animation: none; } .feedback-trigger { transition: none; } }

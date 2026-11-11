@@ -1,3 +1,4 @@
+import {productAnalytics, analyticsHeaders} from '../analytics/productAnalytics';
 // ...импорт как есть
 import { API_URL } from "../config/api";
 import { saveChartPresentation } from "../api/chartPresentation";
@@ -68,6 +69,7 @@ export const calculateNatalChart = async (formData) => {
     };
 
     const headers = {
+      ...analyticsHeaders(),
       "Content-Type": "application/json",
     };
 
@@ -108,6 +110,7 @@ export const calculateNatalChart = async (formData) => {
 
 
 const TryFreePage = () => {
+  const analyticsFlow=useRef(null);
   const { user } = useAuth();
   const { refreshUsage, handleLimitError } = useUsage();
   const navigate = useNavigate();
@@ -239,7 +242,10 @@ const TryFreePage = () => {
     localStorage.setItem("tempUserData", JSON.stringify(finalData));
 
     try {
+      if(!analyticsFlow.current)analyticsFlow.current=newAnalyticsFlow();
+      trackEvent('chart_creation_started',analyticsFlow.current);
       const result = await calculateNatalChart(finalData);
+      trackEvent('chart_creation_completed',analyticsFlow.current);
       refreshUsage();
       const returnTo = user && location.state?.returnTo === "/relationships/new" ? location.state.returnTo : null;
       if (returnTo) {
@@ -253,6 +259,7 @@ const TryFreePage = () => {
         else navigate(`/natal-chart-result/${result.chart_id}`);
       }
     } catch (error) {
+      productAnalytics.emit('chart_creation_failed', {reason: 'unknown'});
       if (error.code === "ambiguous_birth_time") setTimeOptions(error.detail.options || []);
       if (!handleLimitError(error)) setSubmitError(error.message || "Не удалось создать карту. Попробуйте ещё раз.");
     } finally {
@@ -361,3 +368,4 @@ const TryFreePage = () => {
 };
 
 export default TryFreePage;
+import {newAnalyticsFlow,trackEvent} from '../analytics/clarity';

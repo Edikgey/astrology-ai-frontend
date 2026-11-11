@@ -1,0 +1,4 @@
+.free-beta-notice { display: flex; align-items: baseline; gap: .5rem 1rem; flex-wrap: wrap; margin-block: .75rem; padding: .75rem 1rem; border: 1px solid var(--line, #ddd1ed); border-radius: 12px; background: var(--ln-color-surface, #faf7ff); color: var(--text, #3d2855); font-size: .875rem; line-height: 1.5; }
+.free-beta-notice strong { color: var(--ln-color-primary, #713ab4); }
+.beta-purchase-note { font-size: .875rem; line-height: 1.5; }
+@media (max-width: 600px) { .free-beta-notice { gap: .25rem; margin-inline: 1rem; } }

@@ -5,8 +5,8 @@ import UsageSummary from "./UsageSummary";
 
 let mockAuth;
 jest.mock("../context/AuthContext", () => ({ useAuth: () => mockAuth }));
-jest.mock("../api/paddle", () => ({ paddleConfigured: false, onPaddleEvent: () => () => {},
-  getPaddle: jest.fn(), billingRequest: jest.fn() }));
+jest.mock("../api/stripe", () => ({ stripeConfigured: false,
+  getStripe: jest.fn(), billingRequest: jest.fn() }));
 let container, root, state, tab, fetchOriginal;
 const ok = value => ({ ok: true, json: async () => value });
 const click = async text => {
@@ -80,9 +80,9 @@ test("price/configuration errors retain Free and draft", async () => {
   await click("Оплатить в RUB");
   expect(container.textContent).toContain("Цена требует проверки");
   const lava = container.querySelector('[aria-label="Оплата в рублях — Lava.top"]');
-  const paddle = container.querySelector('[aria-label="Оплата — Paddle"]');
+  const stripe = container.querySelector('[aria-label="Оплата — Stripe"]');
   expect(lava.querySelector('[role="alert"]').textContent).toBe("Цена требует проверки");
-  expect(paddle.querySelector('[role="alert"]')).toBeNull();
+  expect(stripe.querySelector('[role="alert"]')).toBeNull();
   expect(container.textContent).toContain("План: Free");
   expect(container.querySelector("textarea").value).toBe("Мой вопрос");
 });
@@ -97,6 +97,31 @@ test("payment cards share controls and keep Lava reusable after opening", async 
   await click("Оплатить в RUB");
   expect(global.fetch.mock.calls.filter(([url]) => url.endsWith('/payments/lava/checkout'))).toHaveLength(2);
 });
+test("compact payment modal footer contains only cancellation guidance", async () => {
+  await render();await click('Перейти на Premium');
+  const cards=[...container.querySelectorAll('.payment-option')];
+  expect(cards).toHaveLength(2);
+  expect(cards.map(c=>c.querySelector('h3').textContent)).toEqual(['Оплата','Оплата в рублях']);
+  expect(cards.map(c=>c.querySelector('.payment-option-description').textContent)).toEqual(['Stripe','Lava.top']);
+  expect(cards.map(c=>c.querySelector('.payment-option-price').textContent)).toEqual(['$9.99 USD / месяц','799 ₽ / месяц']);
+  for(const card of cards){
+    expect(card.querySelector('.payment-option-note').textContent).toBe('Автоматическое продление каждый месяц. Отмена в любое время.');
+    expect(card.querySelector('.subscription-disclosure')).toBeNull();
+    expect(card.querySelector('.supplier-disclosure')).toBeNull();
+  }
+  const modal=container.querySelector('.usage-modal');
+  expect(modal.querySelector(':scope > .supplier-disclosure')).toBeNull();
+  expect(modal.querySelector('details')).toBeNull();
+  expect(modal.textContent).not.toContain('Условия оплаты');
+  expect(modal.querySelector('.supplier-disclosure')).toBeNull();
+  expect(modal.querySelector('.payment-merchant')).toBeNull();
+  expect(modal.querySelector('.policy-links')).toBeNull();
+  expect(modal.querySelectorAll('a')).toHaveLength(1);
+  const link=modal.querySelector('.payment-summary a');
+  expect(link.getAttribute('href')).toBe('/refunds');
+  expect(link.textContent).toBe('Правила отмены и возвратов');
+  expect(link.target).toBe('_blank');
+});
 
 test("failed return does not claim payment received or start success polling", async () => {
   jest.useFakeTimers(); window.history.replaceState({}, "", "/my-charts?billing=lava&status=failed");
@@ -108,7 +133,7 @@ test("failed return does not claim payment received or start success polling", a
   expect(container.textContent).toContain("План: Free");
 });
 
-test("Lava subscriber gets confirmation and Lava cancel endpoint, never Paddle portal", async () => {
+test("Lava subscriber gets confirmation and Lava cancel endpoint, never Stripe portal", async () => {
   state = { ...state, plan: "premium", payment_provider: "lava", can_cancel_subscription: true,
     can_manage_subscription: false };
   await render();
@@ -134,4 +159,16 @@ test("forged successful return polls server and cannot grant Premium", async () 
   state = { ...state, plan: "premium" };
   await act(async () => jest.advanceTimersByTime(3000));
   expect(container.textContent).toContain("План: Premium");
+});
+
+
+test("beta keeps optional Lava checkout, the RUB price and its authenticated endpoint", async () => {
+  state = { ...state, free_beta_enabled: true, saved_charts_limit: null, gpt_messages_limit: null };
+  await render(); await click("Перейти на Premium");
+  expect(container.textContent).toContain("Покупка Premium необязательна");
+  expect(container.textContent).toContain("799 ₽ / месяц");
+  await click("Оплатить в RUB");
+  expect(tab.location.href).toBe("https://pay.example.test/invoice");
+  const request = global.fetch.mock.calls.find(([url]) => url.endsWith('/payments/lava/checkout'));
+  expect(request[1].headers.Authorization).toBe('Bearer fake-jwt');
 });

@@ -1,3 +1,4 @@
+import {analyticsHeaders} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
 import { apiError } from "./apiError";
 
@@ -7,6 +8,7 @@ export async function relationshipRequest(path = "", { method = "GET", body, sig
     method,
     signal,
     headers: {
+      ...analyticsHeaders(),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(token && token !== "null" ? { Authorization: `Bearer ${token}` } : {}),
     },

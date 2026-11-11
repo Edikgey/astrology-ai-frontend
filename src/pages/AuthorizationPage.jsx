@@ -3,7 +3,11 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AuthorizationPage.css";
 import GoogleSignIn from "../components/GoogleSignIn";
+import PasswordRequirements from "../components/PasswordRequirements";
+import { validNewPassword } from "../utils/passwordPolicy";
 import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent } from "./landingIntent";
+import {newAnalyticsFlow,trackEvent} from '../analytics/clarity';
+import {requestPasswordReset} from '../api/authApi';
 
 const AuthorizationPage = () => {
   const { user, login, loginGoogle, registerEmail, verifyRegistration } = useAuth();
@@ -18,9 +22,23 @@ const AuthorizationPage = () => {
   const returnPath = location.state?.returnTo || localStorage.getItem("redirect_after_login") || localStorage.getItem("returnTo") || "/";
   const ordinaryReturn = returnPath.startsWith("/") && !returnPath.startsWith("//") && !returnPath.startsWith("/authorization") ? returnPath : "/";
 
-  const [step, setStep] = useState(location.state?.mode === "register" ? "register" : "login");
+  const [step, setStep] = useState(['register','recover'].includes(location.state?.mode) ? location.state.mode : 'login');
+  const recovery = step === 'recover';
+  const [cooldown, setCooldown] = useState(0);
+  const [verificationBlocked, setVerificationBlocked] = useState(false);
+  useEffect(()=>{if(!cooldown)return;const timer=setTimeout(()=>setCooldown(value=>Math.max(0,value-1)),1000);return()=>clearTimeout(timer);},[cooldown]);
+  const registrationFlow=useRef(null);
+  useEffect(()=>{
+    if(step==='register'){
+      if(!registrationFlow.current)registrationFlow.current=newAnalyticsFlow();
+      trackEvent('registration_started',registrationFlow.current);
+    }
+  },[step]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const passwordValid = validNewPassword(password);
+  const confirmationValid = passwordConfirmation === password && passwordConfirmation.length > 0;
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -67,6 +85,11 @@ const AuthorizationPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     if (submitting.current) return;
+    if (cooldown && (!isCodeSent || verificationBlocked)) return;
+    if (!passwordValid || !confirmationValid) {
+      setError(!passwordValid ? "Пароль не соответствует указанным требованиям." : "Пароли не совпадают.");
+      return;
+    }
     submitting.current = true;
     setBusy(true);
     setError("");
@@ -78,18 +101,22 @@ const AuthorizationPage = () => {
           setError("Введите email и пароль");
           return;
         }
-        await registerEmail(email, password);
+        await registerEmail(email, password, passwordConfirmation);
         setIsCodeSent(true);
+        setCooldown(60);
         setMessage("Код отправлен на почту. Введите его ниже для завершения регистрации.");
       } else {
         if (!code.trim()) {
           setError("Введите код из почты");
           return;
         }
-        finishAuth(await verifyRegistration(code, email, password, guestChart));
+        const result=await verifyRegistration(code, email, password, guestChart, passwordConfirmation);
+        trackEvent('registration_completed',registrationFlow.current);
+        finishAuth(result);
       }
     } catch (err) {
       setError(extractErrorMessage(err));
+      if(err.retryAfter){setCooldown(err.retryAfter);setVerificationBlocked(isCodeSent);}
     } finally {
       submitting.current = false;
       setBusy(false);
@@ -99,6 +126,7 @@ const AuthorizationPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (submitting.current) return;
+    if (cooldown) return;
     submitting.current = true;
     setBusy(true);
     setError("");
@@ -106,6 +134,7 @@ const AuthorizationPage = () => {
       finishAuth(await login(email, password, guestChart));
     } catch (err) {
       setError(extractErrorMessage(err));
+      if(err.retryAfter)setCooldown(err.retryAfter);
     } finally {
       submitting.current = false;
       setBusy(false);
@@ -113,8 +142,11 @@ const AuthorizationPage = () => {
   };
 
   const resetAll = () => {
+    setCooldown(0);
+    setVerificationBlocked(false);
     setEmail("");
     setPassword("");
+    setPasswordConfirmation("");
     setCode("");
     setError("");
     setMessage("");
@@ -129,6 +161,25 @@ const AuthorizationPage = () => {
     finally { submitting.current = false; setBusy(false); }
   };
 
+  const handleRecovery = async e => {
+    e.preventDefault();
+    if(submitting.current || cooldown) return;
+    submitting.current=true;setBusy(true);setError('');setMessage('');
+    try {
+      const result=await requestPasswordReset(email);
+      setMessage(result.message);setCooldown(60);
+    } catch(err) {setError(err.message);if(err.retryAfter)setCooldown(err.retryAfter);}
+    finally {submitting.current=false;setBusy(false);}
+  };
+
+  const resendCode = async () => {
+    if(submitting.current || cooldown || !passwordValid || !confirmationValid)return;
+    submitting.current=true;setBusy(true);setError('');
+    try {await registerEmail(email,password,passwordConfirmation);setCooldown(60);setMessage('Новый код отправлен на почту.');}
+    catch(err){setError(err.message);if(err.retryAfter)setCooldown(err.retryAfter);}
+    finally{submitting.current=false;setBusy(false);}
+  };
+
   return (
     <div className="auth-page page">
       <aside className="auth-story"><p className="eyebrow">Ваше личное пространство</p><h2>Разговор,<br />к которому хочется<br /><span>вернуться.</span></h2>
@@ -137,20 +188,35 @@ const AuthorizationPage = () => {
       </aside>
       <div className="auth-container card">
         <p className="eyebrow">Lunaria</p>
-        <h1 className="auth-title">{step === "login" ? "Рады видеть вас снова" : isCodeSent ? "Проверьте почту" : "Начните свой разговор"}</h1>
-        <p className="auth-description">{step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
+        <h1 className="auth-title">{recovery ? 'Восстановление пароля' : step === "login" ? "Рады видеть вас снова" : isCodeSent ? "Проверьте почту" : "Начните свой разговор"}</h1>
+        <p className="auth-description">{recovery ? 'Укажите email аккаунта. Мы отправим ссылку для создания нового пароля.' : step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
         {guestChart && <p className="notice">После входа попробуем сохранить открытую карту в ваш аккаунт. Ваш вопрос останется с вами.</p>}
-        <GoogleSignIn onSignIn={handleGoogle} disabled={busy} />
-        <form onSubmit={step === "login" ? handleLogin : handleRegister} className="auth-form" aria-busy={busy}>
+        {!recovery && <GoogleSignIn onSignIn={handleGoogle} disabled={busy} />}
+        <form onSubmit={recovery ? handleRecovery : step === "login" ? handleLogin : handleRegister} className="auth-form" aria-busy={busy}>
           <label htmlFor="auth-email">Email</label>
           <input id="auth-email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
-          <label htmlFor="auth-password">Пароль</label>
-          <input id="auth-password" type="password" autoComplete={step === "login" ? "current-password" : "new-password"} placeholder="Ваш пароль" value={password} onChange={e => setPassword(e.target.value)} required />
+          {!recovery && <><label htmlFor="auth-password">Пароль</label>
+          <input id="auth-password" type="password" autoComplete={step === "login" ? "current-password" : "new-password"} placeholder="Ваш пароль" value={password} onChange={e => { setPassword(e.target.value); setError(""); }} required
+            aria-describedby={step === "register" ? "password-requirements" : undefined}
+            aria-invalid={step === "register" && password.length > 0 && !passwordValid} /></>}
+          {step === "register" && <>
+            <PasswordRequirements password={password} />
+            <label htmlFor="auth-password-confirmation">Повторите пароль</label>
+            <input id="auth-password-confirmation" type="password" autoComplete="new-password" value={passwordConfirmation}
+              onChange={e => { setPasswordConfirmation(e.target.value); setError(""); }} required
+              aria-describedby="password-confirmation-status" aria-invalid={passwordConfirmation.length > 0 && !confirmationValid} />
+            <p id="password-confirmation-status" className={`password-confirmation ${confirmationValid ? "is-valid" : "is-unmet"}`} aria-live="polite">
+              {passwordConfirmation ? (confirmationValid ? "Пароли совпадают." : "Пароли не совпадают.") : "Введите пароль ещё раз."}
+            </p>
+          </>}
           {step === "register" && isCodeSent && <><label htmlFor="auth-code">Код подтверждения</label><input id="auth-code" type="text" autoComplete="one-time-code" placeholder="Код из почты" value={code} onChange={e => setCode(e.target.value)} required /></>}
           {(error || message) && <div className="auth-message">{error && <p role="alert">{error}</p>}{message && <p className="notice" role="status">{message}</p>}</div>}
-          <button type="submit" disabled={busy} className="auth-submit">{busy ? "Подождите..." : step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
+          <button type="submit" disabled={busy || (cooldown>0 && (step!=='register' || !isCodeSent || verificationBlocked)) || (step === "register" && (!passwordValid || !confirmationValid))} className="auth-submit">{busy ? "Подождите..." : recovery ? 'Отправить ссылку' : step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
         </form>
-        <div className="auth-secondary"><p>{step === "login" ? "Ещё нет аккаунта?" : "Уже зарегистрированы?"}</p>
+        {cooldown>0 && <p className="auth-retry" role="status">Повторный запрос через {cooldown} сек.</p>}
+        {step==='register' && isCodeSent && <button type="button" className="auth-recovery-link" disabled={busy || cooldown>0 || !passwordValid || !confirmationValid} onClick={resendCode}>Отправить код повторно</button>}
+        {step==='login' && <button type="button" className="auth-recovery-link" disabled={busy} onClick={()=>{resetAll();setCooldown(0);setStep('recover');}}>Забыли пароль?</button>}
+        <div className="auth-secondary"><p>{recovery ? 'Вспомнили пароль?' : step === "login" ? "Ещё нет аккаунта?" : "Уже зарегистрированы?"}</p>
           <button className="auth-switch-button" disabled={busy} onClick={() => { resetAll(); setStep(step === "login" ? "register" : "login"); }}>{step === "login" ? "Зарегистрироваться" : "Войти в аккаунт"}</button>
         </div>
       </div>

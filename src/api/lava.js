@@ -1,10 +1,11 @@
+import {analyticsHeaders} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
 import { apiError } from "./apiError";
 
 export async function lavaRequest(action, token) {
   if (!token || localStorage.getItem("access_token") !== token) throw new Error("Войдите в аккаунт снова.");
   const response = await fetch(`${API_URL}/payments/lava/${action}`, {
-    method: "POST", headers: { Authorization: `Bearer ${token}` },
+    method: "POST", headers: { ...analyticsHeaders(), Authorization: `Bearer ${token}` },
   });
   const data = await response.json();
   if (!response.ok) throw apiError(response.status, data);

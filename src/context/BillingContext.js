@@ -1,7 +1,12 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import {productAnalytics} from '../analytics/productAnalytics';
+import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
-import { billingRequest, getPaddle, onPaddleEvent, paddleConfigured, PREMIUM_PRICE_ID } from "../api/paddle";
+import { billingRequest, getStripe, stripeConfigured } from "../api/stripe";
 import { lavaRequest, checkoutUrl } from "../api/lava";
+import { canManageStripe } from '../utils/billingEligibility';
+
+import StripeCheckout from "../components/StripeCheckout";
+import {clarityAnalytics,newAnalyticsFlow,trackEvent} from '../analytics/clarity';
 
 const BillingContext = createContext({ configured: false, busy: false, checkoutVisible: false });
 export const useBilling = () => useContext(BillingContext);
@@ -13,7 +18,8 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   current.current = identity;
   const active = useRef(false);
   const inFlight = useRef(false);
-  const checkoutRef = useRef(null);
+  const [checkout, setCheckout] = useState(null);
+  const pollRef = useRef(null);
   const timer = useRef(null);
   const refresh = useRef(refreshUsage);
   refresh.current = refreshUsage;
@@ -26,30 +32,17 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   useEffect(() => {
     active.current = true;
     setBusy(false); setVisible(false); setError(""); setMessage(""); inFlight.current = false;
-    setFeedbackProvider(null);
+    setFeedbackProvider(null); setCheckout(null);
     const valid = () => active.current && current.current === identity && localStorage.getItem("access_token") === token;
     const poll = async attempt => {
       if (!valid()) return;
       const usage = await refresh.current();
       if (!valid()) return;
-      if (usage?.plan === "premium") { setMessage("Premium активирован."); return; }
+      if (usage?.plan === "premium") { setMessage(usage.payment_provider === "stripe" ? "Premium активирован." : "Premium подтверждён сервером. Проверьте выбранный способ оплаты в аккаунте."); return; }
       if (attempt < 20) timer.current = setTimeout(() => poll(attempt + 1), 3000);
       else setMessage("Подтверждение оплаты ещё обрабатывается. Обновите лимиты чуть позже.");
     };
-    const unsubscribe = onPaddleEvent(event => {
-      if (!valid() || !checkoutRef.current) return;
-      setFeedbackProvider("paddle");
-      if (event.name === "checkout.completed") {
-        setMessage("Оплата получена. Ожидаем подтверждение Premium от сервера…");
-        clearTimeout(timer.current); poll(0);
-      }
-      if (event.name === "checkout.closed") {
-        setVisible(false); setBusy(false); inFlight.current = false;
-        checkoutRef.current = null;
-        refresh.current();
-      }
-      if (event.name === "checkout.error") setError("Paddle не смог завершить оплату. Проверьте данные в checkout.");
-    });
+    pollRef.current = poll;
     // Return status is navigation only. Only /account/usage can confirm access.
     if (token && new URLSearchParams(window.location.search).get("billing") === "lava") {
       setFeedbackProvider("lava");
@@ -62,30 +55,34 @@ export function BillingProvider({ children, refreshUsage, usage }) {
         poll(0);
       }
     }
+    if (token && new URLSearchParams(window.location.search).get("billing") === "stripe") {
+      setFeedbackProvider("stripe"); setMessage("Ожидаем подтверждение Premium от сервера…"); poll(0);
+    }
     return () => {
-      active.current = false; unsubscribe(); clearTimeout(timer.current);
-      checkoutRef.current?.Checkout.close(); checkoutRef.current = null;
+      active.current = false; clearTimeout(timer.current); pollRef.current = null;
     };
   }, [identity, token]);
 
   const startLavaCheckout = async () => {
     if (inFlight.current || !user || !token || loading || !usage?.lava_checkout_available) return;
+    const analyticsFlow=newAnalyticsFlow();trackEvent('lava_selected',analyticsFlow);
     setFeedbackProvider("lava"); setError(""); setMessage("");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
-    // Keep the current conversation/draft in its tab, as with Paddle's portal.
+    // Keep the current conversation/draft in its tab, as with the billing portal.
     const tab = window.open("about:blank", "_blank");
     if (tab) tab.opener = null;
-    if (!tab) { setError("Разрешите всплывающие окна и попробуйте снова."); return; }
+    if (!tab) { trackEvent('checkout_failed',analyticsFlow);setError("Разрешите всплывающие окна и попробуйте снова."); return; }
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await lavaRequest("checkout", token);
       if (!valid()) { tab.close(); return; }
       tab.location.href = checkoutUrl(result.url);
+      trackEvent('checkout_initiated',analyticsFlow);clarityAnalytics.beginCheckout(analyticsFlow);
       setMessage("Оплата открыта в новой вкладке. После оплаты обновите лимиты аккаунта.");
     } catch (err) {
       tab.close();
-      if (valid()) setError(err.message || "Не удалось открыть оплату.");
+      if (valid()) {trackEvent('checkout_failed',analyticsFlow);setError(err.message || "Не удалось открыть оплату.");}
     } finally {
       if (valid()) { setBusy(false); inFlight.current = false; }
     }
@@ -110,50 +107,55 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     }
   };
 
+  const closeCheckout = useCallback(() => {
+    setVisible(false); setCheckout(null); setBusy(false); inFlight.current = false;
+    refresh.current();
+  }, []);
+  const checkoutComplete = useCallback(() => {
+    if (!active.current || current.current !== identity || localStorage.getItem("access_token") !== token) return;
+    setMessage("Оплата обрабатывается. Ожидаем подтверждение Premium от сервера…");
+    clearTimeout(timer.current); pollRef.current?.(0);
+    setVisible(false); setCheckout(null); setBusy(false); inFlight.current = false;
+  }, [identity, token]);
   const startCheckout = async () => {
-    if (inFlight.current || !user || !token || loading || !paddleConfigured) return;
-    setFeedbackProvider("paddle");
+    if (inFlight.current || !user || !token || loading || !stripeConfigured || !usage?.stripe_checkout_available) return;
+    const analyticsFlow=newAnalyticsFlow();trackEvent('stripe_selected',analyticsFlow);
+    setFeedbackProvider("stripe");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
     inFlight.current = true; setBusy(true); setError(""); setMessage("");
     try {
-      const paddle = await getPaddle();
+      const stripe = await getStripe();
       if (!valid()) return;
       const result = await billingRequest("checkout", token);
       if (!valid()) return;
-      if (result.price_id !== PREMIUM_PRICE_ID || !/^txn_[a-z0-9]{26}$/.test(result.transaction_id || "")) {
-        throw new Error("Конфигурация оплаты не совпадает. Обратитесь в поддержку.");
+      if (!result.session_id?.startsWith("cs_live_") || typeof result.client_secret !== "string" || !result.client_secret.startsWith(result.session_id + "_secret_")) {
+        throw new Error("Не удалось подтвердить параметры оплаты.");
       }
-      checkoutRef.current = paddle;
-      setVisible(true);
-      // Native modal dialogs occupy the top layer; hide ours before Paddle's overlay.
       document.querySelector("dialog.usage-modal[open]")?.close();
-      paddle.Checkout.open({ transactionId: result.transaction_id,
-        ...(user.email ? { customer: { email: user.email } } : {}),
-        settings: { displayMode: "overlay", allowLogout: false },
-      });
+      trackEvent('checkout_initiated',analyticsFlow);clarityAnalytics.beginCheckout(analyticsFlow);
+      setCheckout({ stripe, clientSecret: result.client_secret, identity: origin }); setVisible(true); setBusy(false);
     } catch (err) {
-      if (valid()) {
-        setError(err.message || "Не удалось открыть оплату."); setVisible(false);
-        setBusy(false); inFlight.current = false; checkoutRef.current = null;
-      }
+      if (valid()) { trackEvent('checkout_failed',analyticsFlow);setError(err.message || "Не удалось открыть оплату."); setVisible(false); setBusy(false); inFlight.current = false; }
     }
   };
 
   const manageSubscription = async () => {
-    if (inFlight.current || !user || !token || loading) return;
-    setFeedbackProvider("paddle"); setMessage("");
+    if (inFlight.current || !user || !token || loading || !canManageStripe(usage)) return;
+    setFeedbackProvider("stripe"); setMessage("");
     const origin = identity;
     const tab = window.open("about:blank", "_blank");
     if (tab) tab.opener = null;
+    if (!tab) { setError("Разрешите всплывающие окна и попробуйте снова."); return; }
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await billingRequest("portal", token);
       if (!active.current || current.current !== origin || localStorage.getItem("access_token") !== token) { tab?.close(); return; }
       const url = new URL(result.url);
-      if (url.protocol !== "https:" || !url.hostname.endsWith(".paddle.com")) throw new Error("Некорректный адрес Paddle Portal.");
-      if (!tab) throw new Error("Разрешите всплывающие окна и попробуйте снова.");
+      if (url.protocol !== "https:" || url.hostname !== "billing.stripe.com" || url.username || url.password || url.port) throw new Error("Некорректный адрес Stripe Portal.");
       tab.location.href = url.href;
+      productAnalytics.emit('billing_portal_opened', {provider: 'stripe'});
+      setMessage("Управление подпиской открыто в новой вкладке. После возвращения данные аккаунта обновятся.");
     } catch (err) {
       tab?.close();
       if (active.current && current.current === origin) setError(err.message || "Не удалось открыть управление подпиской.");
@@ -162,7 +164,9 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     }
   };
 
-  return <BillingContext.Provider value={{ configured: paddleConfigured, busy, checkoutVisible,
+  return <BillingContext.Provider value={{ configured: stripeConfigured && Boolean(usage?.stripe_checkout_available), busy, checkoutVisible,
     message, error, feedbackProvider, startCheckout, manageSubscription, startLavaCheckout, cancelLavaSubscription,
-    lavaConfigured: Boolean(usage?.lava_checkout_available) }}>{children}</BillingContext.Provider>;
+    lavaConfigured: Boolean(usage?.lava_checkout_available) }}>{children}
+    {checkoutVisible && checkout?.identity === identity && <StripeCheckout key={identity} freeBetaEnabled={usage?.free_beta_enabled === true} stripe={checkout.stripe} clientSecret={checkout.clientSecret} onComplete={checkoutComplete} onClose={closeCheckout} />}
+  </BillingContext.Provider>;
 }

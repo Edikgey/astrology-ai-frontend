@@ -1,3 +1,4 @@
+import {productAnalytics, analyticsHeaders} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -104,6 +105,8 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     if (localStorage.getItem("access_token") !== token) return;
     const controller = new AbortController();
     sending.current = controller;
+    const analyticsStarted = performance.now();
+    productAnalytics.emit('ai_question_started', {subject: subjectType});
     followBottom.current = true;
     setLoading(true);
     setError("");
@@ -113,7 +116,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       const askPath = subjectType === "relationship" ? `/relationships/${subjectId}/ask` : "/ask-gpt";
       const payload = subjectType === "relationship" ? { question: text } : { chart_id: Number(subjectId), question: text };
       const response = await fetch(`${API_URL}${askPath}`, {
-        method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream", Authorization: `Bearer ${token}` },
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream", ...analyticsHeaders(), Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload), signal: controller.signal,
       });
       if (!response.ok) {
@@ -126,6 +129,9 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       });
       refreshUsage();
       if (controller.signal.aborted) return;
+      const elapsed = performance.now() - analyticsStarted;
+      productAnalytics.emit('ai_answer_presented', {subject: subjectType,
+        latency: elapsed < 5000 ? 'under_5s' : elapsed < 15000 ? '5_to_15s' : elapsed < 30000 ? '15_to_30s' : 'over_30s'});
       const suggestions = normalizeFollowUps(data.follow_up_suggestions);
       setMessages(previous => previous.map(msg => msg.streaming ? {
         user: "GPT", text: data.response || "GPT не дал ответа.",
@@ -135,6 +141,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       onQuestionConsumed?.();
     } catch (err) {
       if (!controller.signal.aborted) {
+        productAnalytics.emit('ai_answer_failed', {subject: subjectType, reason: 'unknown'});
         setMessages(previous => previous.filter(msg => !msg.streaming).slice(0, -1));
         if (handleLimitError(err)) return; // Keep the draft/history; never retry a denied POST.
         setError(err.message);
@@ -150,7 +157,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const latestSuggestions = !loading && messages[messages.length - 1]?.user === "GPT" ? messages[messages.length - 1].suggestions || [] : [];
   const showStarters = !authenticated || (canChat && !historyLoading && !historyError &&
     !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim()));
-  const allowance = usageError ? "Не удалось обновить лимиты аккаунта." : usage ?
+  const allowance = usageError ? "Не удалось обновить лимиты аккаунта." : usage?.free_beta_enabled ? "Бесплатный бета-тест · AI-вопросы без лимита" : usage ?
     `${usage.plan === "premium" ? "Premium" : "Free"} · ${usage.plan === "premium" && !usage.gpt_period_valid ?
       "Нет действующего периода" : Number.isFinite(usage.gpt_messages_available) ?
       `Доступно вопросов: ${usage.gpt_messages_available}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
@@ -177,7 +184,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     </div>
     {latestSuggestions.length > 0 && <div className="chat-follow-ups" role="group" aria-label="Следующие вопросы">
       {latestSuggestions.map(suggestion => <button key={suggestion.type || suggestion.text} type="button" className="preset-btn"
-        disabled={blocked} onClick={() => sendQuestion(suggestion.text)}>
+        disabled={blocked} onClick={() => {productAnalytics.emit('ai_followup_selected', {subject: subjectType}); sendQuestion(suggestion.text);}}>
         {suggestion.type && <span className="chat-follow-up-label">{FOLLOW_UP_LABELS[suggestion.type]}</span>}
         <span className="chat-follow-up-text">{suggestion.text}</span>
       </button>)}

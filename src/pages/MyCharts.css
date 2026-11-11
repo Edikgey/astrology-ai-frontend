@@ -65,10 +65,6 @@
 .dashboard-sign-in { padding: var(--ln-space-48); border-radius: var(--ln-radius-lg); background: var(--ln-color-surface-tinted); text-align: center; }
 .dashboard-sign-in h2 { font-family: var(--ln-font-display); font-weight: 400; }
 
-.local-chart-profile { margin: var(--ln-space-64) 0 var(--ln-space-24); }
-.local-chart-profile summary { font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
-.local-chart-profile > p { padding: var(--ln-space-24) var(--ln-space-24) 0; font-size: var(--ln-text-12); }
-.local-chart-profile form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ln-space-12); padding: 0 var(--ln-space-24) var(--ln-space-24); }
 .back-home { font-size: var(--ln-text-12); }
 
 @media (max-width: 800px) {
@@ -93,7 +89,6 @@
   .dashboard-card-grid > li { min-height: 0; padding: var(--ln-space-24) 20px; }
   .dashboard-card-menu-popover { right: 0; max-width: calc(100vw - 56px); }
   .dashboard-empty, .dashboard-empty-compact { padding: var(--ln-space-32) 20px; }
-  .local-chart-profile form { grid-template-columns: 1fr; padding: 0 var(--ln-space-16) 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

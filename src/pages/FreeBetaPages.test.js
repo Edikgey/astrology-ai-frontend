@@ -1,0 +1,33 @@
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import PricingPage from './PricingPage';
+import FreeBetaNotice from '../components/FreeBetaNotice';
+let mockUsage, mockUser, mockPublicBeta;
+const mockNavigate=jest.fn();
+jest.mock('../context/AuthContext',()=>({useAuth:()=>({user:mockUser})}));
+jest.mock('../context/UsageContext',()=>({useUsage:()=>({usage:mockUsage,openUpgrade:jest.fn()})}));
+jest.mock('../context/ServiceConfigContext',()=>({useServiceConfig:()=>({freeBetaEnabled:mockPublicBeta})}));
+jest.mock('../context/BillingContext',()=>({useBilling:()=>({configured:true,lavaConfigured:true})}));
+jest.mock('react-router-dom',()=>({useNavigate:()=>mockNavigate}),{virtual:true});
+let root,container;
+beforeEach(()=>{global.IS_REACT_ACT_ENVIRONMENT=true;mockUsage=null;mockUser=null;mockPublicBeta=true;container=document.createElement('div');document.body.appendChild(container);root=createRoot(container);});
+afterEach(async()=>{await act(async()=>root.unmount());container.remove();jest.clearAllMocks();});
+test('guests see the free beta and optional recurring Premium without claiming paid entitlement',async()=>{
+ await act(async()=>root.render(<><FreeBetaNotice/><PricingPage/></>));
+ expect(container.textContent).toContain('Бесплатный бета-тест');
+ expect(container.querySelector('.free-beta-notice strong').textContent).toBe('Бесплатный бета-тест');
+ expect(container.querySelector('.free-beta-notice span').textContent).toBe('Карты и AI-вопросы без лимита после входа в аккаунт. Поделитесь впечатлениями через кнопку обратной связи.');
+ const cards=container.querySelectorAll('.pricing-card');
+ expect(cards[0].textContent).toContain('Сохранённые карты без лимита');
+ expect(cards[0].textContent).toContain('AI-вопросы без лимита');
+ expect(cards[1].textContent).toContain('Покупка Premium необязательна');
+ expect(cards[1].textContent).toContain('Обычные лимиты Premium вне бета-теста');
+ expect(container.textContent).not.toContain('Infinity');expect(container.textContent).not.toContain('/ null');
+});
+test('authenticated account state wins over stale public beta configuration',async()=>{
+ mockUser={id:1};mockUsage={plan:'free',free_beta_enabled:false,saved_charts_used:1,saved_charts_limit:3,gpt_messages_used:1,gpt_messages_limit:10};
+ await act(async()=>root.render(<><FreeBetaNotice/><PricingPage/></>));
+ expect(container.querySelector('.free-beta-notice')).toBeNull();
+ expect(container.textContent).not.toContain('Покупка Premium необязательна');
+ expect(container.querySelector('.pricing-card').textContent).toContain('10 AI-вопросов за всё время аккаунта');
+});

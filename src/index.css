@@ -64,7 +64,7 @@ details[open] > summary { border-bottom: 1px solid var(--ln-legacy-line); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .skip-link { position: fixed; left: 16px; top: -100px; z-index: var(--ln-z-skip-link); padding: var(--ln-space-12) 20px; background: var(--ln-legacy-surface); }
 .skip-link:focus { top: 12px; }
-.cookie-banner { position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: var(--ln-z-notice); max-width: 760px; margin: auto; display: flex; align-items: center; gap: 20px; padding: 18px 22px; background: var(--ln-legacy-surface); border: 1px solid var(--ln-legacy-line); border-radius: 16px; box-shadow: var(--ln-legacy-shadow); font-size: var(--ln-text-12); }
+.cookie-banner { position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: var(--ln-z-notice); max-width: 840px; margin: auto; display: flex; align-items: center; gap: 18px; padding: 14px 18px; background: var(--ln-legacy-surface); border: 1px solid var(--ln-legacy-line); border-radius: 16px; box-shadow: var(--ln-legacy-shadow); font-size: var(--ln-text-12); }
 .cookie-actions { display: flex; gap: var(--ln-space-8); }
 .cookie-actions button { min-height: 40px; font-size: var(--ln-text-12); padding: 9px 14px; }
 @media (max-width: 700px) {
@@ -116,3 +116,8 @@ details[open] > summary:where(:not(.chart-v2, .chart-v2 *, .chart-summary, .char
 @media (prefers-reduced-motion: reduce) {
 button:where(:not(.chart-v2, .chart-v2 *, .chart-summary, .chart-summary *, .chart-details, .chart-details *, .chart-preview, .chart-preview *, .google-auth > div, .google-auth > div *)), .button:where(:not(.chart-v2, .chart-v2 *, .chart-summary, .chart-summary *, .chart-details, .chart-details *, .chart-preview, .chart-preview *, .google-auth > div, .google-auth > div *)) { transition: none; }
 }
+.cookie-banner .cookie-actions { flex-wrap: wrap; flex-shrink: 0; }
+.cookie-title { display: block; margin-bottom: 4px; color: var(--ln-color-primary); font-size: 14px; }
+.cookie-description { margin: 0; font-size: 12px; line-height: 1.5; }
+.cookie-banner > div:first-child { flex: 1 1 auto; min-width: 0; }
+@media(max-width: 700px) { .cookie-banner { left: 12px; right: 12px; bottom: 12px; padding: 14px 16px; } .cookie-actions { width: 100%; } .cookie-actions button { flex: 1; } }

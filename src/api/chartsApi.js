@@ -1,8 +1,9 @@
+import {analyticsHeaders} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
 import { apiError } from "./apiError";
 
 export async function chartRequest(path, { method = "GET", signal, authenticated = false, guestSessionToken } = {}) {
-  const headers = {};
+  const headers = {...analyticsHeaders()};
   const jwt = localStorage.getItem("access_token");
   if (guestSessionToken && !authenticated) {
     headers["X-Session-Token"] = guestSessionToken;

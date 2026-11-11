@@ -1,3 +1,4 @@
+import {productAnalytics} from '../analytics/productAnalytics';
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { chartRequest } from "../api/chartsApi";
@@ -62,7 +63,9 @@ export default function RelationshipNewPage() {
   const draftState = () => ({ chartAId: Number(chartA) || null, chartBId: Number(chartB) || null,
     labelA, labelB, speaker });
   const addPerson = () => {
-    const limitReached = usage && usage.saved_charts_used >= usage.saved_charts_limit;
+    // null is the server's explicit unlimited limit during the free beta.
+    const limitReached = Number.isFinite(usage?.saved_charts_used) &&
+      Number.isFinite(usage?.saved_charts_limit) && usage.saved_charts_used >= usage.saved_charts_limit;
     if (limitReached) {
       handleLimitError({ code: "chart_limit_reached", detail: { used: usage.saved_charts_used,
         limit: usage.saved_charts_limit, plan: usage.plan } });
@@ -76,12 +79,13 @@ export default function RelationshipNewPage() {
     if (!labelA.trim() || !labelB.trim()) { setError("Укажите имена обоих участников."); return; }
     setLoading(true); setError("");
     try {
+      productAnalytics.emit('relationship_creation_started');
       const result = await relationshipRequest("", { method: "POST", body: {
         chart_a_id: Number(chartA), chart_b_id: Number(chartB), person_a_label: labelA.trim(),
         person_b_label: labelB.trim(), speaker_person: speaker || null,
       } });
       navigate(`/relationships/${result.id}`, { replace: true });
-    } catch (err) { setError(err.message); }
+    } catch (err) { productAnalytics.emit('relationship_creation_failed', {reason: 'unknown'}); setError(err.message); }
     finally { setLoading(false); }
   };
 

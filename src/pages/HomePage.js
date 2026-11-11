@@ -21,7 +21,7 @@ function ArrowIcon() {
 }
 
 function CreationLink({ className = '', children }) {
-  return <Link className={className} to="/try-free">{children} <ArrowIcon /></Link>;
+  return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
 function ConversationDemo({ compact = false }) {
@@ -39,7 +39,7 @@ function ConversationDemo({ compact = false }) {
       </>}
     </div>
     {!compact && <>
-      <div className="landing-demo-options" role="group" aria-label="Продолжения демонстрации">{demoBranches.map(([text], index) => <button key={text} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}>{text} <ArrowIcon /></button>)}</div>
+      <div className="landing-demo-options" role="group" aria-label="Продолжения демонстрации">{demoBranches.map(([text], index) => <button data-analytics="landing_demo_selected" key={text} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}>{text} <ArrowIcon /></button>)}</div>
       <div className="landing-demo-cta"><p>Хотите задать такой вопрос на основе своей карты?</p><CreationLink className="button">Создать мою карту</CreationLink></div>
     </>}
   </div>;
@@ -82,7 +82,7 @@ export default function HomePage() {
           <li>Почему мы снова спорим об одном и том же?</li>
           <li>В чём мы понимаем друг друга лучше всего?</li>
         </ul>
-        <Link className="button landing-relationship-cta" to={relationshipRoute} state={relationshipState}>Разобрать отношения <ArrowIcon /></Link>
+        <Link data-analytics="landing_cta_relationships" className="button landing-relationship-cta" to={relationshipRoute} state={relationshipState}>Разобрать отношения <ArrowIcon /></Link>
       </div>
       <div className="landing-relationship-preview" role="img" aria-label="Демонстрация карты взаимодействия Анны и Максима: две натальные карты и несколько межкартовых аспектов">
         <div className="landing-relationship-preview-head"><OrbitMark /><div><strong>Карта взаимодействия</strong><span>Две карты · межкартовые аспекты</span></div></div>
@@ -93,7 +93,7 @@ export default function HomePage() {
     </div></section>
 
     <section className="landing-section landing-situations" aria-labelledby="situations-title"><div className="shell"><div className="landing-section-intro"><p className="eyebrow">О чём можно спросить</p><h2 id="situations-title">С какого вопроса вы бы начали?</h2></div>
-      <div className="landing-use-cases">{LANDING_USE_CASES.map(useCase => <article className="landing-case" key={useCase.topic}><p className="eyebrow">{useCase.label}</p><Link className="landing-case-question" to="/try-free" state={{ landingIntent: landingIntent(useCase) }}>{useCase.question} <ArrowIcon /></Link><p>{useCase.description}</p></article>)}</div>
+      <div className="landing-use-cases">{LANDING_USE_CASES.map(useCase => <article className="landing-case" key={useCase.topic}><p className="eyebrow">{useCase.label}</p><Link data-analytics="landing_cta_chart" className="landing-case-question" to="/try-free" state={{ landingIntent: landingIntent(useCase) }}>{useCase.question} <ArrowIcon /></Link><p>{useCase.description}</p></article>)}</div>
     </div></section>
 
     <section className="landing-section landing-difference" aria-labelledby="difference-title"><div className="shell landing-split"><div className="landing-section-intro"><p className="eyebrow">Больше, чем готовый разбор</p><h2 id="difference-title">Одна карта — множество вопросов</h2><p>Обычный разбор заканчивается текстом. В Lunaria после ответа можно уточнить непонятное, углубиться в тему или перейти к следующему вопросу.</p><p>Создайте карту один раз — Lunaria будет учитывать её в следующих разговорах.</p></div><div className="landing-conversation-preview" aria-label="Пример разговора на основе натальной карты"><div className="landing-preview-context"><OrbitMark /><div><strong>Ваша натальная карта</strong><span>Контекст для разговора</span></div></div><div className="landing-preview-thread"><div className="landing-preview-question"><span>Вы</span><p>Почему мне так сложно решиться на перемены?</p></div><div className="landing-preview-answer"><span>Lunaria</span><p>Карта может помочь заметить напряжение между потребностью в стабильности и желанием действовать самостоятельно. А что в предстоящих переменах тревожит вас сильнее всего?</p></div></div><div className="landing-preview-follow-ups"><span>Продолжить</span><ul><li>Что именно меня останавливает?</li><li>Как отличить страх от сомнения?</li><li>Где этот конфликт проявляется сильнее?</li></ul></div></div></div></section>

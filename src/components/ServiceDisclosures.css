@@ -1,0 +1,4 @@
+.supplier-disclosure { font-size: var(--ln-text-13); line-height: 1.65; color: var(--ln-color-text-muted); overflow-wrap: anywhere; }
+.policy-links { display: flex; flex-wrap: wrap; gap: var(--ln-space-8) var(--ln-space-16); margin: var(--ln-space-12) 0; font-size: var(--ln-text-13); line-height: 1.6; }
+.policy-links a { color: var(--ln-color-primary); text-underline-offset: 3px; }
+.policy-links a:focus-visible { outline: 2px solid var(--ln-color-focus); outline-offset: 4px; border-radius: 2px; }

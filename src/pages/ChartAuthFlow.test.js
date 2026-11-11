@@ -51,6 +51,20 @@ const change = async (selector, value) => act(async () => Simulate.change(contai
 const submit = async () => act(async () => Simulate.submit(container.querySelector("form")));
 const gptCalls = () => global.fetch.mock.calls.filter(([url]) => /ask-gpt|gpt-messages/.test(url));
 
+test.each([{ warnings: [] }, { warnings: ['Карта рассчитана без следующих астероидов: Хирон. Их положения и аспекты не включены в расчёт.'] }])
+  ('saved chart shows partial-calculation notice only when supplied: %j', async ({ warnings }) => {
+    mockLocation = { pathname: '/natal-chart-result/7', state: null };
+    global.fetch.mockResolvedValue(ok({ chart_id: 7, houses, calculation_warnings: warnings }));
+    await render(<NatalChartResultPage />);
+    const notice = container.querySelector('[aria-label="Неполные данные карты"]');
+    if (warnings.length) {
+      expect(notice.textContent).toContain(warnings[0]);
+      expect(notice.getAttribute('role')).toBe('status');
+    } else expect(notice).toBeNull();
+    expect(container.querySelector('[data-chart="7"]')).not.toBeNull();
+    expect(gptCalls()).toHaveLength(0);
+  });
+
 test.each(["login", "verify-code", "google"].flatMap(flow => ["migrated", "limit_reached", "not_found", "not_requested"].map(status => [flow, status])))
   ("%s / %s preserves auth and the selected chart through return and reload", async (flow, status) => {
     if (flow === "verify-code") mockLocation.state.mode = "register";
@@ -67,7 +81,8 @@ test.each(["login", "verify-code", "google"].flatMap(flow => ["migrated", "limit
     });
     await render(<AuthorizationPage />);
     await change('input[type="email"]', "person@example.com");
-    await change('input[type="password"]', "test-password-only");
+    await change('input[type="password"]', flow === "verify-code" ? "Test-password1!" : "test-password-only");
+    if (flow === "verify-code") await change("#auth-password-confirmation", "Test-password1!");
     if (flow === 'google') await act(async () => container.querySelector('[data-google-sign-in]').click());
     else await submit();
     if (flow === "verify-code") {
@@ -77,7 +92,7 @@ test.each(["login", "verify-code", "google"].flatMap(flow => ["migrated", "limit
       await submit();
     }
     const authCall = global.fetch.mock.calls.find(([url]) => url.includes(`/auth/${flow}`));
-    expect(JSON.parse(authCall[1].body)).toEqual(flow === 'google' ? { credential: 'google-credential', nonce: 'a'.repeat(64), guest_chart_id: 7 } : { email: "person@example.com", password: "test-password-only", guest_chart_id: 7 });
+    expect(JSON.parse(authCall[1].body)).toEqual(flow === 'google' ? { credential: 'google-credential', nonce: 'a'.repeat(64), guest_chart_id: 7 } : { email: "person@example.com", password: flow === "verify-code" ? "Test-password1!" : "test-password-only", ...(flow === "verify-code" ? { password_confirmation: "Test-password1!", code:'123456' } : {}), guest_chart_id: 7 });
     expect(authCall[1].headers["X-Session-Token"]).toBe(guestToken);
     expect(localStorage.getItem("access_token")).toBe("jwt");
     expect(global.fetch.mock.calls.filter(([url]) => url.includes("/account/usage"))).toHaveLength(1);

@@ -78,7 +78,7 @@ test("Free upgrade preserves comparison modal and disables checkout when env is 
   const modal = container.querySelector("dialog[open]");
   expect(modal.textContent).toContain("3 карты"); expect(modal.textContent).toContain("10 AI-вопросов за всё время");
   expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 AI-вопросов в месяц");
-  const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Оплатить через Paddle");
+  const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Оплатить через Stripe");
   expect(upgrade.disabled).toBe(true); await click(upgrade);
   expect(modal.textContent).toContain("Оплата пока не настроена."); expect(global.fetch).toHaveBeenCalledTimes(1);
   await click(button("Закрыть")); expect(container.querySelector("dialog")).toBeNull();
@@ -192,4 +192,36 @@ test("My Charts uses account limit 10 over an older list limit, then refreshes o
   await click(button("Удалить карту"));
   expect(container.textContent).toContain("2 из 10"); expect(container.textContent).toContain("Осталось 7 из 300");
   expect(calls("/natal-chart/7")[0][1].method).toBe("DELETE");
+});
+
+
+test("free beta shows real unlimited usage while keeping optional Premium visible", async () => {
+  serverUsage = { ...FREE, free_beta_enabled: true, saved_charts_used: 11, saved_charts_limit: null,
+    gpt_messages_used: 401, gpt_messages_limit: null, gpt_messages_available: null, gpt_limit_type: "unlimited" };
+  await render();
+  expect(container.textContent).toContain("11 / без лимита");
+  expect(container.textContent).toContain("401 / без лимита");
+  expect(container.textContent).toContain("План: Free");
+  await click(button("Перейти на Premium"));
+  expect(container.querySelector('dialog').textContent).toContain("Покупка Premium необязательна");
+  expect(container.querySelector('dialog').textContent).toContain("Обычные лимиты тарифов вне бета-теста");
+  expect(button("Оплатить через Stripe")).toBeDefined();
+});
+
+test("My Charts honors an explicit unlimited quota rather than its older list limit", async () => {
+  serverUsage = { ...FREE, free_beta_enabled: true, saved_charts_used: 11, saved_charts_limit: null,
+    gpt_messages_limit: null, gpt_messages_available: null };
+  await render(<MyCharts />);
+  expect(container.textContent).toContain("Сохранённые карты и AI-вопросы без лимита");
+  expect(button("Лимит карт достигнут")).toBeUndefined();
+  await click(button("Создать новую карту"));
+  expect(mockNavigate).toHaveBeenCalledWith("/try-free");
+});
+
+test("AI beta allowance does not show a false expired Premium or numeric quota", async () => {
+  serverUsage = { ...PREMIUM, free_beta_enabled: true, gpt_period_valid: false,
+    gpt_messages_limit: null, gpt_messages_available: null };
+  await render(<AskGptForm chartId={7} />);
+  expect(container.textContent).toContain("Бесплатный бета-тест · AI-вопросы без лимита");
+  expect(container.textContent).not.toContain("Нет действующего периода");
 });

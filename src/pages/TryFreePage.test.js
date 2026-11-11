@@ -31,6 +31,19 @@ beforeEach(async () => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); global.fetch = originalFetch; });
 
+test('polar Placidus rejection is shown in Russian without losing the form or navigating', async () => {
+  await selectCity();
+  const selectedPlace = container.querySelector('[name="birthPlace"]').value;
+  const message = 'Для этой широты система домов Плацидуса недоступна. Lunaria пока не поддерживает создание карт для полярных широт.';
+  global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: { code: 'UNSUPPORTED_HOUSE_SYSTEM', message } }) });
+  const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try { await submit(); } finally { log.mockRestore(); }
+  expect(container.querySelector('[role="alert"]').textContent).toContain(message);
+  expect(container.querySelector('[name="birthPlace"]').value).toBe(selectedPlace);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(localStorage.getItem('chart_id')).toBeNull();
+});
+
 test('selected HH:MM and IANA zone reach API; zero coordinates survive; no browser Julian date', async () => {
   await selectCity(); await change('hour', '12'); await change('minute', '37');
   global.fetch.mockResolvedValueOnce(ok({ chart_id: 42 }));

@@ -1,12 +1,25 @@
-.site-footer { border-top: 1px solid var(--ln-color-inverse-border); background: var(--ln-gradient-cosmic); color: var(--ln-color-text-inverse); padding: var(--ln-space-32) 0 var(--ln-space-24); }
-.footer-top, .footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: var(--ln-space-24); }
-.footer-links { display: flex; flex-wrap: wrap; gap: var(--ln-space-24); font-size: var(--ln-text-13); }
-.footer-links a { color: var(--ln-color-text-inverse-muted); text-decoration: none; }
-.footer-bottom { align-items: flex-end; margin-top: 28px; color: var(--ln-color-text-inverse-muted); font-size: var(--ln-text-11); }
-.footer-bottom p { max-width: 540px; margin: 0; }
-.footer-bottom span { white-space: nowrap; }
-@media (max-width: 700px) { .footer-top, .footer-bottom { align-items: flex-start; flex-direction: column; gap: 20px; } .footer-links { gap: 20px; } }
-
-.site-footer .brand, .site-footer .brand span { color: var(--ln-color-text-inverse); }
-.footer-links a:hover { color: var(--ln-color-text-inverse); text-decoration: underline; }
-.footer-legal { margin-top: var(--ln-space-24); padding-top: var(--ln-space-24); border-top: 1px solid var(--ln-color-inverse-border); }
+.site-footer { position: relative; border-top: 1px solid var(--ln-color-inverse-border); background: var(--ln-gradient-cosmic); color: var(--ln-color-text-inverse); padding: var(--ln-space-32) 0 var(--ln-space-24); }
+.site-footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--ln-color-primary), var(--ln-color-secondary), var(--ln-color-accent)); }
+.footer-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr)); gap: var(--ln-space-32); }
+.site-footer .brand { display: inline-flex; align-items: center; gap: var(--ln-space-12); width: fit-content; color: var(--ln-color-text-inverse); text-decoration: none; }
+.site-footer .brand .orbit-mark { color: var(--ln-color-text-inverse-muted); width: 36px; height: 36px; }
+.footer-brand p { margin: var(--ln-space-12) 0; color: var(--ln-color-text-inverse-muted); font-size: var(--ln-text-13); line-height: 1.7; }
+.footer-brand > a:last-child { font-size: var(--ln-text-13); text-underline-offset: 4px; }
+.site-footer a { color: var(--ln-color-text-inverse-muted); overflow-wrap: anywhere; }
+.footer-nav { display: flex; flex-direction: column; align-items: flex-start; gap: var(--ln-space-8); min-width: 0; }
+.footer-nav h2 { font-family: var(--ln-font-body); color: var(--ln-color-text-inverse); font-size: var(--ln-text-13); font-weight: 700; line-height: 1.5; margin: 0 0 var(--ln-space-8); }
+.footer-nav a { font-size: var(--ln-text-13); line-height: 1.6; padding: var(--ln-space-4) 0; text-decoration: none; }
+.site-footer a:hover { color: var(--ln-color-text-inverse); text-decoration: underline; text-underline-offset: 4px; }
+.site-footer a:focus-visible { outline: 2px solid var(--ln-color-text-inverse); outline-offset: 5px; border-radius: 2px; }
+.footer-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--ln-space-24); margin-top: var(--ln-space-24); padding-top: var(--ln-space-16); border-top: 1px solid var(--ln-color-inverse-border); color: var(--ln-color-text-inverse-muted); font-size: var(--ln-text-12); line-height: 1.65; }
+.footer-bottom p { max-width: 650px; margin: 0; }
+.footer-note-label { display: block; color: var(--ln-color-text-inverse); font-weight: 600; margin-bottom: var(--ln-space-4); }
+.footer-copyright { white-space: nowrap; }
+@media (max-width: 700px) {
+  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ln-space-24) var(--ln-space-16); }
+  .footer-brand { grid-column: 1 / -1; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; gap: var(--ln-space-16); }
+}
+.footer-cookie-settings { background: transparent; padding: 4px 0; color: inherit; border: 0; border-radius: 0; box-shadow: none; text-align: left; font-size: var(--ln-text-13); font-weight: 400; min-height: 40px; }
+.footer-cookie-settings:hover { background: transparent; color: var(--ln-color-text-inverse); text-decoration: underline; }
+.footer-cookie-settings:focus-visible { outline: 2px solid var(--ln-color-text-inverse); outline-offset: 4px; }

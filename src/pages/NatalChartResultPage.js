@@ -91,6 +91,10 @@ const NatalChartResultPage = () => {
        landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>
      {chartData.timezone && <p className="result-metadata">Часовой пояс рождения: {chartData.timezone}</p>}
    </PageHeading>
+   {Array.isArray(chartData.calculation_warnings) && chartData.calculation_warnings.length > 0 &&
+     <aside className="notice" role="status" aria-label="Неполные данные карты">
+       {chartData.calculation_warnings.map((warning, index) => <p key={index}>{warning}</p>)}
+     </aside>}
    {relationshipIntent && <aside className="notice" aria-label="Следующий шаг для разбора отношений">
      <p>{user ? "Первая карта готова. Теперь добавьте карту другого человека, чтобы исследовать динамику ваших отношений." :
        "Первая карта готова. Сохраните её в аккаунте, затем добавьте карту другого человека для разбора отношений."}</p>

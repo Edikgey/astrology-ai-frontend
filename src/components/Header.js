@@ -30,12 +30,12 @@ export default function Header() {
     <button ref={toggle} className="nav-toggle button-secondary" aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
       aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(value => !value)}>{open ? 'Закрыть' : 'Меню'} <span aria-hidden="true">{open ? '×' : '☰'}</span></button>
     <div id="main-navigation" className={`nav-links ${open ? 'is-open' : ''}`}>
-      <Link to="/try-free" onClick={close}>Создать карту</Link>
+      <Link data-analytics="landing_cta_chart" to="/try-free" onClick={close}>Создать карту</Link>
       {user && <Link to="/my-charts" onClick={close}>Мои карты</Link>}
-      <Link to="/pricing" onClick={close}>Free & Premium</Link>
+      <Link data-analytics="landing_cta_pricing" to="/pricing" onClick={close}>Free & Premium</Link>
       {user ? <div className="nav-account"><Link to="/pricing" className="badge badge-accent" onClick={close}>{usage?.plan === 'premium' ? 'Premium' : usage?.plan === 'free' ? 'Free' : 'Аккаунт'}</Link>
         <button className="button-secondary" onClick={() => { close(); logout(); navigate('/'); }}>Выйти</button></div> :
-        <button className="login-btn button-secondary" disabled={loading} onClick={login}>Войти</button>}
+        <button data-analytics="landing_cta_login" className="login-btn button-secondary" disabled={loading} onClick={login}>Войти</button>}
     </div>
   </nav></header>;
 }

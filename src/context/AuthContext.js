@@ -1,4 +1,6 @@
+import {productAnalytics} from '../analytics/productAnalytics';
 import React, { createContext, useState, useEffect, useContext } from "react";
+import {clarityAnalytics} from '../analytics/clarity';
 import {
   requestRegister,
   verifyCode,
@@ -37,8 +39,8 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const registerEmail = async (email, password) => {
-    return await requestRegister(email, password);
+  const registerEmail = async (email, password, confirmation) => {
+    return await requestRegister(email, password, confirmation);
   };
 
   const loginGoogle = async (credential, nonce, guestChart, password) => {
@@ -50,8 +52,8 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const verifyRegistration = async (code, email, password, guestChart) => {
-    const data = await verifyCode(code, email, password, guestChart);
+  const verifyRegistration = async (code, email, password, guestChart, confirmation) => {
+    const data = await verifyCode(code, email, password, guestChart, confirmation);
     localStorage.setItem("access_token", data.access_token);
     setUser(null);
     setLoading(true);
@@ -65,6 +67,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    productAnalytics.reset();
+    clarityAnalytics.clearJourney();
     setLoading(false);
     setUser(null);
     setToken(null);

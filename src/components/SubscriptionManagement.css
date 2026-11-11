@@ -1,0 +1,4 @@
+.subscription-management { min-width: 0; max-width: 540px; }
+.subscription-management p { font-size: var(--ln-text-13); line-height: 1.65; color: var(--ln-color-text-muted); margin: var(--ln-space-8) 0; }
+.subscription-management a { overflow-wrap: anywhere; }
+.subscription-management button { white-space: normal; }

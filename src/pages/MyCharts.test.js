@@ -33,7 +33,7 @@ const FREE = { plan: "free", saved_charts_used: 2, saved_charts_limit: 3,
   gpt_limit_type: "lifetime", gpt_period_valid: true };
 const PREMIUM = { ...FREE, plan: "premium", saved_charts_used: 3, saved_charts_limit: 10,
   gpt_messages_used: 47, gpt_messages_limit: 300, gpt_messages_available: 253,
-  gpt_limit_type: "billing_period", can_manage_subscription: true };
+  gpt_limit_type: "billing_period", can_manage_subscription: true, payment_provider: "stripe", subscription_status: "active" };
 const chart = { chart_id: 7, year: 2000, month: 1, day: 2, hour: 12.5, city: "Test city" };
 const secondChart = { chart_id: 8, year: 1994, month: 11, day: 21, hour: 8.25, city: "A very long city name for layout verification" };
 const relationship = { id: 9, chart_a_id: 7, chart_b_id: 8, person_a_label: "Анна", person_b_label: "Илья" };
@@ -72,6 +72,17 @@ test("authenticated user sees the product dashboard", async () => {
   await render(<MyCharts />);
   expect(container.querySelector("h1").textContent).toBe("Ваше пространство");
   expect(container.textContent).toContain("Ваши карты, разговоры и разборы отношений — в одном месте.");
+});
+test("optional saved-data form is removed without deleting existing device data or chart creation", async () => {
+  const saved=JSON.stringify({name:'Анна',birthDate:'2000-01-02'});
+  localStorage.setItem('userData',saved);
+  await render(<MyCharts />);
+  expect(container.querySelector('.local-chart-profile')).toBeNull();
+  expect(container.textContent).not.toContain('Данные для следующей карты');
+  expect(container.textContent).not.toContain('Сохранить на устройстве');
+  expect(localStorage.getItem('userData')).toBe(saved);
+  await click(button('Создать новую карту'));
+  expect(mockNavigate).toHaveBeenCalledWith('/try-free');
 });
 
 test("natal charts render as consumer cards with real date, time and city", async () => {
