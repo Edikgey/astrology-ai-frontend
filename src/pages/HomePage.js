@@ -36,10 +36,8 @@ function DemoCue() {
   }, []);
 
   return <div className={`landing-demo-cue${isVisible ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
+    <ArrowIcon />
     <span>Нажмите</span>
-    <svg viewBox="0 0 112 52" focusable="false">
-      <path d="M104 14C91 10 77 9 68 16S57 34 65 40S85 38 85 28S73 14 63 21S42 39 10 39M18 32L10 39L18 46" />
-    </svg>
   </div>;
 }
 
