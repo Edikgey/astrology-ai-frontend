@@ -24,6 +24,8 @@ function CreationLink({ className = '', children }) {
   return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
+const demoCueCurve = 'M36 4C32 13 20 16 5 15';
+
 function DemoCue() {
   const cue = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -36,7 +38,11 @@ function DemoCue() {
   }, []);
 
   return <div className={`landing-demo-cue${isVisible ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
-    <ArrowIcon />
+    <svg className="landing-demo-cue-arrow" viewBox="0 0 40 24" focusable="false">
+      <path d={demoCueCurve} />
+      <path d="M10 10l-5 5 5 5" />
+      <path className="landing-demo-cue-ink" d={demoCueCurve} pathLength="1" />
+    </svg>
     <span>Нажмите</span>
   </div>;
 }
