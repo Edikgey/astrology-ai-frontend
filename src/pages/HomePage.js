@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ReactComponent as ChartPreview } from './landing-chart-preview.svg';
 import { ReactComponent as SynastryPreview } from './landing-synastry-preview.svg';
@@ -24,14 +24,40 @@ function CreationLink({ className = '', children }) {
   return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
+function DemoCue() {
+  const cue = useRef(null);
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    if (!('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setAnimate(true);
+        observer.disconnect();
+      }
+    });
+    observer.observe(cue.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return <div className={`landing-demo-cue${animate ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
+    <span>Нажмите</span>
+    <svg viewBox="0 0 112 52" focusable="false">
+      <path d="M104 10C86 0 70 4 67 20C64 35 90 34 86 18C82 3 65 8 54 23C42 39 23 44 7 40M17 33L7 40L17 47" />
+    </svg>
+  </div>;
+}
+
 function ConversationDemo({ compact = false }) {
   const [selected, setSelected] = useState(null);
   return <div className={`landing-demo${compact ? ' landing-demo-mini' : ''}`}>
-    <div className="landing-demo-bar"><span><OrbitMark /> Lunaria</span><small>{compact ? 'Пример разговора' : 'Демонстрация · без запросов к AI'}</small></div>
+    <div className="landing-demo-bar"><span><OrbitMark /> Lunaria</span><small>{compact ? 'Вымышленный пример' : 'Демонстрация · без запросов к AI'}</small></div>
     <div className="landing-demo-thread" aria-live={compact ? 'off' : 'polite'}>
-      <div className="landing-message landing-message-user"><span>Вы</span><p>Почему у меня повторяются похожие проблемы в отношениях?</p></div>
+      <div className="landing-message landing-message-user"><span>Вы</span><p>{compact
+        ? 'Когда я выйду замуж — и за кого?'
+        : 'Почему у меня повторяются похожие проблемы в отношениях?'}</p></div>
       <div className="landing-message"><span>Lunaria</span><p>{compact
-        ? 'Карта становится отправной точкой для вопроса о близости, доверии и вашем реальном опыте.'
+        ? 'Представьте: 14 сентября 2027-го вы говорите «да» человеку, которого сегодня зовёте «просто другом». А теперь вопрос от вашей Венеры в Близнецах: кому вы пишете первым, когда хочется рассказать что-то смешное?'
         : 'В этой карте Луна в Скорпионе может быть интересной отправной точкой для разговора о близости и доверии. Но сама карта не расскажет, что именно повторяется в вашей жизни.\n\nЧто вам знакомо больше: вас привлекают похожие люди, становится сложно доверять или хочется отдалиться, когда отношения становятся серьёзнее?'}</p></div>
       {!compact && selected !== null && <>
         <div className="landing-message landing-message-user landing-demo-next"><span>Вы</span><p>{demoBranches[selected][0]}</p></div>
@@ -39,7 +65,12 @@ function ConversationDemo({ compact = false }) {
       </>}
     </div>
     {!compact && <>
-      <div className="landing-demo-options" role="group" aria-label="Продолжения демонстрации">{demoBranches.map(([text], index) => <button data-analytics="landing_demo_selected" key={text} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}>{text} <ArrowIcon /></button>)}</div>
+      <div className="landing-demo-choices">
+        <div className="landing-demo-options" role="group" aria-label="Продолжения демонстрации">
+          {demoBranches.map(([text], index) => <button data-analytics="landing_demo_selected" key={text} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}>{text} <ArrowIcon /></button>)}
+        </div>
+        <DemoCue />
+      </div>
       <div className="landing-demo-cta"><p>Хотите задать такой вопрос на основе своей карты?</p><CreationLink className="button">Создать мою карту</CreationLink></div>
     </>}
   </div>;
