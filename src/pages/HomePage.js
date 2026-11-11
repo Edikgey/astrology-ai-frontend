@@ -26,24 +26,19 @@ function CreationLink({ className = '', children }) {
 
 function DemoCue() {
   const cue = useRef(null);
-  const [animate, setAnimate] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (!('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setAnimate(true);
-        observer.disconnect();
-      }
-    });
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting));
     observer.observe(cue.current);
     return () => observer.disconnect();
   }, []);
 
-  return <div className={`landing-demo-cue${animate ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
+  return <div className={`landing-demo-cue${isVisible ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
     <span>Нажмите</span>
     <svg viewBox="0 0 112 52" focusable="false">
-      <path d="M104 10C86 0 70 4 67 20C64 35 90 34 86 18C82 3 65 8 54 23C42 39 23 44 7 40M17 33L7 40L17 47" />
+      <path d="M104 14C91 10 77 9 68 16S57 34 65 40S85 38 85 28S73 14 63 21S42 39 10 39M18 32L10 39L18 46" />
     </svg>
   </div>;
 }
