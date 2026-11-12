@@ -8,6 +8,7 @@ import { apiFetch, errorFromResponse, errorText } from "../api/apiError";
 import { readChatResponse } from "../api/chatStream";
 import { FOLLOW_UP_LABELS, normalizeFollowUps } from "./followUpSuggestions";
 import { DialogClose } from "./UI";
+import ChatMarkdown from "./chatMarkdown";
 import "./AskGptChat.css";
 
 export const CHAT_INTRO = "Карта готова. Давайте поговорим о том, что важно для вас: характере, отношениях, работе или сильных сторонах.";
@@ -194,7 +195,8 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
       {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><div>{intro || CHAT_INTRO}</div></div>}
       {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
-        <div>{msg.text || (msg.streaming ? "Обдумываю вашу карту и вопрос..." : "")}</div>
+        {msg.user !== "Вы" && msg.text ? <ChatMarkdown text={msg.text} /> :
+          <div>{msg.text || (msg.streaming ? "Обдумываю вашу карту и вопрос..." : "")}</div>}
         {msg.streaming && <span className="stream-indicator" role="status" aria-label="Lunaria отвечает">···</span>}
       </div>)}
     </div>
