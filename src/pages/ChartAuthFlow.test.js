@@ -51,11 +51,19 @@ const change = async (selector, value) => act(async () => Simulate.change(contai
 const submit = async () => act(async () => Simulate.submit(container.querySelector("form")));
 const gptCalls = () => global.fetch.mock.calls.filter(([url]) => /ask-gpt|gpt-messages/.test(url));
 
-test('saved chart shows the birth time zone as a city and offset, not as a technical id', async () => {
+test('saved chart shows the birth time zone as the offset on the birth date, not as a technical id', async () => {
   mockLocation = { pathname: '/natal-chart-result/7', state: null };
   global.fetch.mockResolvedValue(ok({ chart_id: 7, houses, timezone: 'Europe/Moscow', birth_utc: '1992-09-02T20:00:00' }));
   await render(<NatalChartResultPage />);
-  expect(container.querySelector('.result-metadata').textContent).toBe('Часовой пояс рождения: Москва, UTC+4');
+  expect(container.querySelector('.result-metadata').textContent).toBe('Часовой пояс рождения: UTC+4');
+  expect(container.textContent).not.toContain('Europe/Moscow');
+});
+
+test('without a birth moment no offset can be computed, so no raw zone is shown either', async () => {
+  mockLocation = { pathname: '/natal-chart-result/7', state: null };
+  global.fetch.mockResolvedValue(ok({ chart_id: 7, houses, timezone: 'Europe/Moscow', birth_utc: null }));
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('.result-metadata')).toBeNull();
   expect(container.textContent).not.toContain('Europe/Moscow');
 });
 
