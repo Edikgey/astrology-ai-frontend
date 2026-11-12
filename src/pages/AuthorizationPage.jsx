@@ -10,6 +10,20 @@ import {newAnalyticsFlow,trackEvent} from '../analytics/clarity';
 import {requestPasswordReset} from '../api/authApi';
 import { useServiceConfig } from "../context/ServiceConfigContext";
 
+// Only a path on this site: no other origin, no sign-in or reset page, and query and fragment are dropped,
+// so neither a foreign address nor a token or code travels with it.
+const safeReturnPath = value => {
+  if (typeof value !== "string" || value[0] !== "/" || value[1] === "/" ||
+    [...value].some(ch => ch === "\\" || ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) return null;
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin || /^\/(authorization|reset-password)(\/|$)/i.test(url.pathname)) return null;
+    return url.pathname;
+  } catch {
+    return null;
+  }
+};
+
 const AuthorizationPage = () => {
   const { user, login, loginGoogle, registerEmail, verifyRegistration } = useAuth();
   // Флаг беты показывает сервер; фронтенд только отображает его.
@@ -22,8 +36,7 @@ const AuthorizationPage = () => {
   // Only an explicit transition from the open chart carries migration intent.
   // Router state survives reload, but ordinary auth links never inherit old IDs.
   const guestChart = location.state?.guestChart || null;
-  const returnPath = location.state?.returnTo || localStorage.getItem("redirect_after_login") || localStorage.getItem("returnTo") || "/";
-  const ordinaryReturn = returnPath.startsWith("/") && !returnPath.startsWith("//") && !returnPath.startsWith("/authorization") ? returnPath : "/";
+  const ordinaryReturn = safeReturnPath(location.state?.returnTo) || "/";
 
   const [step, setStep] = useState(['register','recover'].includes(location.state?.mode) ? location.state.mode : 'login');
   const recovery = step === 'recover';
@@ -55,8 +68,6 @@ const AuthorizationPage = () => {
 
   const finishAuth = (data) => {
     completed.current = true;
-    localStorage.removeItem("redirect_after_login");
-    localStorage.removeItem("returnTo");
     if (guestChart) {
       const result = data.guest_chart_migration;
       const migrated = result?.status === "migrated" && Number(result.chart_id) === Number(guestChart.chartId);
