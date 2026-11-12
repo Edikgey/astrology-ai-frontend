@@ -47,7 +47,7 @@ function AccountStatus() {
   const hasAvailable = Number.isFinite(usage.gpt_messages_available) && Number.isFinite(usage.gpt_messages_limit);
   return <aside className="dashboard-plan" aria-label="Статус аккаунта" aria-busy={usageLoading}>
     <div className="dashboard-plan-copy">
-      <p className="dashboard-kicker">{premium ? "Premium" : "Free"}</p>
+      <p className="dashboard-kicker">{premium ? "Premium" : "Бесплатно"}</p>
       <strong>{beta ? "Бесплатный бета-тест" : premium ? "Premium" : "Бесплатный план"}</strong>
       {beta && <p>Сохранённые карты и AI-вопросы без лимита.</p>}
       {!beta && hasAvailable && <p>Осталось {usage.gpt_messages_available} из {usage.gpt_messages_limit} AI-вопросов

@@ -17,9 +17,11 @@ export default function PricingPage() {
   const { freeBetaEnabled } = useServiceConfig();
   const beta = usage ? usage.free_beta_enabled === true : freeBetaEnabled;
   const navigate = useNavigate();
+  // Вошедший пользователь без загруженных данных аккаунта пока не может открыть оплату.
+  const upgradeWaiting = Boolean(user && !usage);
   const upgrade = () => user ? openUpgrade() : navigate("/authorization", { state: { returnTo: "/pricing" } });
   return <section className="pricing-section page">
-    <PageHeading eyebrow={beta ? "Бесплатный бета-тест" : "Free & Premium"} title={beta ? "Исследуйте Lunaria без лимитов." : "Больше места для ваших открытий."}><p>{beta ? "Сохраняйте карты и задавайте AI-вопросы бесплатно после входа в аккаунт. Покупка Premium необязательна." : "Начните бесплатно. Выберите Premium, когда захотите продолжить разговор."}</p></PageHeading>
+    <PageHeading eyebrow={beta ? "Бесплатный бета-тест" : "Тарифы"} title={beta ? "Исследуйте Lunaria без лимитов." : "Больше места для ваших открытий."}><p>{beta ? "Сохраняйте карты и задавайте AI-вопросы бесплатно после входа в аккаунт. Покупка Premium необязательна." : "Начните бесплатно. Выберите Premium, когда захотите продолжить разговор."}</p></PageHeading>
     <div className="pricing-grid">
       <div className="pricing-card"><span className="eyebrow">Первое знакомство</span><h3>Free</h3><p className="free-price">Бесплатно</p><p className="plan-description">Ваша карта и первые вопросы к ней.</p>
         <p>{beta ? "Сохранённые карты без лимита" : `${PLANS.free.chartLimit} сохранённые карты`}</p><p>{beta ? "AI-вопросы без лимита" : `${PLANS.free.gptLimit} AI-вопросов за всё время аккаунта`}</p><p>История разговора для каждой карты</p>
@@ -30,7 +32,8 @@ export default function PricingPage() {
         {beta && <p>Обычные лимиты Premium вне бета-теста:</p>}
         <p>{PLANS.premium.chartLimit} сохранённых карт</p><p>{PLANS.premium.gptLimit} AI-вопросов за расчётный месяц</p>
         <p>Отмена продления в «Мои карты» → «Управление подпиской». Доступ сохраняется до конца оплаченного периода. Отмена не возвращает оплату автоматически.</p>
-        {usage?.plan !== "premium" && <button className="filled-button" onClick={upgrade} disabled={Boolean(user && !usage)}>Перейти на Premium</button>}
+        {upgradeWaiting && <p id="premium-unavailable" className="premium-hint">Кнопка станет доступна, когда загрузятся данные аккаунта. Если этого не происходит, обновите страницу.</p>}
+        {usage?.plan !== "premium" && <button className="filled-button" onClick={upgrade} disabled={upgradeWaiting} aria-describedby={upgradeWaiting ? "premium-unavailable" : undefined}>Перейти на Premium</button>}
       </div>
     </div>
     {beta && <p className="pricing-note">Бесплатный доступ без продуктовых лимитов действует на время бета-теста. После его завершения возвращаются обычные тарифы: Free — 3 карты и 10 AI-вопросов за всё время аккаунта, Premium — 10 карт и 300 AI-вопросов за расчётный период. Сохранённые карты и история не удаляются.</p>}
