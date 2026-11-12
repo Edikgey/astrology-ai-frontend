@@ -4,7 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
-import { apiError } from "../api/apiError";
+import { apiFetch, errorFromResponse, errorText } from "../api/apiError";
 import { readChatResponse } from "../api/chatStream";
 import { FOLLOW_UP_LABELS, normalizeFollowUps } from "./followUpSuggestions";
 import { DialogClose } from "./UI";
@@ -15,7 +15,10 @@ const NATAL_QUESTIONS = ["Какие у меня сильные стороны?"
 export const RELATIONSHIP_QUESTIONS = ["В чём наша главная сила как пары?", "Почему мы можем конфликтовать?", "Как мы проявляем чувства по-разному?", "Что нам важно понимать друг о друге?"];
 const requestError = (status, subjectType) => status === 401 ? "Сессия истекла. Войдите снова." :
   status === 403 || status === 404 ? `Чат ${subjectType === "relationship" ? "этого разбора" : "этой карты"} недоступен для вашего аккаунта.` :
-  status === 409 ? "Запрос сейчас недоступен. Попробуйте позже." : "Не удалось выполнить запрос. Попробуйте ещё раз.";
+  status === 409 ? "Запрос сейчас недоступен. Попробуйте позже." :
+  status === 429 ? "Слишком много запросов. Подождите немного и попробуйте ещё раз." : "Не удалось выполнить запрос. Попробуйте ещё раз.";
+// Statuses with their own hint: it wins over a string detail from the server.
+const HINTED_STATUSES = [403, 404, 409, 429];
 
 // A keyed session isolates in-flight responses when the chart or user changes.
 const AskGptForm = (props) => {
@@ -73,14 +76,14 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
         try {
           const historyPath = subjectType === "relationship"
             ? `/relationships/${subjectId}/messages` : `/gpt-messages?chart_id=${subjectId}`;
-          const response = await fetch(`${API_URL}${historyPath}`, {
+          const response = await apiFetch(`${API_URL}${historyPath}`, {
             headers: { Authorization: `Bearer ${token}` }, signal: controller.signal,
           });
           if (!response.ok) throw new Error(requestError(response.status, subjectType));
           const data = await response.json();
           if (!controller.signal.aborted) setMessages(data.map(msg => ({ user: msg.role === "user" ? "Вы" : "GPT", text: msg.content })));
         } catch (err) {
-          if (!controller.signal.aborted) setHistoryError(err.message);
+          if (!controller.signal.aborted) setHistoryError(errorText(err));
         } finally {
           if (!controller.signal.aborted) setHistoryLoading(false);
         }
@@ -115,13 +118,12 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     try {
       const askPath = subjectType === "relationship" ? `/relationships/${subjectId}/ask` : "/ask-gpt";
       const payload = subjectType === "relationship" ? { question: text } : { chart_id: Number(subjectId), question: text };
-      const response = await fetch(`${API_URL}${askPath}`, {
+      const response = await apiFetch(`${API_URL}${askPath}`, {
         method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream", ...analyticsHeaders(), Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload), signal: controller.signal,
       });
       if (!response.ok) {
-        const data = await response.json?.().catch(() => ({}));
-        throw apiError(response.status, data, requestError(response.status, subjectType));
+        throw await errorFromResponse(response, requestError(response.status, subjectType), HINTED_STATUSES.includes(response.status));
       }
       const data = await readChatResponse(response, delta => {
         if (!controller.signal.aborted) setMessages(previous => previous.map(msg =>
@@ -144,7 +146,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
         productAnalytics.emit('ai_answer_failed', {subject: subjectType, reason: 'unknown'});
         setMessages(previous => previous.filter(msg => !msg.streaming).slice(0, -1));
         if (handleLimitError(err)) return; // Keep the draft/history; never retry a denied POST.
-        setError(err.message);
+        setError(errorText(err));
         // A failed response may follow a persisted user message. Reload history;
         // never retry POST automatically.
         setReload(value => value + 1);

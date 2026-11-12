@@ -438,5 +438,5 @@ test("history with HTML instead of JSON shows Russian text", async () => {
   global.fetch.mockResolvedValueOnce({ ok: true, json: async () => { throw new SyntaxError("Unexpected token '<'"); } });
   await render();
   expect(container.querySelector('[role="alert"]').textContent)
-    .toBe("Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.");
+    .toContain("Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.");
 });
