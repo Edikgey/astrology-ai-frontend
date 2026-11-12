@@ -44,6 +44,17 @@ test('polar Placidus rejection is shown in Russian without losing the form or na
   expect(localStorage.getItem('chart_id')).toBeNull();
 });
 
+test('FE-LOCAL-DATA F3: a rejected chart request leaves no birth data in the browser', async () => {
+  await selectCity(); await change('name', 'Моя карта'); await change('hour', '12'); await change('minute', '37');
+  global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: { code: 'UNSUPPORTED_HOUSE_SYSTEM', message: 'Карта недоступна.' } }) });
+  const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try { await submit(); } finally { log.mockRestore(); }
+  expect(container.querySelector('[role="alert"]')).not.toBeNull(); // the request really failed
+  expect(localStorage.getItem('tempUserData')).toBeNull();
+  expect(localStorage.getItem('natalChart')).toBeNull();
+  expect(localStorage.getItem('chart_id')).toBeNull();
+});
+
 test('selected HH:MM and IANA zone reach API; zero coordinates survive; no browser Julian date', async () => {
   await selectCity(); await change('hour', '12'); await change('minute', '37');
   global.fetch.mockResolvedValueOnce(ok({ chart_id: 42 }));
@@ -52,7 +63,10 @@ test('selected HH:MM and IANA zone reach API; zero coordinates survive; no brows
   const payload = JSON.parse(options.body);
   expect(payload).toMatchObject({ year: 2000, month: 1, day: 1, hour: 12, minute: 37, timezone: 'Europe/Berlin', lat: 0, lon: 0 });
   expect(payload).not.toHaveProperty('julian_date'); expect(payload).not.toHaveProperty('offset_sec');
-  expect(JSON.parse(localStorage.getItem('tempUserData')).birthTime).toBe('12:37');
+  // FE-LOCAL-DATA F1: birth data nothing reads is not stored; only the chart number stays on the device.
+  expect(localStorage.getItem('tempUserData')).toBeNull();
+  expect(localStorage.getItem('natalChart')).toBeNull();
+  expect(localStorage.getItem('chart_id')).toBe('42');
   expect(mockNavigate).toHaveBeenCalledWith('/natal-chart-result/42');
 });
 

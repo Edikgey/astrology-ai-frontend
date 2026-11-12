@@ -98,7 +98,6 @@ export const calculateNatalChart = async (formData) => {
 
     if (!response.ok) throw apiError(response.status, data, "Произошла ошибка при расчёте натальной карты");
 
-    localStorage.setItem("natalChart", JSON.stringify(data));
     localStorage.setItem("chart_id", data.chart_id);
     saveChartPresentation(data.chart_id, formData);
     return data;
@@ -239,8 +238,6 @@ const TryFreePage = () => {
       region: formData.region,
       country: formData.country,
     };
-
-    localStorage.setItem("tempUserData", JSON.stringify(finalData));
 
     try {
       if(!analyticsFlow.current)analyticsFlow.current=newAnalyticsFlow();

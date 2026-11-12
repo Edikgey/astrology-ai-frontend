@@ -305,11 +305,20 @@ test("opening a natal result URL still fetches that ID and passes it to visualiz
 test("old guest natal URL keeps its established access flow", async () => {
   localStorage.removeItem("access_token");
   localStorage.setItem("session_token", "guest-token");
-  localStorage.setItem("natalChart", JSON.stringify({ chart_id: 8 }));
+  localStorage.setItem("chart_id", "8"); // FE-LOCAL-DATA G1: the number alone opens the chart; natalChart is no longer read
   chartRequest.mockResolvedValue({ chart_id: 8 });
   await render(<NatalChartResultPage />);
   expect(chartRequest).toHaveBeenCalledWith("/natal-chart/8", expect.any(Object));
   expect(container.querySelector("[data-chat]").dataset.chat).toBe("8");
+});
+
+test("FE-LOCAL-DATA F7: a stored natalChart answer is not a chart number; without one nothing is requested", async () => {
+  localStorage.setItem("natalChart", JSON.stringify({ chart_id: 8 }));
+  await render(<NatalChartResultPage />);
+  expect(chartRequest).not.toHaveBeenCalled();
+  expect(container.textContent).toContain("Карта не выбрана");
+  expect(container.querySelector("[data-chart]")).toBeNull();
+  expect(container.querySelector("[data-chat]")).toBeNull();
 });
 
 test("denied natal chart does not render cached visualization or chat", async () => {
