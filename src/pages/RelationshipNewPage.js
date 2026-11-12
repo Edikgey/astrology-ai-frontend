@@ -2,21 +2,11 @@ import {productAnalytics} from '../analytics/productAnalytics';
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { chartRequest } from "../api/chartsApi";
-import { chartPresentation } from "../api/chartPresentation";
+import { chartLabels } from "../api/chartPresentation";
 import { relationshipRequest } from "../api/relationshipsApi";
 import { useUsage } from "../context/UsageContext";
 import { EmptyState, LoadingState, OrbitMark, PageHeading } from "../components/UI";
 import "./Relationships.css";
-
-const birthDate = chart => chart.day && chart.month && chart.year
-  ? `${String(chart.day).padStart(2, "0")}.${String(chart.month).padStart(2, "0")}.${chart.year}` : "";
-// Внутренний номер карты не показываем. Если безымянных карт несколько, различаем их по дате рождения.
-const labelFor = (chart, all) => {
-  const name = chartPresentation(chart.chart_id).name;
-  if (name) return name;
-  const date = all.filter(item => !chartPresentation(item.chart_id).name).length > 1 ? birthDate(chart) : "";
-  return date ? `Карта без названия · ${date}` : "Карта без названия";
-};
 
 export default function RelationshipNewPage() {
   const navigate = useNavigate();
@@ -47,23 +37,24 @@ export default function RelationshipNewPage() {
         if (nextB) setChartB(String(nextB));
         const a = data.charts?.find(chart => chart.chart_id === nextA);
         const b = data.charts?.find(chart => chart.chart_id === nextB);
-        if (a && !labelA) setLabelA(labelFor(a, data.charts));
-        if (b && (!labelB || createdChartId === nextB)) setLabelB(labelFor(b, data.charts));
+        if (a && !labelA) setLabelA(chartLabels(data.charts)[a.chart_id]);
+        if (b && (!labelB || createdChartId === nextB)) setLabelB(chartLabels(data.charts)[b.chart_id]);
       })
       .catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
   }, []);
 
   const byId = useMemo(() => new Map((charts || []).map(chart => [String(chart.chart_id), chart])), [charts]);
+  const labels = useMemo(() => chartLabels(charts || []), [charts]);
   const choose = (person, value) => {
     const chart = byId.get(value);
     if (person === "A") {
       setChartA(value);
-      if (chart) setLabelA(labelFor(chart, charts));
+      if (chart) setLabelA(labels[chart.chart_id]);
       if (value === chartB) setChartB("");
     } else {
       setChartB(value);
-      if (chart) setLabelB(labelFor(chart, charts));
+      if (chart) setLabelB(labels[chart.chart_id]);
       if (value === chartA) setChartA("");
     }
     setError("");
@@ -115,7 +106,7 @@ export default function RelationshipNewPage() {
           <select id={`relationship-chart-${person}`} value={selected} onChange={event => choose(person, event.target.value)} required>
             <option value="">Выберите карту</option>
             {charts.map(chart => <option key={chart.chart_id} value={chart.chart_id}
-              disabled={(person === "A" ? chartB : chartA) === String(chart.chart_id)}>{labelFor(chart, charts)}</option>)}
+              disabled={(person === "A" ? chartB : chartA) === String(chart.chart_id)}>{labels[chart.chart_id]}</option>)}
           </select>
           <label htmlFor={`relationship-label-${person}`}>Имя в разборе</label>
           <input id={`relationship-label-${person}`} value={label} maxLength={100} required

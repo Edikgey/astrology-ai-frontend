@@ -99,6 +99,23 @@ test("relationship analyses render in a separate section", async () => {
   expect(container.textContent).toContain("Карта взаимодействия");
 });
 
+test("an unnamed chart has the same name here as in the relationship picker: no №, birth date when several", async () => {
+  await render(<MyCharts />);
+  const titles = [...container.querySelectorAll(".saved-charts-list h3")].map(h => h.textContent);
+  expect(titles).toEqual(["Карта без названия · 02.01.2000", "Карта без названия · 21.11.1994"]);
+  chartRequest.mockResolvedValue({ charts: [chart], count: 1, limit: 3 });
+  await render(<MyCharts key="one" />);
+  expect([...container.querySelectorAll(".saved-charts-list h3")].map(h => h.textContent)).toEqual(["Карта без названия"]);
+});
+
+test("an unnamed saved chart page is titled «Карта без названия», not «Натальная карта №<id>»", async () => {
+  mockChartId = "7";
+  chartRequest.mockResolvedValue({ chart_id: 7, houses: [] });
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector("h1").textContent).toBe("Карта без названия");
+  expect(container.textContent).not.toContain("№");
+});
+
 test("technical database IDs are not exposed in card copy", async () => {
   await render(<MyCharts />);
   expect(container.textContent).not.toContain("Карта №");

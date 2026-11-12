@@ -4,7 +4,7 @@ import { useUsage } from '../context/UsageContext';
 import { useAuth } from '../context/AuthContext';
 import { chartRequest } from '../api/chartsApi';
 import { PageHeading, LoadingState } from '../components/UI';
-import { chartPresentation } from '../api/chartPresentation';
+import { chartLabel } from '../api/chartPresentation';
 import { timezoneLabel } from '../utils/timezoneLabel';
 import './NatalChartResultPage.css';
 import NatalChart from '../components/NatalChart';
@@ -88,7 +88,7 @@ const NatalChartResultPage = () => {
 
   return (
     <div className="page result-page">
-   <PageHeading eyebrow="Ваш личный космос" title={relationshipIntent ? "Первая карта готова" : landingIntent ? "Ваша карта готова" : chartPresentation(chartData.chart_id).name || `Натальная карта №${chartData.chart_id}`}
+   <PageHeading eyebrow="Ваш личный космос" title={relationshipIntent ? "Первая карта готова" : landingIntent ? "Ваша карта готова" : chartLabel(chartData)}
      action={relationshipIntent ? null : <a className="button" href="#chart-conversation">Перейти к разговору ↓</a>}>
      <p>{relationshipIntent ? "Теперь можно сохранить её и добавить карту другого человека для разбора отношений." :
        landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>

@@ -6,14 +6,12 @@ import { useBilling } from "../context/BillingContext";
 import { chartRequest } from "../api/chartsApi";
 import { relationshipRequest } from "../api/relationshipsApi";
 import { LoadingState, OrbitMark, PageHeading } from "../components/UI";
-import { chartPresentation } from "../api/chartPresentation";
+import { chartLabels } from "../api/chartPresentation";
 import SubscriptionManagement from '../components/SubscriptionManagement';
 import "./MyCharts.css";
 
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-
-const chartTitle = chart => chartPresentation(chart.chart_id).name || "Натальная карта";
 
 const formatDate = chart => {
   if (!chart.day || !chart.month || !chart.year || !MONTHS[chart.month - 1]) return "Дата рождения не указана";
@@ -89,6 +87,7 @@ export default function MyCharts() {
   const currentResult = result?.token === token ? result : null;
   const charts = currentResult?.charts?.charts || [];
   const relationships = currentResult?.relationships?.relationships || [];
+  const labels = chartLabels(charts);
   const savedCount = usage?.saved_charts_used ?? currentResult?.charts?.count;
   // null is an explicit unlimited server value, not a missing counter.
   const savedLimit = usage ? usage.saved_charts_limit : currentResult?.charts?.limit;
@@ -127,7 +126,7 @@ export default function MyCharts() {
   };
 
   const deleteChart = async chart => {
-    const title = chartTitle(chart);
+    const title = labels[chart.chart_id];
     if (deleting !== null || !window.confirm(`Удалить карту «${title}» и всю историю разговора? Это действие нельзя отменить.`)) return;
     setDeleting(chart.chart_id);
     setActionError("");
@@ -202,7 +201,7 @@ export default function MyCharts() {
             <button type="button" onClick={createChart}>Создать мою карту</button>
           </div> : <ul className="dashboard-card-grid saved-charts-list">
             {charts.map(chart => {
-              const title = chartTitle(chart);
+              const title = labels[chart.chart_id];
               const time = formatTime(chart.hour);
               return <li key={chart.chart_id}>
                 <div className="dashboard-card-type"><OrbitMark /><span>Натальная карта</span></div>
