@@ -20,6 +20,10 @@ const storedToken = () => {
   return value && value !== "null" && value !== "undefined" ? value : null;
 };
 
+// FE-LOCAL-DATA: birth data earlier versions left in the browser; nothing reads it.
+const RETIRED_KEYS = ["tempUserData", "natalChart"];
+const forget = (keys) => keys.forEach((key) => localStorage.removeItem(key));
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(storedToken);
@@ -33,6 +37,8 @@ export const AuthProvider = ({ children }) => {
   const current = useRef({ token, user });
   current.current = { token, user };
   const inFlight = useRef(false);
+
+  useEffect(() => forget(RETIRED_KEYS), []); // once per page load; repeating it is harmless
 
   const adoptToken = useCallback((next, reason = null) => {
     inFlight.current = false;
@@ -49,6 +55,8 @@ export const AuthProvider = ({ children }) => {
     productAnalytics.reset();
     clarityAnalytics.clearJourney();
     localStorage.removeItem("access_token");
+    // The last chart built on this device belongs to the person leaving.
+    forget(["chart_id", ...RETIRED_KEYS]);
     adoptToken(null, reason);
   }, [adoptToken]);
 

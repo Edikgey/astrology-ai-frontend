@@ -17,10 +17,7 @@ const NatalChartResultPage = () => {
   const navigate = useNavigate();
   const { user, setActiveGuestChart } = useAuth();
   const { usage } = useUsage();
-  const chartId = routeChartId || localStorage.getItem("chart_id") || (() => {
-    try { return JSON.parse(localStorage.getItem("natalChart"))?.chart_id; }
-    catch { return null; }
-  })();
+  const chartId = routeChartId || localStorage.getItem("chart_id");
   const token = localStorage.getItem("access_token");
   const sessionToken = localStorage.getItem("session_token");
   const chartAuth = String(location.state?.chartAuth?.chartId) === String(chartId) ? location.state.chartAuth : null;
