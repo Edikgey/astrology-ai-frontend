@@ -43,6 +43,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const [reload, setReload] = useState(0);
   const [gate, setGate] = useState(false);
   const dialog = useRef(null);
+  const returningFocus = useRef(false);
   const input = useRef(null);
   const history = useRef(null);
   const sending = useRef(null);
@@ -64,7 +65,20 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   useEffect(() => {
     if (history.current && followBottom.current) history.current.scrollTop = history.current.scrollHeight;
   }, [messages, loading]);
-  useEffect(() => { if (gate) dialog.current?.showModal(); }, [gate]);
+  useEffect(() => {
+    if (!gate) return undefined;
+    // Окно для гостя: фокус внутрь при открытии и обратно на то, что его открыло.
+    const opener = document.activeElement;
+    dialog.current?.showModal();
+    dialog.current?.querySelector(".chat-send")?.focus();
+    return () => {
+      if (!opener?.isConnected || typeof opener.focus !== "function") return;
+      // Поле вопроса само открывает окно по фокусу: на возврате этого не надо.
+      returningFocus.current = true;
+      opener.focus();
+      returningFocus.current = false;
+    };
+  }, [gate]);
   useEffect(() => {
     const controller = new AbortController();
     setMessages([]);
@@ -195,14 +209,14 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
     <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
       <textarea ref={input} aria-label="Ваш вопрос" rows={1} maxLength={4000} className="chat-input" value={question} disabled={blocked}
-        onFocus={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
+        onFocus={() => { if (!authenticated && !authLoading && !gate && !returningFocus.current) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
         onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Ваш вопрос…" />
       <button type="submit" className="chat-send" disabled={blocked || (authenticated && !question.trim())}>{loading ? "Отправка..." : "Спросить"}</button>
     </form>
     {authenticated && allowance && <p className="chat-allowance" role="status" aria-busy={usageLoading}>{allowance}</p>}
 
-    {gate && <dialog ref={dialog} className="chart-auth-gate" aria-labelledby="chart-auth-title" onCancel={() => setGate(false)}>
+    {gate && <dialog ref={dialog} className="chart-auth-gate" role="dialog" aria-modal="true" aria-labelledby="chart-auth-title" onCancel={() => setGate(false)}>
       <DialogClose onClose={() => setGate(false)} />
       <h3 id="chart-auth-title">Сохраните карту и продолжите разбор</h3>
       <p>Создайте бесплатный аккаунт, чтобы сохранить эту натальную карту и начать персональный AI-чат.</p>
