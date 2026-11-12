@@ -70,6 +70,19 @@ const NatalChartResultPage = () => {
     } });
   };
 
+  if (error?.status === 404) {
+    // chart_id is the key /try-free writes for the guest chart built on this device. Text only: the server still decides access.
+    const guestChartBeforeSignIn = token && token !== "null" && localStorage.getItem("chart_id") === String(chartId);
+    return <div className="page result-error">
+      {migrationNotice && <p role="status">{migrationNotice}</p>}
+      <p role="alert">{guestChartBeforeSignIn
+        ? "Эта карта была построена до входа и не сохранилась в аккаунте. Постройте её снова — это займёт минуту."
+        : "Карта не найдена или недоступна. Откройте её из раздела «Мои карты» или постройте новую."}</p>
+      <p><Link className="button" to="/try-free">Построить карту</Link></p>
+      <p><Link to="/my-charts">Мои карты</Link></p>
+    </div>;
+  }
+
   if (error) {
     return <div className="page result-error">
       {migrationNotice && <p role="status">{migrationNotice}</p>}
