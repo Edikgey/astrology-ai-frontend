@@ -236,3 +236,38 @@ test("header auth uses only a successfully opened guest chart and forgets it on 
   await act(async () => container.querySelector(".login-btn").click());
   expect(mockNavigate).toHaveBeenLastCalledWith("/authorization", undefined);
 });
+
+const GUEST_LOST = "Эта карта была построена до входа и не сохранилась в аккаунте. Постройте её снова — это займёт минуту.";
+const NOT_FOUND = "Карта не найдена или недоступна. Откройте её из раздела «Мои карты» или постройте новую.";
+const notFound = { ok: false, status: 404, json: async () => ({ detail: "❌ Карта не найдена" }) };
+const signedInWithMissingChart = () => {
+  localStorage.setItem("access_token", "jwt-A");
+  global.fetch.mockImplementation(async url => url.includes("/auth/me") ? ok({ id: 5 }) : notFound);
+};
+const links = () => [...container.querySelectorAll("a")].map(a => [a.textContent, a.getAttribute("href")]);
+
+test("signed in, 404 on the guest chart built on this device: explains it and offers to build again", async () => {
+  mockLocation = { pathname: "/natal-chart-result/7", state: null };
+  localStorage.setItem("chart_id", "7"); // written by /try-free when the guest chart was built
+  signedInWithMissingChart();
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('[role="alert"]').textContent).toBe(GUEST_LOST);
+  expect(links()).toEqual([["Построить карту", "/try-free"], ["Мои карты", "/my-charts"]]);
+  expect(container.querySelector("[data-chart]")).toBeNull(); // nothing is opened on the client's say-so
+});
+
+test("signed in, 404 on a chart that is not this device's guest chart: general text, same buttons", async () => {
+  mockLocation = { pathname: "/natal-chart-result/7", state: null }; // device chart_id is 999
+  signedInWithMissingChart();
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('[role="alert"]').textContent).toBe(NOT_FOUND);
+  expect(links()).toEqual([["Построить карту", "/try-free"], ["Мои карты", "/my-charts"]]);
+});
+
+test("not signed in, 404 on this device's chart: general text, not the 'before sign-in' explanation", async () => {
+  mockLocation = { pathname: "/natal-chart-result/7", state: null };
+  localStorage.setItem("chart_id", "7");
+  global.fetch.mockResolvedValue(notFound);
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('[role="alert"]').textContent).toBe(NOT_FOUND);
+});
