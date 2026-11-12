@@ -16,7 +16,7 @@ export default function SubscriptionManagement({ usage }) {
   return <section className="subscription-management" aria-label="Управление подпиской">
     {usage.cancel_at_period_end && <p role="status">{premium
       ? `Продление отключено. Premium сохраняется${end ? ` до ${end} (UTC)` : ' до конца оплаченного периода'}.`
-      : 'Подписка завершена. Действуют лимиты Free.'}</p>}
+      : 'Подписка завершена. Действуют лимиты бесплатного плана.'}</p>}
     {stripe && <>
       <button type="button" className="button-secondary" disabled={billing.busy} onClick={billing.manageSubscription}>Управление подпиской</button>
       <p>Портал Stripe: подписка, счета, способ оплаты и отмена продления. Откроется в новой вкладке.</p>
