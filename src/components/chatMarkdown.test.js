@@ -212,6 +212,27 @@ describe("CQF-2: никакого HTML и никаких ссылок из от�
     expect(window.__xss).toBeUndefined();
   });
 
+  it("ссылка со скобками в адресе даёт только текст: нет a, адреса не видно", async () => {
+    await show("Нажмите [x](javascript:alert(1)) и [Марс](https://ru.wikipedia.org/wiki/Марс_(планета)) тут.");
+    expect(all("a")).toHaveLength(0);
+    expect(container.textContent).toBe("Нажмите x и Марс тут.");
+    expect(container.textContent).not.toContain("javascript:");
+    expect(container.textContent).not.toContain("wikipedia");
+    expectOnlySafeMarkup();
+  });
+
+  it("ссылки со скобками: незакрытые и вложенные глубже одного уровня не ломают разбор и не виснут", async () => {
+    await show("[x](a(b(c))) и [y](a(b");
+    expect(container.textContent).toContain("[y](a(b");
+    expect(all("a")).toHaveLength(0);
+    const started = performance.now();
+    await show("[т](".repeat(4000));
+    await show("[т](a(".repeat(4000));
+    await show(`[т](${"(а".repeat(20000)}`);
+    await show(`[т](${"(а)".repeat(20000)}`);
+    expect(performance.now() - started).toBeLessThan(3000);
+  });
+
   it("![картинка](http://…) не превращается в img", async () => {
     await show("Вот ![схема](http://evil.example/p.png) карты.");
     expect(all("img")).toHaveLength(0);
