@@ -465,3 +465,157 @@ test("history with HTML instead of JSON shows Russian text", async () => {
   expect(container.querySelector('[role="alert"]').textContent)
     .toContain("Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.");
 });
+
+// ---- CHAT-QUALITY-fe, CQF-4 (DESIGN.md §3 «FE-1», §7): разметка в ответах AI, не в репликах пользователя ----
+const MARKED_ANSWER = "**Главное:** у вас сильная Луна.\n\n- Солнце в Рыбах\n- Луна в Раке\n- Асцендент в Деве";
+const log = () => container.querySelector('[role="log"]');
+const expectNoRawMarkup = el => {
+  expect(el.textContent).not.toContain('**');
+  expect(el.textContent).not.toMatch(/^- /m);
+};
+const HOSTILE_ANSWER = [
+  'Привет <img src=x onerror=alert(1)> и <script>window.__xss=1</script>',
+  '[ссылка](http://evil.example/page) и [клик](javascript:window.__xss=1)',
+  '![картинка](http://evil.example/p.png)',
+  '- <img src=x onerror=alert(2)>',
+  '- **[жирная ссылка](http://evil.example)**',
+].join('\n\n');
+const expectNoActiveContent = () => {
+  expect(log().querySelectorAll('a, img, script, iframe, style, svg')).toHaveLength(0);
+  [...log().querySelectorAll('*')].forEach(el => [...el.attributes].forEach(attribute =>
+    expect(attribute.name).not.toMatch(/^(on|href$|src$|srcdoc$|style$)/i)));
+  expect(window.__xss).toBeUndefined();
+};
+
+test('CQF-4 stream: markup in the answer becomes strong and li in the conversation log, before and after done', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Расскажите про мою карту' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: '**Главное:** у вас сильная Луна.\n\n- Солнце в Рыбах\n- Луна ' });
+  await stream.event({ type: 'delta', text: 'в Раке\n- Асцендент в Деве' });
+  expect(log().querySelector('.message.gpt strong').textContent).toBe('Главное:');
+  expect([...log().querySelectorAll('.message.gpt ul > li')].map(el => el.textContent))
+    .toEqual(['Солнце в Рыбах', 'Луна в Раке', 'Асцендент в Деве']);
+  expectNoRawMarkup(log().querySelector('.message.gpt'));
+  await stream.event({ type: 'done', response: MARKED_ANSWER, follow_up_suggestions: [] });
+  expect(log().querySelector('.message.gpt strong').textContent).toBe('Главное:');
+  expect(log().querySelectorAll('.message.gpt li')).toHaveLength(3);
+  expect(log().querySelector('.stream-indicator')).toBeNull();
+  expectNoRawMarkup(log().querySelector('.message.gpt'));
+});
+
+test('CQF-4 stream: an unclosed ** is literal while streaming and bold once it closes', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Вопрос' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: 'Это **важ' });
+  expect(log().querySelector('.message.gpt').textContent).toContain('Это **важ');
+  expect(log().querySelector('.message.gpt strong')).toBeNull();
+  await stream.event({ type: 'delta', text: 'но** для вас' });
+  expect(log().querySelector('.message.gpt strong').textContent).toBe('важно');
+  expect(log().querySelector('.message.gpt').textContent).not.toContain('**');
+});
+
+test('CQF-4: a non-stream JSON answer with markup renders the same way', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Вопрос' });
+  global.fetch.mockResolvedValueOnce(response({ response: MARKED_ANSWER }));
+  await click(button('Спросить'));
+  expect(log().querySelector('.message.gpt strong').textContent).toBe('Главное:');
+  expect(log().querySelectorAll('.message.gpt ul > li')).toHaveLength(3);
+});
+
+test('CQF-4: the user message with **x** and a list stays literal, in the log and after a reload from history', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  const question = 'Что значит **x** в карте?\n- первое\n- второе';
+  await render({ initialQuestion: question });
+  global.fetch.mockResolvedValueOnce(response({ response: MARKED_ANSWER }));
+  await click(button('Спросить'));
+  let user = log().querySelector('.message.user');
+  expect(user.textContent).toBe(question);
+  expect(user.querySelector('strong, em, ul, ol, li, br, p')).toBeNull();
+  // Та же реплика пришла из истории (после обновления страницы).
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  global.fetch.mockResolvedValueOnce(response([{ role: 'user', content: question }, { role: 'gpt', content: MARKED_ANSWER }]));
+  await render();
+  user = log().querySelector('.message.user');
+  expect(user.textContent).toBe(question);
+  expect(user.querySelector('strong, em, ul, ol, li, br, p')).toBeNull();
+  expect(log().querySelector('.message.gpt strong').textContent).toBe('Главное:');
+});
+
+test.each(['natal', 'relationship'])('CQF-4: an answer loaded from %s history is drawn with the same markup', async subjectType => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([
+    { role: 'user', content: 'Что **главное**?' },
+    { role: 'gpt', content: MARKED_ANSWER },
+  ]));
+  await render({ subjectType, chartId: 42, relationshipId: 42 });
+  expect(log().querySelector('.message.gpt strong').textContent).toBe('Главное:');
+  expect([...log().querySelectorAll('.message.gpt ul > li')].map(el => el.textContent))
+    .toEqual(['Солнце в Рыбах', 'Луна в Раке', 'Асцендент в Деве']);
+  expectNoRawMarkup(log().querySelector('.message.gpt'));
+  expect(log().querySelector('.message.user').textContent).toBe('Что **главное**?');
+  expect(log().querySelector('.message.user strong')).toBeNull();
+});
+
+test('CQF-4: HTML and links in a stored answer never reach the DOM as elements', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([{ role: 'gpt', content: HOSTILE_ANSWER }]));
+  await render();
+  expect(log().querySelector('.message.gpt').textContent).toContain('ссылка');
+  expect(log().querySelector('.message.gpt').textContent).not.toContain('evil.example');
+  expectNoActiveContent();
+});
+
+test('CQF-4: HTML and links in a streamed and a finished answer never reach the DOM as elements', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Вопрос' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: HOSTILE_ANSWER });
+  expectNoActiveContent();
+  await stream.event({ type: 'done', response: HOSTILE_ANSWER, follow_up_suggestions: [] });
+  expectNoActiveContent();
+  expect(log().querySelector('.message.gpt').textContent).toContain('ссылка');
+  expect(log().querySelector('.message.gpt').textContent).not.toContain('evil.example');
+});
+
+test('CQF-4 guard (green on base): HTML in a user message and the waiting text stay plain', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([{ role: 'user', content: '<img src=x onerror=alert(1)> [т](http://evil.example)' }]));
+  await render();
+  expect(log().querySelector('.message.user').textContent).toBe('<img src=x onerror=alert(1)> [т](http://evil.example)');
+  expect(log().querySelectorAll('a, img, script')).toHaveLength(0);
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await act(async () => Simulate.change(container.querySelector('textarea'), { target: { value: 'Вопрос' } }));
+  await click(button('Спросить'));
+  expect(log().textContent).toContain('Обдумываю вашу карту и вопрос...');
+});
+
+test('CQF-4: after a failed answer with markup the draft stays and the partial answer disappears', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: 'Мой вопрос' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(response([]));
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: '**Главное:**\n- пункт' });
+  expect(log().querySelector('.message.gpt strong')).not.toBeNull();
+  await stream.event({ type: 'error', status: 502, detail: 'Stream interrupted' });
+  expect(log().querySelector('.message.gpt strong')).toBeNull();
+  expect(log().querySelector('.message.gpt li')).toBeNull();
+  expect(container.querySelector('textarea').value).toBe('Мой вопрос');
+});
