@@ -29,7 +29,7 @@ import NatalChartResultPage from "./pages/NatalChartResultPage";
 import RelationshipNewPage from "./pages/RelationshipNewPage";
 import RelationshipResultPage from "./pages/RelationshipResultPage";
 import { LoadingState } from "./components/UI";
-import DailyHoroscopePage from "./pages/DailyHoroscopePage";
+import NotFoundPage from "./pages/NotFoundPage";
 import PasswordResetPage from './pages/PasswordResetPage';
 
 // 🔹 Приватные маршруты
@@ -73,8 +73,8 @@ function AppContent() {
         <Route path="/my-charts" element={<MyCharts />} />
         <Route path="/relationships/new" element={<ProtectedRoute><RelationshipNewPage /></ProtectedRoute>} />
         <Route path="/relationships/:relationshipId" element={<ProtectedRoute><RelationshipResultPage /></ProtectedRoute>} />
-        <Route path="/daily-horoscope" element={<DailyHoroscopePage />} />
         <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/my-charts" replace /></ProtectedRoute>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       </main>
       <Footer />

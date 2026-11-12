@@ -1,2 +1,0 @@
-.daily-horoscope-container { width: min(720px, calc(100% - 32px)); margin: var(--ln-space-64) auto; padding: var(--ln-space-32); background: var(--ln-color-surface); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-lg); }
-.daily-horoscope-container .error-message { color: var(--ln-color-error); }
