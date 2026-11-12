@@ -1,7 +1,0 @@
-.patterns-wrapper { padding: 24px; }
-.patterns-title { font-size: 20px; margin-bottom: 24px; }
-.group-title { font-size: 15px; margin: 24px 0 16px; }
-.patterns-row { display: flex; flex-wrap: wrap; gap: 16px; }
-.pattern-card { padding: 16px; width: 220px; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--canvas); text-align: center; }
-.pattern-svg { display: block; margin: 0 auto 12px; }
-.pattern-body-text { margin: 4px 0; font-size: 12px; overflow-wrap: anywhere; }
