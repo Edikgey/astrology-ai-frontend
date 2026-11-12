@@ -143,7 +143,8 @@ test.each([
   expect(mockNavigate).not.toHaveBeenCalled();
   await act(async () => container.querySelector('.suggestions-list li').click());
   expect(container.querySelector('[role="alert"]')).toBeNull();
-  expect(container.textContent).toContain(timezone);
+  expect(container.querySelector('.selected-timezone').textContent).toMatch(/^✓ Часовой пояс места рождения: .+, UTC[+-]/);
+  expect(container.textContent).not.toContain(timezone);
   global.fetch.mockResolvedValueOnce(ok({ chart_id: 42 })); await submit();
   const payload=JSON.parse(global.fetch.mock.calls.find(([url]) => url.endsWith('/natal-chart'))[1].body);
   expect(payload).toMatchObject({ lat, lon, timezone, region, country });
@@ -233,4 +234,11 @@ test('late city lookup cannot replace suggestions for a newer birthplace', async
   await change('birthPlace', 'New city');
   await act(async () => old(ok({ results: [{ formatted: 'Old city', geometry: { lat: 3, lng: 4 }, components: {}, annotations: { timezone: { name: 'Asia/Tokyo' } } }] })));
   expect(container.querySelector('.suggestions-list').textContent).toBe('New city');
+});
+
+test('the selected time zone is shown as a city and offset for the entered birth date, never as an IANA id', async () => {
+  await lookup('Moscow', [result('Moscow', 'Moscow', 'Russia', 55.75, 37.62, 'Europe/Moscow')]);
+  await act(async () => container.querySelector('.suggestions-list li').click());
+  expect(container.querySelector('.selected-timezone strong').textContent).toBe('Москва, UTC+3');
+  expect(container.textContent).not.toMatch(/Europe\/Moscow/);
 });

@@ -51,6 +51,22 @@ const change = async (selector, value) => act(async () => Simulate.change(contai
 const submit = async () => act(async () => Simulate.submit(container.querySelector("form")));
 const gptCalls = () => global.fetch.mock.calls.filter(([url]) => /ask-gpt|gpt-messages/.test(url));
 
+test('saved chart shows the birth time zone as a city and offset, not as a technical id', async () => {
+  mockLocation = { pathname: '/natal-chart-result/7', state: null };
+  global.fetch.mockResolvedValue(ok({ chart_id: 7, houses, timezone: 'Europe/Moscow', birth_utc: '1992-09-02T20:00:00' }));
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('.result-metadata').textContent).toBe('Часовой пояс рождения: Москва, UTC+4');
+  expect(container.textContent).not.toContain('Europe/Moscow');
+});
+
+test('an unrecognised time zone is hidden rather than shown raw', async () => {
+  mockLocation = { pathname: '/natal-chart-result/7', state: null };
+  global.fetch.mockResolvedValue(ok({ chart_id: 7, houses, timezone: 'Invalid/Zone', birth_utc: null }));
+  await render(<NatalChartResultPage />);
+  expect(container.querySelector('.result-metadata')).toBeNull();
+  expect(container.textContent).not.toContain('Invalid/Zone');
+});
+
 test.each([{ warnings: [] }, { warnings: ['Карта рассчитана без следующих астероидов: Хирон. Их положения и аспекты не включены в расчёт.'] }])
   ('saved chart shows partial-calculation notice only when supplied: %j', async ({ warnings }) => {
     mockLocation = { pathname: '/natal-chart-result/7', state: null };

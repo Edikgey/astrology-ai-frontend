@@ -148,6 +148,8 @@ test("natal dependency conflict keeps a useful relationship instruction", async 
 
 test("Free plan status uses canonical available usage and shows upgrade", async () => {
   await render(<MyCharts />);
+  expect(container.querySelector(".dashboard-plan .dashboard-kicker").textContent).toBe("Бесплатно");
+  expect(container.querySelector(".dashboard-plan").textContent).not.toContain("Free");
   expect(container.textContent).toContain("Бесплатный план");
   expect(container.textContent).toContain("Осталось 6 из 10 AI-вопросов за всё время аккаунта");
   await click(button("Перейти на Premium"));

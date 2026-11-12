@@ -58,6 +58,13 @@ test('support offers direct email, safe payment-information instructions and man
   expect(container.textContent).not.toContain(SUPPLIER_NAME);
 });
 
+test.each([TermsPage, PrivacyPage, RefundPage, SupportPage])('legal page heading has no English label above the Russian title', async Page => {
+  await render(<Page />);
+  const heading = container.querySelector('.page-heading').textContent;
+  expect(heading).not.toMatch(/Terms|Privacy|Refund|Contact|Conditions|Support/);
+  expect(container.querySelector('.page-heading .eyebrow')).toBeNull();
+});
+
 test.each([TermsPage, PrivacyPage, RefundPage, SupportPage])('legal page has an accessible heading, current revision and all policy links', async Page => {
   const oldTitle = document.title;
   await render(<Page />);

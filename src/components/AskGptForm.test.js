@@ -217,6 +217,31 @@ test.each(["suggestion", "focus", "click", "input", "send"])("guest %s opens gat
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
+test("guest window is a labelled modal dialog: focus moves in, then returns to the composer without reopening", async () => {
+  await render();
+  const textarea = container.querySelector("textarea");
+  await act(async () => textarea.focus());
+  const dialog = container.querySelector("dialog[open]");
+  expect(dialog.getAttribute("role")).toBe("dialog");
+  expect(dialog.getAttribute("aria-modal")).toBe("true");
+  expect(dialog.querySelector("#" + dialog.getAttribute("aria-labelledby")).textContent).toBe("Сохраните карту и продолжите разбор");
+  expect(dialog.contains(document.activeElement)).toBe(true);
+  await click(button("Вернуться к карте"));
+  expect(container.querySelector("dialog")).toBeNull();
+  expect(document.activeElement).toBe(textarea);
+});
+
+test("closing the guest window with a suggestion returns focus to that suggestion", async () => {
+  await render();
+  const suggestion = button("Какие у меня сильные стороны?");
+  await act(async () => suggestion.focus());
+  await click(suggestion);
+  expect(container.querySelector("dialog[open]").contains(document.activeElement)).toBe(true);
+  await act(async () => container.querySelector("dialog").dispatchEvent(new Event("cancel", { bubbles: true, cancelable: true })));
+  expect(container.querySelector("dialog")).toBeNull();
+  expect(document.activeElement).toBe(button("Какие у меня сильные стороны?"));
+});
+
 test.each([["Продолжить бесплатно", "register"], ["У меня уже есть аккаунт", "login"]])("%s preserves selected chart, token, question and return route", async (cta, mode) => {
   localStorage.setItem("chart_id", "999");
   await render();

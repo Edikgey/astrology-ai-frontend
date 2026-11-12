@@ -2,7 +2,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import ChartWheel from './ChartWheel';
-import { normalizeChart } from './model';
+import { normalizeChart, longitudeText } from './model';
 import api from './fixtures/api-placidus.json';
 
 let root, container, model;
@@ -28,7 +28,8 @@ test('planet keyboard selection exposes exact source data and Escape clears sele
   await render();
   const sun = container.querySelector('[data-label="☉"]');
   await act(async () => Simulate.keyDown(sun, { key: 'Enter', preventDefault() {} }));
-  expect(container.querySelector('.wheel-detail').textContent).toContain(String(model.byId['☉'].longitude));
+  expect(container.querySelector('.wheel-detail').textContent).toContain(longitudeText(model.byId['☉'].longitude));
+  expect(container.querySelector('.wheel-detail').textContent).not.toContain('API');
   expect(container.querySelectorAll('.wheel-aspect.is-dim').length).toBeGreaterThan(0);
   await act(async () => Simulate.keyDown(container.querySelector('.chart-v2'), { key: 'Escape', stopPropagation() {} }));
   expect(container.querySelector('.wheel-detail').textContent).toContain('Выберите планету');
@@ -71,4 +72,23 @@ test('dense group selection highlights its exact anchors and offers each member'
   expect(container.querySelectorAll('[data-point-anchor]:not(.is-dim)')).toHaveLength(members.length);
   await act(async () => members[0].dispatchEvent(new MouseEvent('click', { bubbles: true })));
   expect(container.querySelector('.wheel-detail').textContent).toContain('359.8');
+});
+
+test('no internal word «API» reaches the visible text, the accessible description or the selected point and house', async () => {
+  await render();
+  await act(async () => Simulate.keyDown(container.querySelector('[data-label="☉"]'), { key: 'Enter', preventDefault() {} }));
+  expect(container.querySelector('.wheel-detail').textContent).not.toMatch(/API|Долгота/);
+  await act(async () => container.querySelector('.wheel-house-list button').click());
+  expect(container.querySelector('.wheel-detail').textContent).toContain('Куспид:');
+  expect(container.querySelector('.wheel-detail').textContent).not.toMatch(/API|Долгота/);
+  expect(container.textContent).not.toContain('API');
+  expect(container.querySelector('svg desc').textContent).not.toContain('API');
+});
+test('incomplete data is explained without «API» and names the missing point', async () => {
+  const changed = { bodies: { ...api.bodies_for_circle }, houses: api.houses, aspects: [], structuredAspects: null };
+  delete changed.bodies.AS;
+  model = normalizeChart(changed);
+  await render();
+  expect(container.textContent).toContain('Не хватает данных для точного положения ASC.');
+  expect(container.textContent).not.toMatch(/API|не передан/);
 });

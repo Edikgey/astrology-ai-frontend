@@ -16,7 +16,8 @@ test('guests see the free beta and optional recurring Premium without claiming p
  await act(async()=>root.render(<><FreeBetaNotice/><PricingPage/></>));
  expect(container.textContent).toContain('Бесплатный бета-тест');
  expect(container.querySelector('.free-beta-notice strong').textContent).toBe('Бесплатный бета-тест');
- expect(container.querySelector('.free-beta-notice span').textContent).toBe('Карты и AI-вопросы без лимита после входа в аккаунт. Поделитесь впечатлениями через кнопку обратной связи.');
+ expect(container.querySelector('.free-beta-notice span').textContent).toBe('Карты и AI-вопросы без лимита после входа в аккаунт.');
+ expect(container.textContent).not.toContain('кнопку обратной связи');
  const cards=container.querySelectorAll('.pricing-card');
  expect(cards[0].textContent).toContain('Сохранённые карты без лимита');
  expect(cards[0].textContent).toContain('AI-вопросы без лимита');
@@ -30,4 +31,31 @@ test('authenticated account state wins over stale public beta configuration',asy
  expect(container.querySelector('.free-beta-notice')).toBeNull();
  expect(container.textContent).not.toContain('Покупка Premium необязательна');
  expect(container.querySelector('.pricing-card').textContent).toContain('10 AI-вопросов за всё время аккаунта');
+});
+
+test('the feedback button hint is shown only to signed-in users, who actually have the button',async()=>{
+ mockUser={id:1};mockUsage={plan:'free',free_beta_enabled:true,saved_charts_used:1,saved_charts_limit:null,gpt_messages_used:1,gpt_messages_limit:null};
+ await act(async()=>root.render(<FreeBetaNotice/>));
+ expect(container.querySelector('.free-beta-notice span').textContent).toBe('Карты и AI-вопросы без лимита. Поделитесь впечатлениями через кнопку «Есть идея?».');
+});
+test('outside the beta the pricing eyebrow is Russian and the menu name «Тарифы» matches',async()=>{
+ mockPublicBeta=false;
+ await act(async()=>root.render(<PricingPage/>));
+ expect(container.querySelector('.eyebrow').textContent).toBe('Тарифы');
+ expect(container.textContent).not.toContain('Free & Premium');
+});
+test('a disabled Premium button says why while account data loads',async()=>{
+ mockUser={id:1};mockUsage=null;
+ await act(async()=>root.render(<PricingPage/>));
+ const button=[...container.querySelectorAll('button')].find(b=>b.textContent==='Перейти на Premium');
+ expect(button.disabled).toBe(true);
+ const reason=container.querySelector('#premium-unavailable');
+ expect(button.getAttribute('aria-describedby')).toBe('premium-unavailable');
+ expect(reason.textContent).toBe('Кнопка станет доступна, когда загрузятся данные аккаунта. Если этого не происходит, обновите страницу.');
+});
+test('an enabled Premium button carries no stale explanation',async()=>{
+ mockUser=null;mockUsage=null;
+ await act(async()=>root.render(<PricingPage/>));
+ const button=[...container.querySelectorAll('button')].find(b=>b.textContent==='Перейти на Premium');
+ expect(button.disabled).toBe(false);expect(container.querySelector('#premium-unavailable')).toBeNull();
 });
