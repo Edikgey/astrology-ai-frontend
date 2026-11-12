@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { chartRequest } from '../api/chartsApi';
 import { PageHeading, LoadingState } from '../components/UI';
 import { chartPresentation } from '../api/chartPresentation';
+import { timezoneLabel } from '../utils/timezoneLabel';
 import './NatalChartResultPage.css';
 import NatalChart from '../components/NatalChart';
 import AskGptForm from '../components/AskGptForm'; // Подключаем компонент чата
@@ -79,6 +80,8 @@ const NatalChartResultPage = () => {
     </div>;
   }
 
+  const birthZone = chartData ? timezoneLabel(chartData.timezone, chartData.birth_utc ? new Date(`${chartData.birth_utc}Z`) : null) : "";
+
   if (!chartData) {
     return <div className="page"><LoadingState text="Загрузка натальной карты..." /></div>;
   }
@@ -89,7 +92,7 @@ const NatalChartResultPage = () => {
      action={relationshipIntent ? null : <a className="button" href="#chart-conversation">Перейти к разговору ↓</a>}>
      <p>{relationshipIntent ? "Теперь можно сохранить её и добавить карту другого человека для разбора отношений." :
        landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>
-     {chartData.timezone && <p className="result-metadata">Часовой пояс рождения: {chartData.timezone}</p>}
+     {birthZone && <p className="result-metadata">Часовой пояс рождения: {birthZone}</p>}
    </PageHeading>
    {Array.isArray(chartData.calculation_warnings) && chartData.calculation_warnings.length > 0 &&
      <aside className="notice" role="status" aria-label="Неполные данные карты">

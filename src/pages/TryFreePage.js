@@ -11,6 +11,7 @@ import { apiError } from "../api/apiError";
 import UsageSummary from "../components/UsageSummary";
 import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent, normalizeLandingIntent } from "./landingIntent";
 import "./TryFreePage.css";
+import { timezoneLabel } from "../utils/timezoneLabel";
 
 const years = Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => 1900 + i);
 const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
@@ -267,6 +268,9 @@ const TryFreePage = () => {
     }
   };
 
+  const monthIndex = months.indexOf(formData.month);
+  const birthZone = timezoneLabel(formData.timezone, monthIndex < 0 ? null : new Date(Date.UTC(Number(formData.year), monthIndex, Number(formData.day), 12)));
+
   return (
     <div className="tryfree-container page">
       <aside className="create-intro">
@@ -330,7 +334,7 @@ const TryFreePage = () => {
           <p className="field-hint" id="location-status" role={locationError ? "alert" : undefined}>
             {locationError || (formData.selectedLocation ? "Место выбрано из подсказок." : "Введите город и выберите вариант с нужной областью и страной.")}
           </p>
-          {formData.timezone && <p className="selected-timezone"><span aria-hidden="true">✓</span> Часовой пояс места рождения: <strong>{formData.timezone}</strong></p>}
+          {birthZone && <p className="selected-timezone"><span aria-hidden="true">✓</span> Часовой пояс места рождения: <strong>{birthZone}</strong></p>}
           {timeOptions.length > 0 && <label>Вариант времени при переводе часов:
             <select name="timeFold" value={formData.timeFold} onChange={handleChange}>
               <option value="">Выберите UTC-смещение</option>
