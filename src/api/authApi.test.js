@@ -1,4 +1,4 @@
-import { login, verifyCode, requestPasswordReset, resetPassword } from "./authApi";
+import { login, verifyCode, requestRegister, getMe, requestPasswordReset, resetPassword } from "./authApi";
 
 const guestToken = "12345678-1234-4234-8234-123456789abc";
 const flows = [
@@ -81,4 +81,42 @@ test('recovery requests never add token to URL, headers or browser storage',asyn
 test('429 exposes Retry-After to recovery UI without unhandled response data',async()=>{
   global.fetch.mockResolvedValue({ok:false,status:429,headers:{get:()=> '60'},json:async()=>({detail:'Слишком много запросов. Попробуйте позже.'})});
   await expect(requestPasswordReset('owner@example.com')).rejects.toMatchObject({retryAfter:60,message:'Слишком много запросов. Попробуйте позже.'});
+});
+
+describe("auth network, non-JSON and code handling", () => {
+  const NETWORK = "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
+  const UNEXPECTED = "Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.";
+  const html = status => ({ ok: status < 400, status, headers: { get: () => null }, json: async () => { throw new SyntaxError("Unexpected token '<'"); } });
+  const calls = [
+    ["requestRegister", () => requestRegister("a@example.com", "test-password-only")],
+    ["verifyCode", () => verifyCode("123456", "a@example.com", "test-password-only")],
+    ["login", () => login("a@example.com", "test-password-only")],
+    ["getMe", () => getMe("jwt")],
+  ];
+  test.each(calls)("%s turns a network failure into Russian text", async (_, call) => {
+    global.fetch.mockRejectedValue(new TypeError("Failed to fetch"));
+    await expect(call()).rejects.toThrow(NETWORK);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+  test.each(calls)("%s turns HTML in success and error answers into Russian text", async (_, call) => {
+    global.fetch.mockResolvedValueOnce(html(200));
+    await expect(call()).rejects.toThrow(UNEXPECTED);
+    global.fetch.mockResolvedValueOnce(html(502));
+    await expect(call()).rejects.toThrow(UNEXPECTED);
+    expect(localStorage.getItem("access_token")).toBeNull();
+  });
+  test("a rate-limited HTML answer keeps Retry-After", async () => {
+    global.fetch.mockResolvedValue({ ...html(429), headers: { get: () => "30" } });
+    await expect(login("a@example.com", "test-password-only")).rejects.toMatchObject({ message: UNEXPECTED, retryAfter: 30 });
+  });
+  test("emoji prefix of a registration detail is removed", async () => {
+    global.fetch.mockResolvedValue({ ok: false, status: 400, headers: { get: () => null },
+      json: async () => ({ detail: "❌ Пользователь с таким email уже зарегистрирован. Попробуйте войти." }) });
+    await expect(requestRegister("a@example.com", "test-password-only")).rejects.toThrow(/^Пользователь с таким email/);
+  });
+  test("verification code is sent without spaces", async () => {
+    global.fetch.mockResolvedValue({ ok: true, json: async () => ({ access_token: "jwt" }) });
+    await verifyCode(" 123 456 ", "a@example.com", "test-password-only");
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body).code).toBe("123456");
+  });
 });
