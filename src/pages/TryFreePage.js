@@ -198,7 +198,7 @@ const TryFreePage = () => {
     setTimeOptions([]);
     setSubmitError("");
     const valid = validLocation(city);
-    setLocationError(valid ? "" : "У этого результата нет пригодных координат или IANA timezone. Выберите другой результат или уточните область и страну.");
+    setLocationError(valid ? "" : "Не удалось определить часовой пояс этого места. Выберите место из подсказок ещё раз.");
     setFormData((prevData) => ({
       ...prevData,
       birthPlace: city.city,
