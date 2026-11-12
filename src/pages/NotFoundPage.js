@@ -6,7 +6,11 @@ export default function NotFoundPage() {
   useEffect(() => {
     const previous = document.title;
     document.title = 'Страница не найдена — Lunaria';
-    return () => { document.title = previous; };
+    const robots = document.createElement('meta');
+    robots.name = 'robots';
+    robots.content = 'noindex';
+    document.head.appendChild(robots);
+    return () => { document.title = previous; robots.remove(); };
   }, []);
   return <section className="page">
     <PageHeading title="Страница не найдена">

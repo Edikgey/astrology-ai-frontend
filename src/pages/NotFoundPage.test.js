@@ -55,3 +55,19 @@ test('private routes still send a signed-out visitor to sign-in, not to the 404 
   expect(container.querySelector('main').textContent).toContain('Рады видеть вас снова');
   expect(container.querySelector('main').textContent).not.toContain('Страница не найдена');
 });
+
+const robotsMeta = () => document.head.querySelectorAll('meta[name="robots"]');
+
+test('404 page asks search engines not to index it, and the mark is removed after leaving', async () => {
+  await openApp('/abc');
+  expect(robotsMeta()).toHaveLength(1);
+  expect(robotsMeta()[0].getAttribute('content')).toBe('noindex');
+  await act(async () => root.unmount());
+  expect(robotsMeta()).toHaveLength(0);
+  root = createRoot(container);
+});
+
+test('known public page has no noindex mark', async () => {
+  await openApp('/terms');
+  expect(robotsMeta()).toHaveLength(0);
+});

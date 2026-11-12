@@ -4,10 +4,10 @@ export const VIEWPORT_CLASSES = ['small', 'medium', 'large', 'unknown'];
 export const CAMPAIGN_SOURCES = ['unspecified', 'telegram', 'instagram', 'vk', 'youtube', 'other'];
 export const ROUTE_KEYS = new Set(['home', 'pricing', 'authorization', 'chart_creation',
   'chart_view', 'my_charts', 'relationship_creation', 'relationship_view',
-  'daily_horoscope', 'terms', 'privacy', 'refunds', 'support']);
+  'terms', 'privacy', 'refunds', 'support']);
 const STATIC_ROUTES = {'/': 'home', '/pricing': 'pricing', '/authorization': 'authorization',
   '/try-free': 'chart_creation', '/natal-chart-result': 'chart_view', '/my-charts': 'my_charts',
-  '/relationships/new': 'relationship_creation', '/daily-horoscope': 'daily_horoscope',
+  '/relationships/new': 'relationship_creation',
   '/terms': 'terms', '/privacy': 'privacy', '/refunds': 'refunds', '/support': 'support'};
 const UUID4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const provider = ['stripe', 'lava'];
