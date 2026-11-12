@@ -8,7 +8,15 @@ import { useUsage } from "../context/UsageContext";
 import { EmptyState, LoadingState, OrbitMark, PageHeading } from "../components/UI";
 import "./Relationships.css";
 
-const labelFor = chart => chartPresentation(chart.chart_id).name || `Карта №${chart.chart_id}`;
+const birthDate = chart => chart.day && chart.month && chart.year
+  ? `${String(chart.day).padStart(2, "0")}.${String(chart.month).padStart(2, "0")}.${chart.year}` : "";
+// Внутренний номер карты не показываем. Если безымянных карт несколько, различаем их по дате рождения.
+const labelFor = (chart, all) => {
+  const name = chartPresentation(chart.chart_id).name;
+  if (name) return name;
+  const date = all.filter(item => !chartPresentation(item.chart_id).name).length > 1 ? birthDate(chart) : "";
+  return date ? `Карта без названия · ${date}` : "Карта без названия";
+};
 
 export default function RelationshipNewPage() {
   const navigate = useNavigate();
@@ -39,8 +47,8 @@ export default function RelationshipNewPage() {
         if (nextB) setChartB(String(nextB));
         const a = data.charts?.find(chart => chart.chart_id === nextA);
         const b = data.charts?.find(chart => chart.chart_id === nextB);
-        if (a && !labelA) setLabelA(labelFor(a));
-        if (b && (!labelB || createdChartId === nextB)) setLabelB(labelFor(b));
+        if (a && !labelA) setLabelA(labelFor(a, data.charts));
+        if (b && (!labelB || createdChartId === nextB)) setLabelB(labelFor(b, data.charts));
       })
       .catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
@@ -51,11 +59,11 @@ export default function RelationshipNewPage() {
     const chart = byId.get(value);
     if (person === "A") {
       setChartA(value);
-      if (chart) setLabelA(labelFor(chart));
+      if (chart) setLabelA(labelFor(chart, charts));
       if (value === chartB) setChartB("");
     } else {
       setChartB(value);
-      if (chart) setLabelB(labelFor(chart));
+      if (chart) setLabelB(labelFor(chart, charts));
       if (value === chartA) setChartA("");
     }
     setError("");
@@ -107,7 +115,7 @@ export default function RelationshipNewPage() {
           <select id={`relationship-chart-${person}`} value={selected} onChange={event => choose(person, event.target.value)} required>
             <option value="">Выберите карту</option>
             {charts.map(chart => <option key={chart.chart_id} value={chart.chart_id}
-              disabled={(person === "A" ? chartB : chartA) === String(chart.chart_id)}>{labelFor(chart)}</option>)}
+              disabled={(person === "A" ? chartB : chartA) === String(chart.chart_id)}>{labelFor(chart, charts)}</option>)}
           </select>
           <label htmlFor={`relationship-label-${person}`}>Имя в разборе</label>
           <input id={`relationship-label-${person}`} value={label} maxLength={100} required
