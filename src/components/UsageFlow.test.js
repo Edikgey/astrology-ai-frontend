@@ -76,6 +76,7 @@ test("guest and pending auth never request account usage; verified JWT loads ser
 test("Free upgrade preserves comparison modal and disables checkout when env is missing", async () => {
   await render(); await click(button("Перейти на Premium"));
   const modal = container.querySelector("dialog[open]");
+  expect(modal.querySelector("h3").textContent).toBe("Бесплатно"); expect(modal.textContent).not.toContain("Free");
   expect(modal.textContent).toContain("3 карты"); expect(modal.textContent).toContain("10 AI-вопросов за всё время");
   expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 AI-вопросов в месяц");
   const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Оплатить через Stripe");
@@ -127,7 +128,7 @@ test("successful GPT send keeps saved history and refreshes account usage", asyn
   serverUsage = { ...FREE, gpt_messages_used: 4, gpt_messages_available: 6 };
   global.fetch.mockResolvedValueOnce(ok({ response: "New answer" }));
   await click(button("Спросить"));
-  expect(container.textContent).toContain("New answer"); expect(container.querySelector('.chat-allowance').textContent).toBe("Free · Доступно вопросов: 6");
+  expect(container.textContent).toContain("New answer"); expect(container.querySelector('.chat-allowance').textContent).toBe("Бесплатно · Доступно вопросов: 6");
   expect(calls("/account/usage")).toHaveLength(2); expect(calls("/ask-gpt")).toHaveLength(1);
   expect(consumed).toHaveBeenCalledTimes(1); expect(container.querySelector("textarea").value).toBe("");
 });

@@ -21,7 +21,7 @@ const formatDate = chart => {
 // chartLabels puts the birth date into the title of an unnamed chart when there are several of them.
 const TITLE_HAS_DATE = / · \d{2}\.\d{2}\.\d{4}$/;
 
-const formatTime =hour => {
+const formatTime = hour => {
   if (hour == null) return null;
   const totalMinutes = Math.round(hour * 60);
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;

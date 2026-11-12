@@ -175,7 +175,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const showStarters = !authenticated || (canChat && !historyLoading && !historyError &&
     !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim()));
   const allowance = usageError ? "Не удалось обновить лимиты аккаунта." : usage?.free_beta_enabled ? "Бесплатный бета-тест · AI-вопросы без лимита" : usage ?
-    `${usage.plan === "premium" ? "Premium" : "Free"} · ${usage.plan === "premium" && !usage.gpt_period_valid ?
+    `${usage.plan === "premium" ? "Premium" : "Бесплатно"} · ${usage.plan === "premium" && !usage.gpt_period_valid ?
       "Нет действующего периода" : Number.isFinite(usage.gpt_messages_available) ?
       `Доступно вопросов: ${usage.gpt_messages_available}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
     usageLoading ? "Загрузка лимитов…" : null;

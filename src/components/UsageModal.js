@@ -52,7 +52,7 @@ export default function UsageModal({ state, usage, onClose }) {
     {free ? <>
       {beta && <p>Обычные лимиты тарифов вне бета-теста:</p>}
       <div className="usage-plan-grid">
-        <section><h3>Free</h3><p>{PLANS.free.chartLimit} карты</p><p>{PLANS.free.gptLimit} AI-вопросов за всё время аккаунта</p></section>
+        <section><h3>Бесплатно</h3><p>{PLANS.free.chartLimit} карты</p><p>{PLANS.free.gptLimit} AI-вопросов за всё время аккаунта</p></section>
         <section><h3>Premium</h3><p>{PLANS.premium.chartLimit} карт</p><p>{PLANS.premium.gptLimit} AI-вопросов в месяц — за расчётный период, на весь аккаунт</p></section>
       </div>
       <div className="payment-options">
