@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <title>Lunaria</title>
+  <mask id="cut"><rect width="1000" height="1000" fill="#fff"/><circle cx="650" cy="330" r="365" fill="#000"/></mask>
+  <circle cx="500" cy="500" r="500" fill="#7360f2"/>
+  <circle cx="500" cy="490" r="430" fill="#fff" mask="url(#cut)"/>
+</svg>

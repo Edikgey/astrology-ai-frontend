@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /authorization
+Disallow: /reset-password
+Disallow: /my-charts
+Disallow: /natal-chart-result
+Disallow: /relationships
+Disallow: /dashboard
+
+Sitemap: https://mylunariaai.com/sitemap.xml
