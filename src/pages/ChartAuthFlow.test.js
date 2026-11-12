@@ -174,6 +174,9 @@ test("guest creation keeps the existing API flow, renders the result, and never 
   const creation = global.fetch.mock.calls.find(([url]) => url.endsWith('/natal-chart'));
   expect(creation[1].headers["X-Session-Token"]).toBe(guestToken);
   expect(localStorage.getItem("chart_id")).toBe("7");
+  // FE-LOCAL-DATA F2: a guest does not leave birth data or the whole chart answer behind, only the number.
+  expect(localStorage.getItem("tempUserData")).toBeNull();
+  expect(localStorage.getItem("natalChart")).toBeNull();
   expect(mockNavigate).toHaveBeenCalledWith("/natal-chart-result/7");
   mockLocation = { pathname: "/natal-chart-result/7", state: null };
   await render(<NatalChartResultPage />);
