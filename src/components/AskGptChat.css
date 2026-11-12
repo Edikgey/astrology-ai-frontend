@@ -59,7 +59,9 @@
 .stream-indicator { color: var(--ln-color-secondary); animation: stream-pulse 1.2s ease-in-out infinite alternate; }
 @keyframes stream-pulse { to { opacity: .35; } }
 @media (max-width: 700px) {
-  .askgpt-container.is-chat-active { height: max(660px, calc(100dvh - 24px)); padding: var(--ln-space-16); }
+  /* Короткая переписка не растягивается на весь экран: между ответом и подсказками не остаётся пустой дыры. */
+  .askgpt-container.is-chat-active { height: auto; padding: var(--ln-space-16); }
+  .is-chat-active .chat-messages { flex: 0 1 auto; max-height: min(60dvh, 520px); }
   .is-chat-active .chat-heading h2 { font-size: var(--ln-text-28); }
   .is-chat-active .chat-composer { flex-direction: row; align-items: flex-end; }
   .askgpt-container .chat-send { min-width: 0; padding: var(--ln-space-8); font-size: var(--ln-text-12); }
