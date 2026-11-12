@@ -128,7 +128,7 @@ test('return focus refreshes scheduled cancellation date while retaining Premium
   expect(container.textContent).toContain('Управление подпиской');
   serverUsage = { ...free, payment_provider: 'stripe', subscription_status: 'canceled', cancel_at_period_end: true };
   await act(async () => window.dispatchEvent(new Event('focus')));
-  expect(container.textContent).toContain('Подписка завершена. Действуют лимиты Free.');
+  expect(container.textContent).toContain('Подписка завершена. Действуют лимиты бесплатного плана.');
   expect(container.querySelector('.subscription-management button')).toBeNull();
 });
 

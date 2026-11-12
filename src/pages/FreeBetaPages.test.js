@@ -20,7 +20,7 @@ test('guests see the free beta and optional recurring Premium without claiming p
  expect(container.textContent).not.toContain('кнопку обратной связи');
  const cards=container.querySelectorAll('.pricing-card');
  expect(cards[0].querySelector('h3').textContent).toBe('Бесплатно');
- expect(cards[0].textContent).not.toContain('Free');
+ expect(container.textContent).not.toContain('Free');
  expect(cards[0].textContent).toContain('Сохранённые карты без лимита');
  expect(cards[0].textContent).toContain('AI-вопросы без лимита');
  expect(cards[1].textContent).toContain('Покупка Premium необязательна');
@@ -44,7 +44,7 @@ test('outside the beta the pricing eyebrow is Russian and the menu name «Тар
  mockPublicBeta=false;
  await act(async()=>root.render(<PricingPage/>));
  expect(container.querySelector('.eyebrow').textContent).toBe('Тарифы');
- expect(container.textContent).not.toContain('Free & Premium');
+ expect(container.textContent).not.toContain('Free');
 });
 test('a disabled Premium button says why while account data loads',async()=>{
  mockUser={id:1};mockUsage=null;
