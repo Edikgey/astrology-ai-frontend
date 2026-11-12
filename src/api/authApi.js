@@ -1,5 +1,6 @@
 import {analyticsHeaders, productAnalytics} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
+import { apiFetch, stripLeadingEmoji, UNEXPECTED_RESPONSE_TEXT } from "./apiError";
 
 const BASE_URL = API_URL;
 
@@ -9,6 +10,17 @@ function authError(message, response) {
   error.retryAfter = response.status === 429 && Number.isFinite(retry) ? Math.min(86400, Math.max(1, retry)) : 0;
   return error;
 }
+
+// Тело ответа: не JSON (например, HTML вместо API) — понятный текст, а не «Unexpected token '<'».
+async function readAuthBody(response) {
+  const data = await response.json().catch(() => null);
+  if (data !== null) return data;
+  if (response.ok) throw new Error(UNEXPECTED_RESPONSE_TEXT);
+  return { detail: UNEXPECTED_RESPONSE_TEXT };
+}
+
+const detailText = (detail, fallback) => Array.isArray(detail) ? detail.map((d) => d.msg).join(", ") :
+  (typeof detail === "string" ? stripLeadingEmoji(detail) : detail) || fallback;
 
 // Вспомогательная функция получения session_token
 function getSessionToken() {
@@ -26,17 +38,15 @@ function getSessionToken() {
 export async function requestRegister(email, password, confirmation) {
   productAnalytics.emit('registration_started', {method: 'email'});
 
-  const response = await fetch(`${BASE_URL}/auth/request-register`, {
+  const response = await apiFetch(`${BASE_URL}/auth/request-register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, ...(confirmation !== undefined ? { password_confirmation: confirmation } : {}) }),
   });
 
-  const data = await response.json();
+  const data = await readAuthBody(response);
   if (!response.ok) {
-    const errorMessage = Array.isArray(data.detail)
-      ? data.detail.map((d) => d.msg).join(", ")
-      : data.detail || "Ошибка регистрации";
+    const errorMessage = detailText(data.detail, "Ошибка регистрации");
     throw authError(errorMessage, response);
   }
   return data;
@@ -48,20 +58,18 @@ export async function requestRegister(email, password, confirmation) {
 export async function verifyCode(code, email, password, guestChart = null, confirmation) {
   const sessionToken = guestChart?.sessionToken || getSessionToken();
 
-  const response = await fetch(`${BASE_URL}/auth/verify-code`, {
+  const response = await apiFetch(`${BASE_URL}/auth/verify-code`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json", ...analyticsHeaders(),
       "X-Session-Token": sessionToken,
     },
-    body: JSON.stringify({ email, password, code, ...(confirmation !== undefined ? { password_confirmation: confirmation } : {}), ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
+    body: JSON.stringify({ email, password, code: String(code).replace(/\s+/g, ""), ...(confirmation !== undefined ? { password_confirmation: confirmation } : {}), ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
   });
 
-  const data = await response.json();
+  const data = await readAuthBody(response);
   if (!response.ok) {
-    const errorMessage = Array.isArray(data.detail)
-      ? data.detail.map((d) => d.msg).join(", ")
-      : data.detail || "Ошибка регистрации";
+    const errorMessage = detailText(data.detail, "Ошибка регистрации");
     throw authError(errorMessage, response);
   }
 
@@ -76,7 +84,7 @@ export async function verifyCode(code, email, password, guestChart = null, confi
 export async function login(email, password, guestChart = null) {
   const sessionToken = guestChart?.sessionToken || getSessionToken();
 
-  const response = await fetch(`${BASE_URL}/auth/login`, {
+  const response = await apiFetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json", ...analyticsHeaders(),
@@ -85,11 +93,9 @@ export async function login(email, password, guestChart = null) {
     body: JSON.stringify({ email, password, ...(guestChart ? { guest_chart_id: Number(guestChart.chartId) } : {}) }),
   });
 
-  const data = await response.json();
+  const data = await readAuthBody(response);
   if (!response.ok) {
-    const errorMessage = Array.isArray(data.detail)
-      ? data.detail.map((d) => d.msg).join(", ")
-      : data.detail || "Ошибка входа";
+    const errorMessage = detailText(data.detail, "Ошибка входа");
     throw authError(errorMessage, response);
   }
 
@@ -102,7 +108,7 @@ export async function login(email, password, guestChart = null) {
  * Получение текущего пользователя по access_token
  */
 export async function getMe(token) {
-  const response = await fetch(`${BASE_URL}/auth/me`, {
+  const response = await apiFetch(`${BASE_URL}/auth/me`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -110,9 +116,9 @@ export async function getMe(token) {
     },
   });
 
-  const data = await response.json();
+  const data = await readAuthBody(response);
   if (!response.ok) {
-    throw new Error(data.detail || "Ошибка получения пользователя");
+    throw new Error(detailText(data.detail, "Ошибка получения пользователя"));
   }
   return {
     id: data.id,

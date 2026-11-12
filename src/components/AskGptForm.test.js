@@ -405,3 +405,38 @@ test('switching relationships aborts the previous subject and ignores its late r
   expect(container.textContent).toContain('Second pair');
   expect(container.textContent).not.toContain('First pair late');
 });
+
+test.each([
+  [403, "⛔ Недоступно: карта не принадлежит пользователю", "Чат этой карты недоступен для вашего аккаунта."],
+  [404, "❌ Натальная карта не найдена", "Чат этой карты недоступен для вашего аккаунта."],
+  [409, "Conflict", "Запрос сейчас недоступен. Попробуйте позже."],
+  [429, "Too many requests", "Слишком много запросов. Подождите немного и попробуйте ещё раз."],
+])("send HTTP %s with a string detail shows the chat's own hint", async (status, detail, hint) => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render();
+  await click(button("Какая карьера мне подходит?"));
+  global.fetch.mockResolvedValueOnce({ ok: false, status, json: async () => ({ detail }) }).mockResolvedValueOnce(response([]));
+  await click(button("Спросить"));
+  expect(container.querySelector('[role="alert"]').textContent).toBe(hint);
+});
+
+test("send with a lost connection shows Russian text and keeps the draft", async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render();
+  await click(button("Какая карьера мне подходит?"));
+  global.fetch.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(response([]));
+  await click(button("Спросить"));
+  expect(container.querySelector('[role="alert"]').textContent).toBe("Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.");
+  expect(container.querySelector("textarea").value).toBe("Какая карьера мне подходит?");
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes("/ask-gpt"))).toHaveLength(1);
+});
+
+test("history with HTML instead of JSON shows Russian text", async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce({ ok: true, json: async () => { throw new SyntaxError("Unexpected token '<'"); } });
+  await render();
+  expect(container.querySelector('[role="alert"]').textContent)
+    .toContain("Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.");
+});
