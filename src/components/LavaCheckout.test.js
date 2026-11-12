@@ -45,7 +45,7 @@ test("RUB option uses authenticated server checkout without client price and pre
     { method: "POST", headers: { Authorization: "Bearer fake-jwt" } });
   expect(tab.opener).toBeNull(); expect(tab.location.href).toBe("https://pay.example.test/invoice");
   expect(container.querySelector("textarea").value).toBe("Мой вопрос");
-  expect(container.textContent).toContain("План: Free");
+  expect(container.textContent).toContain("План: Бесплатно");
 });
 
 test("unconfigured Lava stays hidden and guest cannot start checkout", async () => {
@@ -83,7 +83,7 @@ test("price/configuration errors retain Free and draft", async () => {
   const stripe = container.querySelector('[aria-label="Оплата — Stripe"]');
   expect(lava.querySelector('[role="alert"]').textContent).toBe("Цена требует проверки");
   expect(stripe.querySelector('[role="alert"]')).toBeNull();
-  expect(container.textContent).toContain("План: Free");
+  expect(container.textContent).toContain("План: Бесплатно");
   expect(container.querySelector("textarea").value).toBe("Мой вопрос");
 });
 
@@ -130,7 +130,7 @@ test("failed return does not claim payment received or start success polling", a
   const count = global.fetch.mock.calls.length;
   await act(async () => jest.advanceTimersByTime(60000));
   expect(global.fetch.mock.calls.length).toBe(count);
-  expect(container.textContent).toContain("План: Free");
+  expect(container.textContent).toContain("План: Бесплатно");
 });
 
 test("Lava subscriber gets confirmation and Lava cancel endpoint, never Stripe portal", async () => {
@@ -154,7 +154,7 @@ test("declining cancellation does not send request", async () => {
 test("forged successful return polls server and cannot grant Premium", async () => {
   jest.useFakeTimers(); window.history.replaceState({}, "", "/my-charts?billing=lava&status=success&invoiceId=fake");
   await render();
-  expect(container.textContent).toContain("План: Free");
+  expect(container.textContent).toContain("План: Бесплатно");
   expect(container.textContent).toContain("Ожидаем подтверждение");
   state = { ...state, plan: "premium" };
   await act(async () => jest.advanceTimersByTime(3000));

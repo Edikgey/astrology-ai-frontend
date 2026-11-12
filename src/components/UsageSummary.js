@@ -24,7 +24,7 @@ export default function UsageSummary() {
   const start = formatPeriodDate(usage.current_period_start);
   const end = formatPeriodDate(usage.current_period_end);
   return <section className="usage-summary" aria-label="Использование аккаунта" aria-busy={usageLoading}>
-    <strong>План: {premium ? "Premium" : usage.plan === "free" ? "Free" : usage.plan}</strong>
+    <strong>План: {premium ? "Premium" : usage.plan === "free" ? "Бесплатно" : usage.plan}</strong>
     {beta && <p>Бесплатный бета-тест: карты и AI-вопросы без лимита.</p>}
     <p>Сохранено карт: {usage.saved_charts_used} / {beta ? "без лимита" : usage.saved_charts_limit}</p>
     <p>AI-вопросы: {usage.gpt_messages_used} / {beta ? "без лимита" : usage.gpt_messages_limit}{!beta && <> — {usage.gpt_limit_type === "billing_period" ? "за расчётный период" : "за всё время аккаунта"}</>}</p>

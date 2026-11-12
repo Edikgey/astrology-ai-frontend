@@ -65,7 +65,7 @@ test("guest and pending auth never request account usage; verified JWT loads ser
   mockAuth = { user: { id: 1 }, token: "jwt", loading: false };
   serverUsage = { ...FREE, saved_charts_limit: 5, gpt_messages_limit: 17 };
   await render();
-  expect(container.textContent).toContain("План: Free");
+  expect(container.textContent).toContain("План: Бесплатно");
   expect(container.textContent).toContain("3 / 5");
   expect(container.textContent).toContain("3 / 17");
   expect(calls("/account/usage")[0][1].headers).toEqual({ Authorization: "Bearer jwt" });
@@ -95,7 +95,7 @@ test("Premium shows real billing period and pending reservations without any upg
 test.each([401, 500])("usage HTTP %s shows a recoverable error, never invented Free counters", async status => {
   global.fetch.mockResolvedValueOnce(fail(status, "Failure")); await render();
   expect(container.querySelector('[role="alert"]')).not.toBeNull();
-  expect(container.textContent).not.toContain("План: Free"); expect(button("Перейти на Premium")).toBeUndefined();
+  expect(container.textContent).not.toContain("План: Бесплатно"); expect(button("Перейти на Premium")).toBeUndefined();
   if (status === 401) expect(container.querySelector("a").getAttribute("href")).toBe("/authorization");
   else { await click(button("Обновить лимиты")); expect(container.textContent).toContain("3 / 10"); }
 });
@@ -201,7 +201,7 @@ test("free beta shows real unlimited usage while keeping optional Premium visibl
   await render();
   expect(container.textContent).toContain("11 / без лимита");
   expect(container.textContent).toContain("401 / без лимита");
-  expect(container.textContent).toContain("План: Free");
+  expect(container.textContent).toContain("План: Бесплатно");
   await click(button("Перейти на Premium"));
   expect(container.querySelector('dialog').textContent).toContain("Покупка Premium необязательна");
   expect(container.querySelector('dialog').textContent).toContain("Обычные лимиты тарифов вне бета-теста");

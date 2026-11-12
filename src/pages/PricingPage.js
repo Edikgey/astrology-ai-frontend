@@ -23,7 +23,7 @@ export default function PricingPage() {
   return <section className="pricing-section page">
     <PageHeading eyebrow={beta ? "Бесплатный бета-тест" : "Тарифы"} title={beta ? "Исследуйте Lunaria без лимитов." : "Больше места для ваших открытий."}><p>{beta ? "Сохраняйте карты и задавайте AI-вопросы бесплатно после входа в аккаунт. Покупка Premium необязательна." : "Начните бесплатно. Выберите Premium, когда захотите продолжить разговор."}</p></PageHeading>
     <div className="pricing-grid">
-      <div className="pricing-card"><span className="eyebrow">Первое знакомство</span><h3>Free</h3><p className="free-price">Бесплатно</p><p className="plan-description">Ваша карта и первые вопросы к ней.</p>
+      <div className="pricing-card"><span className="eyebrow">Первое знакомство</span><h3>Бесплатно</h3><p className="plan-description">Ваша карта и первые вопросы к ней.</p>
         <p>{beta ? "Сохранённые карты без лимита" : `${PLANS.free.chartLimit} сохранённые карты`}</p><p>{beta ? "AI-вопросы без лимита" : `${PLANS.free.gptLimit} AI-вопросов за всё время аккаунта`}</p><p>История разговора для каждой карты</p>
         <button className="button-secondary" onClick={() => navigate("/try-free")}>Начать бесплатно</button>
       </div>

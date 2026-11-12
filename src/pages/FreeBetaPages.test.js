@@ -19,6 +19,8 @@ test('guests see the free beta and optional recurring Premium without claiming p
  expect(container.querySelector('.free-beta-notice span').textContent).toBe('Карты и AI-вопросы без лимита после входа в аккаунт.');
  expect(container.textContent).not.toContain('кнопку обратной связи');
  const cards=container.querySelectorAll('.pricing-card');
+ expect(cards[0].querySelector('h3').textContent).toBe('Бесплатно');
+ expect(cards[0].textContent).not.toContain('Free');
  expect(cards[0].textContent).toContain('Сохранённые карты без лимита');
  expect(cards[0].textContent).toContain('AI-вопросы без лимита');
  expect(cards[1].textContent).toContain('Покупка Premium необязательна');
