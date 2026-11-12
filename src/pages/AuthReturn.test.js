@@ -121,6 +121,11 @@ const UNSAFE = [
   ['empty string', ''],
   ['null', null],
   ['object with pathname', { pathname: '/relationships/new' }],
+  // Round 2 (REVIEW F1): dot segments before "//" normalise to a protocol-relative path.
+  ['dot then double slash', '/.//evil.example'],
+  ['dot-dot then double slash', '/..//evil.example'],
+  ['encoded dot then double slash', '/%2e//evil.example'],
+  ['segment, dot-dot, double slash', '/a/..//evil.example'],
 ];
 
 describe('R: return after sign-in', () => {
