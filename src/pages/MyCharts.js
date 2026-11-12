@@ -18,7 +18,10 @@ const formatDate = chart => {
   return `${chart.day} ${MONTHS[chart.month - 1]} ${chart.year}`;
 };
 
-const formatTime = hour => {
+// chartLabels puts the birth date into the title of an unnamed chart when there are several of them.
+const TITLE_HAS_DATE = / · \d{2}\.\d{2}\.\d{4}$/;
+
+const formatTime =hour => {
   if (hour == null) return null;
   const totalMinutes = Math.round(hour * 60);
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
@@ -206,7 +209,7 @@ export default function MyCharts() {
               return <li key={chart.chart_id}>
                 <div className="dashboard-card-type"><OrbitMark /><span>Натальная карта</span></div>
                 <h3>{title}</h3>
-                <p className="dashboard-card-meta">{formatDate(chart)}{time ? ` · ${time}` : ""}</p>
+                <p className="dashboard-card-meta">{[TITLE_HAS_DATE.test(title) ? "" : formatDate(chart), time].filter(Boolean).join(" · ")}</p>
                 {chart.city && <p className="dashboard-card-place">{chart.city}</p>}
                 <div className="dashboard-card-actions">
                   <Link className="dashboard-card-link" to={`/natal-chart-result/${chart.chart_id}`}>Открыть карту <span aria-hidden="true">→</span></Link>

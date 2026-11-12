@@ -88,7 +88,8 @@ test("optional saved-data form is removed without deleting existing device data 
 test("natal charts render as consumer cards with real date, time and city", async () => {
   await render(<MyCharts />);
   expect(container.querySelectorAll(".saved-charts-list > li")).toHaveLength(2);
-  expect(container.textContent).toContain("2 января 2000 · 12:30");
+  expect(container.textContent).toContain("Карта без названия · 02.01.2000");
+  expect(container.textContent).toContain("12:30");
   expect(container.textContent).toContain("Test city");
 });
 
@@ -106,6 +107,19 @@ test("an unnamed chart has the same name here as in the relationship picker: no 
   chartRequest.mockResolvedValue({ charts: [chart], count: 1, limit: 3 });
   await render(<MyCharts key="one" />);
   expect([...container.querySelectorAll(".saved-charts-list h3")].map(h => h.textContent)).toEqual(["Карта без названия"]);
+});
+
+test("an unnamed chart's birth date is shown once: in the title when several, in the line below when alone", async () => {
+  await render(<MyCharts />);
+  const metas = [...container.querySelectorAll(".saved-charts-list .dashboard-card-meta")].map(m => m.textContent);
+  expect(metas).toEqual(["12:30", "08:15"]);
+  chartRequest.mockResolvedValue({ charts: [chart], count: 1, limit: 3 });
+  await render(<MyCharts key="one" />);
+  expect([...container.querySelectorAll(".saved-charts-list .dashboard-card-meta")].map(m => m.textContent)).toEqual(["2 января 2000 · 12:30"]);
+  localStorage.setItem("chart-presentation:7", JSON.stringify({ name: "Моя" }));
+  chartRequest.mockResolvedValue({ charts: [chart, secondChart], count: 2, limit: 3 });
+  await render(<MyCharts key="named" />);
+  expect([...container.querySelectorAll(".saved-charts-list .dashboard-card-meta")].map(m => m.textContent)[0]).toBe("2 января 2000 · 12:30");
 });
 
 test("an unnamed saved chart page is titled «Карта без названия», not «Натальная карта №<id>»", async () => {

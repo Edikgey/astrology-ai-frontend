@@ -189,7 +189,9 @@ test.each(['', 'Invalid/Zone'])('missing or unusable provider timezone %s cannot
   await lookup('City', [result('City', 'Region', 'Country', 1, 2, timezone)]);
   expect(container.querySelector('.suggestions-list li').textContent).toContain('нет пригодного');
   await act(async () => container.querySelector('.suggestions-list li').click());
-  expect(container.querySelector('[role="alert"]').textContent).toContain('IANA timezone');
+  const alert = container.querySelector('[role="alert"]').textContent;
+  expect(alert).toContain('Не удалось определить часовой пояс этого места. Выберите место из подсказок ещё раз.');
+  expect(alert).not.toMatch(/IANA|timezone/i);
   await submit(); expect(global.fetch).toHaveBeenCalledTimes(1); expect(mockNavigate).not.toHaveBeenCalled();
 });
 

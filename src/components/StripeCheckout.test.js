@@ -63,12 +63,12 @@ test('authenticated embedded checkout uses server secret and preserves draft on 
   await click('Закрыть оплату');
   expect(container.querySelector('.stripe-checkout-modal')).toBeNull();
   expect(container.querySelector('textarea').value).toBe('Pending question');
-  expect(container.textContent).toContain('План: Free');
+  expect(container.textContent).toContain('План: Бесплатно');
 });
 test('completion grants nothing until server confirms Premium', async () => {
   jest.useFakeTimers(); await open();
   await act(async () => mockOptions.onComplete());
-  expect(container.textContent).toContain('План: Free');
+  expect(container.textContent).toContain('План: Бесплатно');
   serverUsage = { ...free, plan: 'premium', payment_provider: 'stripe', gpt_messages_limit: 300, saved_charts_limit: 10 };
   await act(async () => jest.advanceTimersByTime(3000));
   expect(container.textContent).toContain('План: Premium');
@@ -153,7 +153,7 @@ test.each([
 test('return URL cannot grant access and server rollout flag disables checkout', async () => {
   jest.useFakeTimers(); window.history.replaceState({}, '', '/?billing=stripe&session_id=cs_live_fake');
   serverUsage.stripe_checkout_available = false; await render(); await click('Перейти на Premium');
-  expect(container.textContent).toContain('План: Free');
+  expect(container.textContent).toContain('План: Бесплатно');
   expect([...container.querySelectorAll('button')].find(b => b.textContent === 'Оплатить через Stripe').disabled).toBe(true);
 });
 

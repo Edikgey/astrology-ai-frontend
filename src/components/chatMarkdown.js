@@ -8,8 +8,9 @@ const RULE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
 const HEADING = /^\s{0,3}#{1,6}(?:\s+|$)/;
 const ORDERED = /^\s*(\d{1,3})[.)]\s+/;
 const BULLET = /^\s*[-*•]\s+/;
-// The URL part excludes "(" and ")" so an unclosed "[т](" never rescans the rest of the line.
-const LINK = /!?\[([^[\]\n]*)\]\([^()\n]*\)/g;
+// The URL part allows one level of parentheses ("…_(планета)", "javascript:alert(1)"); each branch starts
+// with a different character, so an unclosed "[т](" never rescans the rest of the line.
+const LINK = /!?\[([^[\]\n]*)\]\((?:[^()\n]|\([^()\n]*\))*\)/g;
 // The inner text excludes its own delimiter, so an unclosed "**" or "*" fails fast and stays literal.
 const INLINE = /\*\*([^*\s](?:[^*\n]*[^*\s])?)\*\*|__([^_\s](?:[^_\n]*[^_\s])?)__|\*([^*\s](?:[^*\n]*[^*\s])?)\*/g;
 
