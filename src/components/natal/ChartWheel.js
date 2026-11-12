@@ -6,7 +6,7 @@ import { Glyph, GlyphDefs } from './Glyphs';
 import './ChartWheel.css';
 
 const keyActivate = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(); } };
-const pointLabel = point => `${point.name} · ${longitudeText(point.longitude)} · ${point.house != null ? `дом ${point.house}` : 'дом не передан'}${point.retrograde ? ' · ретроградная' : ''}`;
+const pointLabel = point => `${point.name} · ${longitudeText(point.longitude)} · ${point.house != null ? `дом ${point.house}` : 'дом не указан'}${point.retrograde ? ' · ретроградная' : ''}`;
 
 export default function ChartWheel({ model, preview = false, referenceTarget = null }) {
   const container = useRef(null);
@@ -63,7 +63,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
   const aspectDim = aspect => activePattern ? !activePattern.aspects.includes(aspect.id) : activeAspect ? activeAspect.id !== aspect.id : activePoint ? aspect.from !== activePoint.id && aspect.to !== activePoint.id : focus?.kind === 'group' ? !focusIds.includes(aspect.from) && !focusIds.includes(aspect.to) : false;
   const selectedHouse = focus?.kind === 'house' ? model.cusps.find(h => h.id === focus.id) : null;
   const group = focus?.kind === 'group' ? labels.find(label => label.id === focus.id) : null;
-  const aspectLabel = aspect => `${model.byId[aspect.from]?.name || aspect.from} — ${aspect.name} — ${model.byId[aspect.to]?.name || aspect.to}. Орбис: ${aspect.orb || 'не передан'}`;
+  const aspectLabel = aspect => `${model.byId[aspect.from]?.name || aspect.from} — ${aspect.name} — ${model.byId[aspect.to]?.name || aspect.to}. Орбис: ${aspect.orb || 'не указан'}`;
 
   if (!model.ready) return <div className="notice" role="status">Точные данные для круга неполны. {model.issues.join(' ')} Доступные положения перечислены ниже.</div>;
   const referenceDetails = <>
@@ -87,7 +87,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
     </div>}
     <svg className="natal-wheel-svg" viewBox="0 0 600 600" role="img" aria-labelledby={`${prefix}-title ${prefix}-description`} onClick={clear}>
       <title id={`${prefix}-title`}>{preview ? 'Иллюстративная натальная карта' : 'Натальная карта: точные положения, дома и аспекты'}</title>
-      <desc id={`${prefix}-description`}>ASC слева. Углы и куспиды следуют долготам API. Точки на окружности — точные положения; линии ведут к подписям. Таблицы и доступные кнопки находятся под картой.</desc>
+      <desc id={`${prefix}-description`}>ASC слева. Углы и куспиды стоят на точных положениях из расчёта. Точки на окружности — точные положения; линии ведут к подписям. Таблицы и доступные кнопки находятся под картой.</desc>
       <GlyphDefs prefix={prefix} />
       <circle cx="300" cy="300" r={RADII.outer} className="wheel-surface" />
       <circle cx="300" cy="300" r={RADII.zodiacInner} className="wheel-ring" />
@@ -147,7 +147,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
     {!preview && <>
       <div className="chart-legend" aria-label="Обозначения аспектов"><span className="legend-hard">Напряжённые</span><span className="legend-soft">Гармоничные</span><span className="legend-conjunction">Соединения</span>{aspectMode === 'all' && <span className="legend-minor">Минорные</span>}</div>
       <div className="wheel-detail" aria-live="polite">
-        {activePoint ? <><strong>{activePoint.name}</strong><p>{pointLabel(activePoint)}</p><small>Долгота API: {activePoint.longitude}°</small></> : activeAspect ? <><strong>{model.byId[activeAspect.from]?.name || activeAspect.from} {activeAspect.type} {model.byId[activeAspect.to]?.name || activeAspect.to}</strong><p>{activeAspect.name}{activeAspect.angle != null ? ` · ${activeAspect.angle}°` : ''} · Орбис: {activeAspect.orb || 'не передан API'}</p></> : selectedHouse ? <><strong>Дом {ROMAN[selectedHouse.number - 1]}</strong><p>Куспид: {longitudeText(selectedHouse.longitude)}</p><small>Долгота API: {selectedHouse.longitude}°</small></> : activePattern ? <><strong>{activePattern.name}</strong><p>{activePattern.members.map(id => model.byId[id].name).join(' · ')}</p><small>Выделены переданные участники и их существующие аспекты.</small></> : group ? <><strong>Плотная группа · участников: {group.members.length}</strong><div className="group-members">{group.members.map(id => <button type="button" className="button-secondary" key={id} onClick={() => select({ kind: 'point', id })}>{model.byId[id].name}</button>)}</div></> : <p>Выберите планету, угол или аспект. Точные значения появятся здесь.</p>}
+        {activePoint ? <><strong>{activePoint.name}</strong><p>{pointLabel(activePoint)}</p></> : activeAspect ? <><strong>{model.byId[activeAspect.from]?.name || activeAspect.from} {activeAspect.type} {model.byId[activeAspect.to]?.name || activeAspect.to}</strong><p>{activeAspect.name}{activeAspect.angle != null ? ` · ${activeAspect.angle}°` : ''} · Орбис: {activeAspect.orb || 'не указан'}</p></> : selectedHouse ? <><strong>Дом {ROMAN[selectedHouse.number - 1]}</strong><p>Куспид: {longitudeText(selectedHouse.longitude)}</p></> : activePattern ? <><strong>{activePattern.name}</strong><p>{activePattern.members.map(id => model.byId[id].name).join(' · ')}</p><small>Выделены участники фигуры и их аспекты.</small></> : group ? <><strong>Плотная группа · участников: {group.members.length}</strong><div className="group-members">{group.members.map(id => <button type="button" className="button-secondary" key={id} onClick={() => select({ kind: 'point', id })}>{model.byId[id].name}</button>)}</div></> : <p>Выберите планету, угол или аспект. Точные значения появятся здесь.</p>}
         {selected && <button className="wheel-clear button-secondary" onClick={clear}>Снять выделение</button>}
       </div>
       {referenceTarget ? createPortal(referenceDetails, referenceTarget) : referenceDetails}

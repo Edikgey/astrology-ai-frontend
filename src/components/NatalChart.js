@@ -26,7 +26,7 @@ const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, hous
           <span className="placement-symbol" aria-hidden="true">{item.symbol === 'AS' ? '↗' : item.symbol}</span>
           <div><span className="placement-label">{item.label}</span><strong className="placement-sign">{body?.sign?.toLowerCase() || 'Нет данных'}</strong><p>{item.hint}{body?.house != null ? ` · Дом ${body.house}` : ''}</p></div>
         </div>; })}
-        <p className="chart-system">Положения из сохранённого расчёта. Дома: {model.houseSystem || "система не передана API"}.</p>
+        <p className="chart-system">Положения из сохранённого расчёта. Дома: {model.houseSystem || "система не указана"}.</p>
       </div>;
   return <div className="natal-experience">
     <section className="chart-layout card" aria-label="Натальная карта и основные положения">

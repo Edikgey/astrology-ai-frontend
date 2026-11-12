@@ -71,7 +71,7 @@ test('dense group selection highlights its exact anchors and offers each member'
   expect(members.length).toBeGreaterThan(1);
   expect(container.querySelectorAll('[data-point-anchor]:not(.is-dim)')).toHaveLength(members.length);
   await act(async () => members[0].dispatchEvent(new MouseEvent('click', { bubbles: true })));
-  expect(container.querySelector('.wheel-detail').textContent).toContain('359.8');
+  expect(container.querySelector('.wheel-detail').textContent).toContain('Рыбы 29°48′');
 });
 
 test('no internal word «API» reaches the visible text, the accessible description or the selected point and house', async () => {
