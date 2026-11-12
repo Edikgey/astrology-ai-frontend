@@ -3,14 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import AuthorizationPage from './AuthorizationPage';
 
-let mockMode='register';
+let mockMode='register', mockBeta=false;
 const mockRegister=jest.fn(), mockVerify=jest.fn(), mockLogin=jest.fn(), mockNavigate=jest.fn();
 jest.mock('../context/AuthContext',()=>({useAuth:()=>({user:null,registerEmail:mockRegister,verifyRegistration:mockVerify,login:mockLogin})}));
 jest.mock('react-router-dom',()=>({useNavigate:()=>mockNavigate,useLocation:()=>({state:{mode:mockMode}})}),{virtual:true});
+jest.mock('../context/ServiceConfigContext',()=>({useServiceConfig:()=>({freeBetaEnabled:mockBeta})}));
 jest.mock('../components/GoogleSignIn',()=>()=>null);
 let root,container;
 beforeEach(()=>{
-  global.IS_REACT_ACT_ENVIRONMENT=true;localStorage.clear();mockMode='register';jest.clearAllMocks();
+  global.IS_REACT_ACT_ENVIRONMENT=true;localStorage.clear();mockMode='register';mockBeta=false;jest.clearAllMocks();
   mockRegister.mockResolvedValue({});mockVerify.mockResolvedValue({});mockLogin.mockResolvedValue({});
   container=document.createElement('div');document.body.appendChild(container);root=createRoot(container);
 });
@@ -18,6 +19,20 @@ afterEach(async()=>{await act(async()=>root.unmount());container.remove();});
 const render=()=>act(async()=>root.render(<AuthorizationPage/>));
 const change=(id,value)=>act(async()=>Simulate.change(container.querySelector('#'+id),{target:{value}}));
 const submit=()=>act(async()=>Simulate.submit(container.querySelector('form')));
+
+test('registration promises the real limits outside the beta and no limits during it',async()=>{
+  await render();
+  expect(container.querySelector('.auth-description').textContent).toBe('Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время.');
+  mockBeta=true;await act(async()=>root.render(<AuthorizationPage key="beta"/>));
+  const text=container.querySelector('.auth-description').textContent;
+  expect(text).toBe('Бесплатный аккаунт: карты и AI-вопросы без лимита на время бета-теста.');
+  expect(text).not.toMatch(/3 карт|10 AI/);
+});
+
+test('the login button says «Войти в аккаунт» with a lowercase «а»',async()=>{
+  mockMode='login';await render();
+  expect(container.querySelector('button.auth-submit').textContent).toBe('Войти в аккаунт');
+});
 
 test('Russian live checklist, confirmation mismatch, and both registration stages',async()=>{
   await render();

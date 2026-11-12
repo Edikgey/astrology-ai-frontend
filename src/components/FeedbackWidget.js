@@ -9,7 +9,7 @@ import './FeedbackWidget.css';
 const LIMIT_TEXT = 'Можно отправить до 3 отзывов за 24 часа. Попробуйте позже.';
 const meaningful = text => /[\p{L}\p{N}]/u.test(text.trim());
 // Keep the optional context compatible with the deployed backend allowlist.
-const contextPath = /^\/(my-charts|daily-horoscope|natal-chart-result(?:\/\d+)?|relationships\/\d+)$/;
+const contextPath = /^\/(my-charts|natal-chart-result(?:\/\d+)?|relationships\/\d+)$/;
 const mainPages = new Set(['/', '/pricing', '/try-free', '/relationships/new', '/dashboard']);
 export default function FeedbackWidget() {
   const { user, token, loading } = useAuth();
@@ -122,20 +122,20 @@ function FeedbackControl({ token, pathname }) {
     <dialog ref={dialog} id="feedback-dialog" className="feedback-dialog" aria-labelledby="feedback-title" aria-describedby="feedback-subtitle"
       onCancel={e=>{e.preventDefault();close();}}>
       <button type="button" className="button-secondary feedback-close" aria-label="Закрыть отзыв" onClick={close}>×</button>
-      <h2 id="feedback-title">Помоги улучшить Lunaria</h2>
-      <p id="feedback-subtitle">Расскажи, чего тебе не хватает или что можно улучшить.</p>
-      {success?<div role="status" className="feedback-thanks">Спасибо! Твой отзыв отправлен.</div>:<form onSubmit={send}>
+      <h2 id="feedback-title">Помогите улучшить Lunaria</h2>
+      <p id="feedback-subtitle">Расскажите, чего вам не хватает или что можно улучшить.</p>
+      {success?<div role="status" className="feedback-thanks">Спасибо! Ваш отзыв отправлен.</div>:<form onSubmit={send}>
         <label htmlFor="feedback-category">Тип отзыва</label>
         <select id="feedback-category" value={category} disabled={sending} onChange={e=>setCategory(e.target.value)}>
           <option value="idea">Предложить идею</option><option value="bug">Сообщить о проблеме</option><option value="feedback">Поделиться впечатлением</option>
         </select>
-        <label htmlFor="feedback-message">Твой отзыв</label>
+        <label htmlFor="feedback-message">Ваш отзыв</label>
         <textarea id="feedback-message" rows={5} maxLength={4000} value={message} disabled={sending}
           placeholder="Что можно добавить или улучшить?" aria-describedby="feedback-counter feedback-hint"
           onChange={e=>setMessage(Array.from(e.target.value).slice(0,2000).join(''))} />
         <p id="feedback-counter" className="feedback-counter">{count} / 2000</p>
-        <p id="feedback-hint" className="feedback-hint">Не указывай пароли, платёжные данные или личные данные других людей. Без вложений.</p>
-        {message&&!meaningful(message)&&<p role="alert">Добавь текст отзыва, а не только пробелы или символы.</p>}
+        <p id="feedback-hint" className="feedback-hint">Не указывайте пароли, платёжные данные или личные данные других людей. Без вложений.</p>
+        {message&&!meaningful(message)&&<p role="alert">Добавьте текст отзыва, а не только пробелы или символы.</p>}
         {limits?.remaining===0&&<p role="status">{LIMIT_TEXT}</p>}
         {limits?.remaining>0&&<p className="feedback-hint">Можно отправить ещё {limits.remaining} из 3 отзывов за 24 часа.</p>}
         {error&&<p role="alert">{error}</p>}

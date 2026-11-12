@@ -53,7 +53,7 @@ test("creation loads charts, prevents same pair, edits labels and opens created 
   await change("#relationship-label-A", "Анна новая");
   await act(async () => Simulate.submit(container.querySelector("form")));
   expect(relationshipRequest).toHaveBeenCalledWith("", { method: "POST", body: {
-    chart_a_id: 7, chart_b_id: 8, person_a_label: "Анна новая", person_b_label: "Карта №8", speaker_person: null,
+    chart_a_id: 7, chart_b_id: 8, person_a_label: "Анна новая", person_b_label: "Карта без названия", speaker_person: null,
   } });
   expect(mockNavigate).toHaveBeenCalledWith("/relationships/9", { replace: true });
 });
@@ -65,7 +65,7 @@ test("second-person flow restores Person A and auto-selects the newly created ch
   expect(container.querySelector("#relationship-chart-A").value).toBe("7");
   expect(container.querySelector("#relationship-chart-B").value).toBe("10");
   expect(container.querySelector("#relationship-label-A").value).toBe("Анна");
-  expect(container.querySelector("#relationship-label-B").value).toBe("Карта №10");
+  expect(container.querySelector("#relationship-label-B").value).toBe("Карта без названия");
 });
 
 test("creation backend validation is readable and one-chart state reuses natal creation", async () => {
@@ -85,6 +85,27 @@ test("legacy or unverified chart rejection is shown as a readable creation error
   await act(async () => Simulate.submit(container.querySelector("form")));
   expect(container.querySelector('[role="alert"]').textContent).toContain("без проверенного времени рождения");
   expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test("result never shows the internal rules version", async () => {
+  relationshipRequest.mockResolvedValue(relationship);
+  await render(<RelationshipResultPage />);
+  expect(container.textContent).not.toContain("synastry-major");
+  expect(container.textContent).not.toContain("Правила:");
+});
+
+test("unnamed charts are never called «Карта №<id>»; several unnamed ones are told apart by birth date", async () => {
+  const dated = [{ chart_id: 7, day: 3, month: 9, year: 1992 }, { chart_id: 8, day: 14, month: 1, year: 2001 }, { chart_id: 10, day: 5, month: 5, year: 1980 }];
+  localStorage.setItem("chart-presentation:10", JSON.stringify({ name: "Мама" }));
+  chartRequest.mockResolvedValue({ charts: dated, count: 3, limit: 3 });
+  await render(<RelationshipNewPage />);
+  const options = [...container.querySelectorAll("#relationship-chart-A option")].map(option => option.textContent);
+  expect(options).toEqual(["Выберите карту", "Карта без названия · 03.09.1992", "Карта без названия · 14.01.2001", "Мама"]);
+  expect(container.textContent).not.toContain("Карта №");
+  chartRequest.mockResolvedValue({ charts: [dated[0], dated[2]], count: 2, limit: 3 });
+  await render(<RelationshipNewPage key="two" />);
+  const single = [...container.querySelectorAll("#relationship-chart-A option")].map(option => option.textContent);
+  expect(single).toEqual(["Выберите карту", "Карта без названия", "Мама"]);
 });
 
 test("result preserves A/B, places chat before facts and renders availability without a score", async () => {

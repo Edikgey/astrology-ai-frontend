@@ -9,6 +9,7 @@
 .pricing-card .free-price { font-size: var(--ln-text-25); font-weight: 700; margin-bottom: var(--ln-space-16); }
 .pricing-card .plan-description { color: var(--ln-color-text-muted); padding-bottom: 20px; border-bottom: 1px solid var(--ln-color-border); min-height: 64px; }
 .pricing-card > button { width: 100%; margin-top: auto; }
+.pricing-card > .premium-hint { color: var(--ln-color-text-muted); font-size: var(--ln-text-12); margin: var(--ln-space-8) 0 var(--ln-space-12); }
 .pricing-card.popular { background: var(--ln-color-surface-raised); color: var(--ln-color-text); border-color: var(--ln-color-accent); box-shadow: var(--ln-shadow-accent); }
 .pricing-card.popular .eyebrow { color: var(--ln-color-primary); }
 .pricing-card.popular .plan-description { color: var(--ln-color-text-muted); border-color: var(--ln-color-border); }

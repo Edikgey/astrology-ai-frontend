@@ -8,9 +8,12 @@ import { validNewPassword } from "../utils/passwordPolicy";
 import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent } from "./landingIntent";
 import {newAnalyticsFlow,trackEvent} from '../analytics/clarity';
 import {requestPasswordReset} from '../api/authApi';
+import { useServiceConfig } from "../context/ServiceConfigContext";
 
 const AuthorizationPage = () => {
   const { user, login, loginGoogle, registerEmail, verifyRegistration } = useAuth();
+  // Флаг беты показывает сервер; фронтенд только отображает его.
+  const { freeBetaEnabled: beta } = useServiceConfig();
   const navigate = useNavigate();
   const location = useLocation();
   const submitting = useRef(false);
@@ -189,7 +192,7 @@ const AuthorizationPage = () => {
       <div className="auth-container card">
         <p className="eyebrow">Lunaria</p>
         <h1 className="auth-title">{recovery ? 'Восстановление пароля' : step === "login" ? "Рады видеть вас снова" : isCodeSent ? "Проверьте почту" : "Начните свой разговор"}</h1>
-        <p className="auth-description">{recovery ? 'Укажите email аккаунта. Мы отправим ссылку для создания нового пароля.' : step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
+        <p className="auth-description">{recovery ? 'Укажите email аккаунта. Мы отправим ссылку для создания нового пароля.' : step === "login" ? "Войдите, чтобы продолжить с того, что важно для вас." : isCodeSent ? "Остался один шаг: введите код подтверждения." : beta ? "Бесплатный аккаунт: карты и AI-вопросы без лимита на время бета-теста." : "Бесплатный аккаунт: до 3 карт и 10 AI-вопросов за всё время."}</p>
         {guestChart && <p className="notice">После входа попробуем сохранить открытую карту в ваш аккаунт. Ваш вопрос останется с вами.</p>}
         {!recovery && <GoogleSignIn onSignIn={handleGoogle} disabled={busy} />}
         <form onSubmit={recovery ? handleRecovery : step === "login" ? handleLogin : handleRegister} className="auth-form" aria-busy={busy}>
@@ -211,7 +214,7 @@ const AuthorizationPage = () => {
           </>}
           {step === "register" && isCodeSent && <><label htmlFor="auth-code">Код подтверждения</label><input id="auth-code" type="text" autoComplete="one-time-code" placeholder="Код из почты" value={code} onChange={e => setCode(e.target.value)} required /></>}
           {(error || message) && <div className="auth-message">{error && <p role="alert">{error}</p>}{message && <p className="notice" role="status">{message}</p>}</div>}
-          <button type="submit" disabled={busy || (cooldown>0 && (step!=='register' || !isCodeSent || verificationBlocked)) || (step === "register" && (!passwordValid || !confirmationValid))} className="auth-submit">{busy ? "Подождите..." : recovery ? 'Отправить ссылку' : step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
+          <button type="submit" disabled={busy || (cooldown>0 && (step!=='register' || !isCodeSent || verificationBlocked)) || (step === "register" && (!passwordValid || !confirmationValid))} className="auth-submit">{busy ? "Подождите..." : recovery ? 'Отправить ссылку' : step === "login" ? "Войти в аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
         </form>
         {cooldown>0 && <p className="auth-retry" role="status">Повторный запрос через {cooldown} сек.</p>}
         {step==='register' && isCodeSent && <button type="button" className="auth-recovery-link" disabled={busy || cooldown>0 || !passwordValid || !confirmationValid} onClick={resendCode}>Отправить код повторно</button>}

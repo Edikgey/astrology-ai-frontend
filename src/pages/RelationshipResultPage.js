@@ -65,8 +65,7 @@ export default function RelationshipResultPage() {
     </section>
     <SynastryAspectReference relationship={relationship} selection={synastrySelection} onSelectionChange={setSynastrySelection} />
     <section className="relationship-details" aria-labelledby="relationship-details-title">
-      <div className="relationship-section-heading"><div><span className="eyebrow">Сохранённые факты</span><h2 id="relationship-details-title">Детали разбора</h2></div>
-        <span className="badge">Правила: {relationship.ruleset_version}</span></div>
+      <div className="relationship-section-heading"><div><span className="eyebrow">Сохранённые факты</span><h2 id="relationship-details-title">Детали разбора</h2></div></div>
       <details><summary>Основные аспекты между картами ({aspects.length})</summary>
         {aspects.length ? <ul className="relationship-facts">{aspects.map((row, index) => <li key={`${row.participant_a}-${row.body_a}-${row.participant_b}-${row.body_b}-${row.aspect}-${index}`}>
           <strong>{label(row.participant_a)} · {bodyNames[row.body_a] || row.body_a}</strong>

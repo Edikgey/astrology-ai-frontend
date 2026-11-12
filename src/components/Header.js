@@ -36,8 +36,8 @@ export default function Header() {
       <Link to={user ? '/relationships/new' : '/try-free'}
         state={user ? undefined : { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT }}
         onClick={close}>Разбор отношений</Link>
-      <Link data-analytics="landing_cta_pricing" to="/pricing" onClick={close}>Free & Premium</Link>
-      {user ? <div className="nav-account"><Link to="/pricing" className="badge badge-accent" onClick={close}>{usage?.plan === 'premium' ? 'Premium' : usage?.plan === 'free' ? 'Free' : 'Аккаунт'}</Link>
+      <Link data-analytics="landing_cta_pricing" to="/pricing" onClick={close}>Тарифы</Link>
+      {user ? <div className="nav-account"><Link to="/pricing" className="badge badge-accent" onClick={close}>{usage?.plan === 'premium' ? 'Premium' : usage?.plan === 'free' ? 'Бесплатно' : 'Аккаунт'}</Link>
         <button className="button-secondary" onClick={() => { close(); logout(); navigate('/'); }}>Выйти</button></div> :
         <button data-analytics="landing_cta_login" className="login-btn button-secondary" disabled={loading} onClick={login}>Войти</button>}
     </div>

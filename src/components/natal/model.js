@@ -72,8 +72,8 @@ export function normalizeChart({ bodies = {}, aspects = [], houses = [], pattern
   }
   const cusps = (houses || []).map((house, index) => ({ id: `house-${index + 1}`, number: index + 1, longitude: house?.degree }));
   const validCusps = cusps.length === 12 && cusps.every(cusp => Number.isFinite(cusp.longitude)) && new Set(cusps.map(c => normalizeDegrees(c.longitude))).size === 12;
-  if (!validCusps) issues.push('Для круга нужны 12 различных точных куспидов из API.');
-  for (const id of ANGLES) if (!byId[id]) issues.push(`API не передал точную долготу ${ANGLE_LABELS[id]}.`);
+  if (!validCusps) issues.push('Для круга нужны 12 различных точных куспидов.');
+  for (const id of ANGLES) if (!byId[id]) issues.push(`Не хватает данных для точного положения ${ANGLE_LABELS[id]}.`);
   const orbs = readOrbs(structuredAspects, aliases);
   const renderAspects = (aspects || []).map((aspect, index) => {
     const fromRaw = aspect.from_body || aspect.from, toRaw = aspect.to_body || aspect.to;

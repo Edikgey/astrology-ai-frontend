@@ -16,7 +16,7 @@ export default function Footer() {
       <nav className="footer-nav" aria-labelledby="footer-service-title">
         <h2 id="footer-service-title">Ваше пространство</h2>
         <Link data-analytics="landing_cta_chart" to="/try-free">Создать карту</Link>
-        <Link data-analytics="landing_cta_pricing" to="/pricing">Free и Premium</Link>
+        <Link data-analytics="landing_cta_pricing" to="/pricing">Тарифы</Link>
         <Link to="/my-charts">Мои карты</Link>
         <Link to="/terms#cancellation">Отменить продление</Link>
       </nav>

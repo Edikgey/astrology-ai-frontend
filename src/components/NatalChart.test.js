@@ -57,3 +57,14 @@ test('relocated planet, house and aspect controls retain selection, disclosure a
   await act(async () => container.querySelector('textarea').dispatchEvent(new Event('pointerdown', { bubbles: true })));
   expect(container.querySelector('.wheel-clear')).toBeNull();
 });
+
+test('the heading reads as one phrase even where the line break is dropped (phone)', async () => {
+  await render();
+  expect(container.querySelector('.chart-summary h2').textContent).toBe('Разные стороны одного человека.');
+});
+
+test('an unknown house system is stated in plain words without «API»', async () => {
+  await act(async () => root.render(<NatalChart bodies={api.bodies_for_circle} houses={api.houses} aspects={api.aspects_for_circle} structuredAspects={api.aspects_structured} />));
+  expect(container.querySelector('.chart-system').textContent).toBe('Положения из сохранённого расчёта. Дома: система не указана.');
+  expect(container.textContent).not.toContain('API');
+});

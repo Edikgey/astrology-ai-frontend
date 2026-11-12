@@ -37,6 +37,14 @@ test('missing optional points, patterns and asteroids still leave a valid chart'
   expect(model.ready).toBe(true); expect(model.patterns).toEqual([]);
   expect(model.points.some(p => p.kind === 'extra')).toBe(false);
 });
+test('data issues are phrased for the user: no «API», the missing point is named', () => {
+  const changed = input(); changed.bodies = { ...changed.bodies }; delete changed.bodies.AS;
+  changed.houses = api.houses.slice(0, 11);
+  const { issues } = normalizeChart(changed);
+  expect(issues).toContain('Не хватает данных для точного положения ASC.');
+  expect(issues).toContain('Для круга нужны 12 различных точных куспидов.');
+  expect(issues.join(' ')).not.toContain('API');
+});
 test('missing required ASC or corrupt cusps fail closed without a zero-longitude fallback', () => {
   const changed = input(); changed.bodies = { ...changed.bodies }; delete changed.bodies.AS;
   expect(normalizeChart(changed).ready).toBe(false);

@@ -2,13 +2,11 @@ import {productAnalytics} from '../analytics/productAnalytics';
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { chartRequest } from "../api/chartsApi";
-import { chartPresentation } from "../api/chartPresentation";
+import { chartLabels } from "../api/chartPresentation";
 import { relationshipRequest } from "../api/relationshipsApi";
 import { useUsage } from "../context/UsageContext";
 import { EmptyState, LoadingState, OrbitMark, PageHeading } from "../components/UI";
 import "./Relationships.css";
-
-const labelFor = chart => chartPresentation(chart.chart_id).name || `Карта №${chart.chart_id}`;
 
 export default function RelationshipNewPage() {
   const navigate = useNavigate();
@@ -39,23 +37,24 @@ export default function RelationshipNewPage() {
         if (nextB) setChartB(String(nextB));
         const a = data.charts?.find(chart => chart.chart_id === nextA);
         const b = data.charts?.find(chart => chart.chart_id === nextB);
-        if (a && !labelA) setLabelA(labelFor(a));
-        if (b && (!labelB || createdChartId === nextB)) setLabelB(labelFor(b));
+        if (a && !labelA) setLabelA(chartLabels(data.charts)[a.chart_id]);
+        if (b && (!labelB || createdChartId === nextB)) setLabelB(chartLabels(data.charts)[b.chart_id]);
       })
       .catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
   }, []);
 
   const byId = useMemo(() => new Map((charts || []).map(chart => [String(chart.chart_id), chart])), [charts]);
+  const labels = useMemo(() => chartLabels(charts || []), [charts]);
   const choose = (person, value) => {
     const chart = byId.get(value);
     if (person === "A") {
       setChartA(value);
-      if (chart) setLabelA(labelFor(chart));
+      if (chart) setLabelA(labels[chart.chart_id]);
       if (value === chartB) setChartB("");
     } else {
       setChartB(value);
-      if (chart) setLabelB(labelFor(chart));
+      if (chart) setLabelB(labels[chart.chart_id]);
       if (value === chartA) setChartA("");
     }
     setError("");
@@ -107,7 +106,7 @@ export default function RelationshipNewPage() {
           <select id={`relationship-chart-${person}`} value={selected} onChange={event => choose(person, event.target.value)} required>
             <option value="">Выберите карту</option>
             {charts.map(chart => <option key={chart.chart_id} value={chart.chart_id}
-              disabled={(person === "A" ? chartB : chartA) === String(chart.chart_id)}>{labelFor(chart)}</option>)}
+              disabled={(person === "A" ? chartB : chartA) === String(chart.chart_id)}>{labels[chart.chart_id]}</option>)}
           </select>
           <label htmlFor={`relationship-label-${person}`}>Имя в разборе</label>
           <input id={`relationship-label-${person}`} value={label} maxLength={100} required

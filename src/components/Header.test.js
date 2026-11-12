@@ -61,3 +61,12 @@ test('signed-in navigation exposes owned charts, relationship analysis and logou
   expect(mockAuth.logout).toHaveBeenCalledTimes(1);
   expect(mockNavigate).toHaveBeenCalledWith('/');
 });
+
+test('the plan page is called «Тарифы» and the plan badge has no English label', async () => {
+  const links = [...container.querySelectorAll('#main-navigation a')].map(item => item.textContent);
+  expect(links).toContain('Тарифы');
+  expect(container.textContent).not.toContain('Free & Premium');
+  mockAuth = { user: { id: 1 }, logout: jest.fn(), loading: false };
+  await act(async () => root.render(<Header />));
+  expect(container.querySelector('.nav-account .badge').textContent).toBe('Бесплатно');
+});

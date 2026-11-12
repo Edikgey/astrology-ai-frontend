@@ -36,21 +36,27 @@ test('closed by default; accessible trigger opens dialog and close restores focu
   const trigger=container.querySelector('.feedback-trigger');expect(trigger.getAttribute('aria-label')).toContain('Есть идея?');
   await click('.feedback-trigger');expect(container.querySelector('dialog').open).toBe(true);
   expect(trigger.getAttribute('aria-expanded')).toBe('true');
-  expect(container.textContent).toContain('Помоги улучшить Lunaria');
+  expect(container.textContent).toContain('Помогите улучшить Lunaria');
   await act(async()=>container.querySelector('dialog').dispatchEvent(new Event('cancel',{bubbles:true,cancelable:true})));
   expect(container.querySelector('dialog').open).toBe(false);expect(document.activeElement).toBe(trigger);
 });
-test.each(['/authorization','/checkout','/terms','/unknown'])('hidden on non-app or critical route %s',async path=>{
+test.each(['/authorization','/checkout','/terms','/unknown','/daily-horoscope'])('hidden on non-app or critical route %s',async path=>{
   mockPath=path;await render();expect(container.querySelector('button')).toBeNull();
 });
-test.each(['/','/pricing','/try-free','/relationships/new','/dashboard','/my-charts','/natal-chart-result/7','/relationships/8','/daily-horoscope'])('visible on app route %s',async path=>{
+test.each(['/','/pricing','/try-free','/relationships/new','/dashboard','/my-charts','/natal-chart-result/7','/relationships/8'])('visible on app route %s',async path=>{
   mockPath=path;await render();expect(container.querySelector('.feedback-trigger')).not.toBeNull();
+});
+test('every visible text addresses the user as «вы», not «ты»',async()=>{
+  await open();await input('!!!');
+  const text=container.querySelector('dialog').textContent;
+  for(const part of ['Помогите улучшить','Расскажите, чего вам не хватает','Ваш отзыв','Не указывайте','Добавьте текст отзыва'])expect(text).toContain(part);
+  expect(text).not.toMatch(/Помоги |Расскажи,|тебе|Твой |указывай |Добавь /);
 });
 test.each(['/','/pricing','/try-free','/relationships/new'])('submission on %s omits unsupported optional context',async path=>{
   mockPath=path;await open();await input('Новая идея');
   await click('button[type=submit]');
   expect(JSON.parse(posts()[0][1].body)).not.toHaveProperty('page_path');
-  expect(container.textContent).toContain('Спасибо! Твой отзыв отправлен.');
+  expect(container.textContent).toContain('Спасибо! Ваш отзыв отправлен.');
 });
 test.each(['busy form','aria modal','cookie banner'])('temporarily hides for %s and returns afterwards',async kind=>{
   mockPath='/try-free';await render();
@@ -94,7 +100,7 @@ test.each(['idea','bug','feedback'])('submits %s with auth, safe fields and rese
   await click('button[type=submit]');const [url,options]=posts()[0];
   expect(url.endsWith('/feedback')).toBe(true);expect(options.headers.Authorization).toBe('Bearer jwt');
   expect(JSON.parse(options.body)).toEqual({category,message:'Моя идея',page_path:'/my-charts',request_id:expect.any(String)});
-  expect(container.textContent).toContain('Спасибо! Твой отзыв отправлен.');
+  expect(container.textContent).toContain('Спасибо! Ваш отзыв отправлен.');
   await click('.feedback-close');expect(container.querySelector('dialog').open).toBe(false);
   await click('.feedback-trigger');expect(container.querySelector('textarea').value).toBe('');
 });

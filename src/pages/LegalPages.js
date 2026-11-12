@@ -7,14 +7,14 @@ import './LegalPages.css';
 import AnalyticsExclusion from '../components/AnalyticsExclusion';
 
 
-function LegalPage({ title, englishTitle, intro, children, updated=['2026-10-06','6 октября 2026'] }) {
+function LegalPage({ title, intro, children, updated=['2026-10-06','6 октября 2026'] }) {
   useEffect(() => {
     const previous = document.title;
     document.title = `${title} — Lunaria`;
     return () => { document.title = previous; };
   }, [title]);
   return <article className="legal-page page">
-    <PageHeading eyebrow={englishTitle} title={title}><p>{intro}</p></PageHeading>
+    <PageHeading title={title}><p>{intro}</p></PageHeading>
     <p className="legal-updated">Обновлено: <time dateTime={updated[0]}>{updated[1]}</time></p>
     <div className="legal-content">{children}</div>
     <nav className="legal-navigation" aria-label="Информация о сервисе">
@@ -25,7 +25,7 @@ function LegalPage({ title, englishTitle, intro, children, updated=['2026-10-06'
 }
 
 export function TermsPage() {
-  return <LegalPage title="Условия использования" englishTitle="Terms & Conditions" intro="Как устроен Lunaria, что входит в подписку и как управлять продлением.">
+  return <LegalPage title="Условия использования" intro="Как устроен Lunaria, что входит в подписку и как управлять продлением.">
     <section id="supplier"><h2>О сервисе и поставщике</h2><SupplierDisclosure />
       <p>Lunaria — астрологический веб-сервис с искусственным интеллектом: натальные карты, разборы отношений и обсуждение с AI. Услуга предоставляется онлайн в аккаунте; физических товаров и доставки нет. Для работы нужны интернет и современный браузер. Используя сервис, вы соглашаетесь с этими условиями. По вопросам использования напишите на <SupportEmail />.</p>
       <p>Астрологические интерпретации предназначены для саморефлексии. Они не устанавливают факты о человеке и не гарантируют события или результаты. AI может ошибаться; его ответы не заменяют медицинскую, психологическую, юридическую или финансовую консультацию.</p></section>
@@ -52,7 +52,7 @@ export function TermsPage() {
 }
 
 export function PrivacyPage() {
-  return <LegalPage title="Политика конфиденциальности" englishTitle="Privacy Policy" updated={['2026-11-04','4 ноября 2026']} intro="Какие данные нужны Lunaria и как они используются при работе сервиса.">
+  return <LegalPage title="Политика конфиденциальности" updated={['2026-11-04','4 ноября 2026']} intro="Какие данные нужны Lunaria и как они используются при работе сервиса.">
     <section><h2>Кто отвечает за данные</h2><p>За обработку данных в Lunaria отвечает физическое лицо — <Link to="/terms#supplier">поставщик услуги, указанный в условиях</Link>, Онтарио, Канада. Вопросы о персональных данных и жалобы по их обработке можно направить на <SupportEmail />.</p></section>
     <section><h2>Какие данные обрабатываются</h2>
       <ul><li><strong>Аккаунт:</strong> email, хеш пароля при регистрации по email, данные подтверждения email и идентификатор Google при входе через Google. Пароль Google Lunaria не получает.</li>
@@ -86,7 +86,7 @@ export function PrivacyPage() {
 }
 
 export function RefundPage() {
-  return <LegalPage title="Возвраты и отмена" englishTitle="Refund & Cancellation Policy" intro="Куда обратиться по платежу и чем возврат отличается от отключения продления.">
+  return <LegalPage title="Возвраты и отмена" intro="Куда обратиться по платежу и чем возврат отличается от отключения продления.">
     <section><h2>Общие правила</h2><p>Для цифровой подписки Lunaria не предлагается безусловная гарантия возврата денег. Отказ от использования сервиса, неиспользованные вопросы или обычная отмена продления сами по себе не дают гарантии полного или пропорционального возврата за оставшиеся дни. Автоматический возврат при отмене не выполняется.</p>
       <p>Это не ограничивает обязательные права потребителей, включая предусмотренные применимым законом права на отмену и возврат при нарушении правил раскрытия информации или ненадлежащем предоставлении услуги. Если закон даёт право на возврат, он не зависит от нашего усмотрения. Другие обращения рассматриваются индивидуально без обещания одобрения.</p>
       <p>Если доступ не появился, возникла техническая проблема, дублирующий платёж или вы считаете списание ошибочным, напишите на <SupportEmail />.</p></section>
@@ -101,7 +101,7 @@ export function RefundPage() {
 }
 
 export function SupportPage() {
-  return <LegalPage title="Поддержка Lunaria" englishTitle="Contact & Support" intro="Поможем разобраться с аккаунтом, работой сервиса, подпиской или вопросами о данных.">
+  return <LegalPage title="Поддержка Lunaria" intro="Поможем разобраться с аккаунтом, работой сервиса, подпиской или вопросами о данных.">
     <section className="legal-contact"><h2>Напишите нам</h2><p><SupportEmail /></p><p>Этот адрес используется для технической поддержки, вопросов по оплате, возвратам и персональным данным.</p></section>
     <section><h2>Что указать в письме</h2><p>Кратко опишите проблему и укажите email аккаунта. Для вопроса об оплате добавьте провайдера (Stripe или Lava.top), дату и идентификатор операции. Скриншот ошибки поможет понять ситуацию.</p><p>Не отправляйте пароль, код входа, полный номер карты или CVC/CVV. Закройте лишние персональные данные на скриншотах.</p></section>
     <section><h2>Подписка и платежи</h2><p><Link to="/my-charts">Открыть «Мои карты»</Link> · <Link to="/terms#cancellation">Как отключить продление</Link> · <Link to="/refunds">Как запросить возврат</Link></p><p>Stripe: «Управление подпиской» открывает портал для отмены продления и управления оплатой. Для Lava.top используйте «Отключить продление Lava» и проверьте подтверждение. Если вы не можете войти или отменить продление, напишите нам с email аккаунта и названием провайдера.</p></section>
