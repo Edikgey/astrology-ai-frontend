@@ -43,6 +43,7 @@ main { min-height: calc(100svh - 260px); }
 .badge-accent { background: var(--ln-legacy-soft); border-color: var(--ln-legacy-soft); color: var(--ln-legacy-accent); }
 .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ln-space-12); }
 .notice { padding: var(--ln-space-16) 20px; background: var(--ln-legacy-soft); border-radius: var(--ln-legacy-radius-sm); font-size: var(--ln-text-14); }
+.auth-notice { margin-block: var(--ln-space-12); }
 [role='alert'] { color: var(--ln-legacy-danger); background: var(--ln-legacy-danger-soft); padding: var(--ln-space-12) var(--ln-space-16); border-radius: 10px; overflow-wrap: anywhere; }
 .empty-state { border: 1px dashed var(--ln-legacy-empty-border); border-radius: var(--ln-legacy-radius); padding: 52px var(--ln-space-24); text-align: center; }
 .empty-state .orbit-mark { width: 56px; height: 56px; color: var(--ln-legacy-accent); margin-bottom: var(--ln-space-24); }

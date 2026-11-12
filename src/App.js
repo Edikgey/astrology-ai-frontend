@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   Navigate,
+  Link,
   useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -34,9 +35,32 @@ import PasswordResetPage from './pages/PasswordResetPage';
 
 // 🔹 Приватные маршруты
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, authError } = useAuth();
+  const { pathname } = useLocation();
+  if (authError) return null; // the check failed: neither let in nor sent away — AuthNotice explains
   if (loading) return <LoadingState text="Проверка аккаунта..." />;
-  return user ? children : <Navigate to="/authorization" />;
+  // replace: «Назад» from the sign-in page does not loop back here.
+  return user ? children : <Navigate to="/authorization" replace state={{ returnTo: pathname }} />;
+}
+
+const SIGNED_OUT_TEXT = {
+  expired: "Сессия истекла. Войдите снова, чтобы вернуться к своим картам и разговорам.",
+  elsewhere: "Вход в аккаунт завершён в другой вкладке. Войдите снова, чтобы продолжить.",
+};
+
+// Why the sign-in state changed, under the header on every page.
+function AuthNotice() {
+  const { authError, authChecking, retryAuth, signedOutReason } = useAuth();
+  const { pathname } = useLocation();
+  if (authError) return <div className="notice shell button-row auth-notice" role="alert">
+    <span>Не удалось проверить вход: нет связи с сервером. Мы не вывели вас из аккаунта — проверьте интернет или подождите минуту и нажмите «Повторить».</span>
+    <button type="button" className="button-secondary" disabled={authChecking} onClick={retryAuth}>{authChecking ? "Проверяем…" : "Повторить"}</button>
+  </div>;
+  if (!SIGNED_OUT_TEXT[signedOutReason]) return null;
+  return <div className="notice shell button-row auth-notice" role="status">
+    <span>{SIGNED_OUT_TEXT[signedOutReason]}</span>
+    {pathname !== "/authorization" && <Link to="/authorization" state={{ returnTo: pathname }}>Войти</Link>}
+  </div>;
 }
 
 // 🔸 Основное содержимое приложения
@@ -56,6 +80,7 @@ function AppContent() {
 
       <a className="skip-link" href="#main-content">К содержимому</a>
       <Header />
+      <AuthNotice />
       <FreeBetaNotice />
       <main id="main-content" tabIndex={-1}>
       <Routes>

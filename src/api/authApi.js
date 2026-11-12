@@ -107,9 +107,9 @@ export async function login(email, password, guestChart = null) {
 /**
  * Получение текущего пользователя по access_token
  */
-export async function getMe(token) {
+export async function getMe(token, signal) {
   const response = await apiFetch(`${BASE_URL}/auth/me`, {
-    method: "GET",
+    method: "GET", signal,
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json", ...analyticsHeaders(),
@@ -118,7 +118,7 @@ export async function getMe(token) {
 
   const data = await readAuthBody(response);
   if (!response.ok) {
-    throw new Error(detailText(data.detail, "Ошибка получения пользователя"));
+    throw Object.assign(new Error(detailText(data.detail, "Ошибка получения пользователя")), { status: response.status });
   }
   return {
     id: data.id,
