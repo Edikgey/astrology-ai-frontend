@@ -29,6 +29,11 @@ test('registration promises the real limits outside the beta and no limits durin
   expect(text).not.toMatch(/3 карт|10 AI/);
 });
 
+test('the login button says «Войти в аккаунт» with a lowercase «а»',async()=>{
+  mockMode='login';await render();
+  expect(container.querySelector('button.auth-submit').textContent).toBe('Войти в аккаунт');
+});
+
 test('Russian live checklist, confirmation mismatch, and both registration stages',async()=>{
   await render();
   expect(container.textContent).toContain('Пароль должен содержать:');

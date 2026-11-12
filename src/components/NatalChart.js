@@ -21,7 +21,7 @@ const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, hous
   if (preview) return <div className="chart-preview"><ChartWheel model={model} preview /></div>;
   const placements = Object.values(bodies || {});
   const bigThree = [{ symbol: "☉", label: "Солнце", hint: "Идентичность и стремления" }, { symbol: "☽", label: "Луна", hint: "Чувства и внутренний мир" }, { symbol: "AS", label: "Асцендент", hint: "Как вы встречаете мир" }];
-  const summary = <div className="chart-summary"><p className="eyebrow">Три опоры вашей карты</p><h2>Разные стороны<br />одного человека.</h2>
+  const summary = <div className="chart-summary"><p className="eyebrow">Три опоры вашей карты</p><h2>Разные стороны <br />одного человека.</h2>
         {bigThree.map(item => { const body = placements.find(b => b.symbol === item.symbol); return <div className="placement" key={item.symbol}>
           <span className="placement-symbol" aria-hidden="true">{item.symbol === 'AS' ? '↗' : item.symbol}</span>
           <div><span className="placement-label">{item.label}</span><strong className="placement-sign">{body?.sign?.toLowerCase() || 'Нет данных'}</strong><p>{item.hint}{body?.house != null ? ` · Дом ${body.house}` : ''}</p></div>

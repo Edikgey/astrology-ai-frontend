@@ -214,7 +214,7 @@ const AuthorizationPage = () => {
           </>}
           {step === "register" && isCodeSent && <><label htmlFor="auth-code">Код подтверждения</label><input id="auth-code" type="text" autoComplete="one-time-code" placeholder="Код из почты" value={code} onChange={e => setCode(e.target.value)} required /></>}
           {(error || message) && <div className="auth-message">{error && <p role="alert">{error}</p>}{message && <p className="notice" role="status">{message}</p>}</div>}
-          <button type="submit" disabled={busy || (cooldown>0 && (step!=='register' || !isCodeSent || verificationBlocked)) || (step === "register" && (!passwordValid || !confirmationValid))} className="auth-submit">{busy ? "Подождите..." : recovery ? 'Отправить ссылку' : step === "login" ? "Войти в Аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
+          <button type="submit" disabled={busy || (cooldown>0 && (step!=='register' || !isCodeSent || verificationBlocked)) || (step === "register" && (!passwordValid || !confirmationValid))} className="auth-submit">{busy ? "Подождите..." : recovery ? 'Отправить ссылку' : step === "login" ? "Войти в аккаунт" : isCodeSent ? "Завершить регистрацию" : "Получить код"}</button>
         </form>
         {cooldown>0 && <p className="auth-retry" role="status">Повторный запрос через {cooldown} сек.</p>}
         {step==='register' && isCodeSent && <button type="button" className="auth-recovery-link" disabled={busy || cooldown>0 || !passwordValid || !confirmationValid} onClick={resendCode}>Отправить код повторно</button>}
