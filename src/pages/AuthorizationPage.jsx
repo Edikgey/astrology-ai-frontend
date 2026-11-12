@@ -17,7 +17,9 @@ const safeReturnPath = value => {
     [...value].some(ch => ch === "\\" || ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) return null;
   try {
     const url = new URL(value, window.location.origin);
-    if (url.origin !== window.location.origin || /^\/(authorization|reset-password)(\/|$)/i.test(url.pathname)) return null;
+    // Checks of the result, not the input: dot segments ("/.//x", "/%2e//x") normalize to "//x".
+    if (url.origin !== window.location.origin || url.pathname.startsWith("//") ||
+      /^\/(authorization|reset-password)(\/|$)/i.test(url.pathname)) return null;
     return url.pathname;
   } catch {
     return null;
