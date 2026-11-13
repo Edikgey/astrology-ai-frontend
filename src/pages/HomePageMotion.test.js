@@ -73,7 +73,7 @@ test('motion allowed: the demo answer types out after its block enters the viewp
   await mount({ reduced: false });
   const answer = demoAnswer();
   expect(typed(answer)).toBe('');
-  expect(answer.textContent).toBe(DEMO_ANSWER);
+  expect(accessibleText(answer)).toBe(DEMO_ANSWER);
   await advance(2000);
   expect(typed(answer)).toBe('');
   await intersect(answer);
@@ -85,7 +85,7 @@ test('motion allowed: the demo answer types out after its block enters the viewp
   expect(answer.querySelector('.landing-caret')).not.toBeNull();
   await advance(20000);
   expect(typed(answer)).toBe(DEMO_ANSWER);
-  expect(answer.textContent).toBe(DEMO_ANSWER);
+  expect(accessibleText(answer)).toBe(DEMO_ANSWER);
   expect(answer.querySelector('.landing-caret')).toBeNull();
 });
 
@@ -110,7 +110,7 @@ test('demo choices keep working while the first answer is typing, and the chosen
   expect(demo().querySelectorAll('.landing-message')).toHaveLength(4);
   expect(demo().textContent).toContain('Мне сложно доверять');
   const branch = demo().querySelectorAll('.landing-message:not(.landing-message-user) p')[1];
-  expect(branch.textContent).toBe(BRANCH_TRUST);
+  expect(accessibleText(branch)).toBe(BRANCH_TRUST);
   expect(typed(branch)).toBe('');
   await intersectEverything();
   await advance(20000);
@@ -126,6 +126,8 @@ test('the page text is identical with and without motion', async () => {
   await act(async () => root.unmount());
   root = createRoot(container);
   await mount({ reduced: false });
+  // The only difference is the single screen-reader copy of each typed answer (clipped, not drawn).
+  container.querySelectorAll('.landing-message .sr-only').forEach(node => node.remove());
   expect(container.textContent).toBe(still);
 });
 
@@ -167,11 +169,35 @@ test('screen readers get the full answer before and during typing, without busy 
   expect(answer.hasAttribute('aria-busy')).toBe(false);
 });
 
-test('css: untyped rest is transparent (not removed from accessibility), cursor adds no width, print shows everything', () => {
+test('css: untyped rest is hidden inside the aria-hidden layer, cursor is a zero-width inline border, print shows everything', () => {
   const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
   const rest = css.match(/\.landing-typed-rest \{[^}]*\}/)[0];
-  expect(rest).toContain('opacity: 0');
-  expect(rest).not.toContain('visibility');
-  expect(css.match(/\.landing-caret \{[^}]*\}/)[0]).toContain('margin: 0 -2px 0 0');
-  expect(css).toMatch(/@media print \{[^@]*\.landing-reveal[^}]*opacity: 1/);
+  expect(rest).toContain('visibility: hidden');
+  const caret = css.match(/\.landing-caret \{[^}]*\}/)[0];
+  expect(caret).toContain('border-left');
+  expect(caret).not.toContain('inline-block');
+  expect(caret).not.toMatch(/width/);
+  expect(css).toMatch(/@media print \{[^@]*\.landing-reveal[^}]*visibility: visible/);
+});
+
+test('screen-reader text is one stable copy: all typing changes happen inside the aria-hidden layer', async () => {
+  await mount({ reduced: false });
+  const answer = demoAnswer();
+  const copies = answer.querySelectorAll('.sr-only');
+  expect(copies).toHaveLength(1);
+  expect(copies[0].textContent).toBe(DEMO_ANSWER);
+  const records = [];
+  const watcher = new MutationObserver(list => records.push(...list));
+  watcher.observe(answer, { subtree: true, childList: true, characterData: true, attributes: true });
+  await intersect(answer);
+  await advance(20000);
+  records.push(...watcher.takeRecords());
+  watcher.disconnect();
+  expect(records.length).toBeGreaterThan(50);
+  records.forEach(record => {
+    const node = record.target.nodeType === 3 ? record.target.parentElement : record.target;
+    expect(node.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+  expect(answer.querySelector('.sr-only').textContent).toBe(DEMO_ANSWER);
+  expect(accessibleText(answer)).toBe(DEMO_ANSWER);
 });
