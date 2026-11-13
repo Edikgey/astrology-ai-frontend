@@ -6,6 +6,7 @@ import { OrbitMark } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { useUsage } from '../context/UsageContext';
 import { LANDING_USE_CASES, LANDING_RELATIONSHIP_INTENT, landingIntent } from './landingIntent';
+import { TypedParagraph, canAnimate, useLandingMotion, useSeenOnce } from './landingMotion';
 import '../components/natal/ChartWheel.css';
 import '../components/synastry/SynastryChart.css';
 import './HomePage.css';
@@ -24,24 +25,21 @@ function CreationLink({ className = '', children }) {
   return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
-const demoCueCurve = 'M36 4C32 13 20 16 5 15';
+// Starts under the answer, runs down, makes one round loop between the first and the middle choice, then sweeps left
+// into the arrowhead. The tip (4,74) is on the bottom edge of the viewBox: CSS lifts that edge to the middle button's centre.
+const demoCueCurve = 'M84 0C84 18 80 34 70 40C60 46 52 48 48 42C44 36 50 28 58 30C66 32 68 40 64 48C60 56 40 64 4 74';
+const demoCueHead = 'M9.65 68.34L4 74L11.86 75.52';
 
 function DemoCue() {
   const cue = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [animate] = useState(canAnimate);
+  const seen = useSeenOnce(cue, animate);
+  const phase = !animate ? 'static' : seen ? 'drawn' : 'pending';
 
-  useEffect(() => {
-    if (!('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting));
-    observer.observe(cue.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return <div className={`landing-demo-cue${isVisible ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
-    <svg className="landing-demo-cue-arrow" viewBox="0 0 40 24" focusable="false">
-      <path d={demoCueCurve} />
-      <path d="M10 10l-5 5 5 5" />
-      <path className="landing-demo-cue-ink" d={demoCueCurve} pathLength="1" />
+  return <div className={`landing-demo-cue is-${phase}`} ref={cue} aria-hidden="true">
+    <svg className="landing-demo-cue-arrow" viewBox="0 0 90 74" focusable="false">
+      <path className="landing-demo-cue-line" d={demoCueCurve} pathLength="1" />
+      <path className="landing-demo-cue-head" d={demoCueHead} pathLength="1" />
     </svg>
     <span>Нажмите</span>
   </div>;
@@ -53,22 +51,22 @@ function ConversationDemo({ compact = false }) {
     <div className="landing-demo-bar"><span><OrbitMark /> Lunaria</span><small>{compact ? 'Вымышленный пример' : 'Демонстрация · без запросов к AI'}</small></div>
     <div className="landing-demo-thread" aria-live={compact ? 'off' : 'polite'}>
       <div className="landing-message landing-message-user"><span>Вы</span><p>{compact
-        ? 'Когда я выйду замуж — и за кого?'
+        ? 'Когда я выйду замуж и за кого?'
         : 'Почему у меня повторяются похожие проблемы в отношениях?'}</p></div>
-      <div className="landing-message"><span>Lunaria</span><p>{compact
+      <div className="landing-message"><span>Lunaria</span><TypedParagraph text={compact
         ? 'Представьте: 14 сентября 2027-го вы говорите «да» человеку, которого сегодня зовёте «просто другом». А теперь вопрос от вашей Венеры в Близнецах: кому вы пишете первым, когда хочется рассказать что-то смешное?'
-        : 'В этой карте Луна в Скорпионе может быть интересной отправной точкой для разговора о близости и доверии. Но сама карта не расскажет, что именно повторяется в вашей жизни.\n\nЧто вам знакомо больше: вас привлекают похожие люди, становится сложно доверять или хочется отдалиться, когда отношения становятся серьёзнее?'}</p></div>
+        : 'В этой карте Луна в Скорпионе может быть интересной отправной точкой для разговора о близости и доверии. Но сама карта не расскажет, что именно повторяется в вашей жизни.\n\nЧто вам знакомо больше: вас привлекают похожие люди, становится сложно доверять или хочется отдалиться, когда отношения становятся серьёзнее?'} /></div>
       {!compact && selected !== null && <>
         <div className="landing-message landing-message-user landing-demo-next"><span>Вы</span><p>{demoBranches[selected][0]}</p></div>
-        <div className="landing-message landing-demo-next"><span>Lunaria</span><p>{demoBranches[selected][1]}</p></div>
+        <div className="landing-message landing-demo-next"><span>Lunaria</span><TypedParagraph key={selected} text={demoBranches[selected][1]} /></div>
       </>}
     </div>
     {!compact && <>
       <div className="landing-demo-choices">
         <div className="landing-demo-options" role="group" aria-label="Продолжения демонстрации">
           {demoBranches.map(([text], index) => <button data-analytics="landing_demo_selected" key={text} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}>{text} <ArrowIcon /></button>)}
+          <DemoCue />
         </div>
-        <DemoCue />
       </div>
       <div className="landing-demo-cta"><p>Хотите задать такой вопрос на основе своей карты?</p><CreationLink className="button">Создать мою карту</CreationLink></div>
     </>}
@@ -84,7 +82,9 @@ export default function HomePage() {
     landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT,
     ...(user ? { returnTo: '/relationships/new' } : {}),
   } : undefined;
-  return <div className="home-page landing-v2">
+  const pageRef = useRef(null);
+  useLandingMotion(pageRef);
+  return <div className="home-page landing-v2" ref={pageRef}>
     <section className="landing-hero" aria-labelledby="landing-title"><div className="shell landing-hero-grid">
       <div className="landing-hero-copy"><p className="eyebrow">Персональный AI-астролог</p><h1 id="landing-title">Не просто прочитайте свою натальную карту.<br /><span>Поговорите с ней.</span></h1>
         <p className="landing-lead">Lunaria использует вашу натальную карту как основу разговора, чтобы вы могли задавать вопросы об отношениях, работе, внутренних противоречиях и других важных для вас темах.</p>
