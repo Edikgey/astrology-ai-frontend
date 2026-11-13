@@ -1,0 +1,152 @@
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import HomePage from './HomePage';
+
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('../context/UsageContext', () => ({ useUsage: () => ({ usage: null }) }));
+jest.mock('react-router-dom', () => ({
+  Link: ({ to, state, children, ...props }) => <a href={to} {...props}>{children}</a>,
+}), { virtual: true });
+
+const HERO_ANSWER = 'Представьте: 14 сентября 2027-го вы говорите «да» человеку, которого сегодня зовёте «просто другом». А теперь вопрос от вашей Венеры в Близнецах: кому вы пишете первым, когда хочется рассказать что-то смешное?';
+const DEMO_ANSWER = 'В этой карте Луна в Скорпионе может быть интересной отправной точкой для разговора о близости и доверии. Но сама карта не расскажет, что именно повторяется в вашей жизни.\n\nЧто вам знакомо больше: вас привлекают похожие люди, становится сложно доверять или хочется отдалиться, когда отношения становятся серьёзнее?';
+const BRANCH_TRUST = 'Недоверие может быть способом защитить важную для вас эмоциональную глубину. В каких ситуациях оно возникает сильнее: когда человек отдаляется, когда становится слишком близко или когда вам не хватает ясности?';
+
+let root, container, observers, originalMatchMedia, originalObserver;
+
+class MockObserver {
+  constructor(callback) { this.callback = callback; this.targets = new Set(); observers.push(this); }
+  observe(target) { this.targets.add(target); }
+  unobserve(target) { this.targets.delete(target); }
+  disconnect() { this.targets.clear(); }
+}
+const intersect = (target, isIntersecting = true) => act(() => {
+  observers.forEach(observer => { if (observer.targets.has(target)) observer.callback([{ target, isIntersecting }], observer); });
+});
+const intersectEverything = () => act(() => {
+  observers.forEach(observer => [...observer.targets].forEach(target => observer.callback([{ target, isIntersecting: true }], observer)));
+});
+const advance = ms => act(() => { jest.advanceTimersByTime(ms); });
+
+async function mount({ reduced }) {
+  window.matchMedia = jest.fn(query => ({ matches: reduced && query.includes('reduce'), media: query, addEventListener() {}, removeEventListener() {} }));
+  window.IntersectionObserver = MockObserver;
+  await act(async () => root.render(<HomePage />));
+}
+const heroAnswer = () => container.querySelector('.landing-demo-mini .landing-message:not(.landing-message-user) p');
+const demo = () => container.querySelector('#conversation-demo .landing-demo');
+const demoAnswer = () => demo().querySelector('.landing-message:not(.landing-message-user) p');
+const typed = p => p.querySelector('.landing-typed').textContent;
+
+beforeEach(() => {
+  jest.useFakeTimers();
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  observers = [];
+  originalMatchMedia = window.matchMedia;
+  originalObserver = window.IntersectionObserver;
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+});
+afterEach(async () => {
+  await act(async () => root.unmount());
+  container.remove();
+  window.matchMedia = originalMatchMedia;
+  window.IntersectionObserver = originalObserver;
+  jest.useRealTimers();
+});
+
+test('reduced motion: both answers are complete at once, no cursor, no hidden blocks', async () => {
+  await mount({ reduced: true });
+  expect(heroAnswer().textContent).toBe(HERO_ANSWER);
+  expect(demoAnswer().textContent).toBe(DEMO_ANSWER);
+  expect(typed(demoAnswer())).toBe(DEMO_ANSWER);
+  expect(container.querySelector('.landing-caret')).toBeNull();
+  expect(container.querySelector('.landing-reveal')).toBeNull();
+  expect(container.querySelector('.is-live')).toBeNull();
+});
+
+test('motion allowed: the demo answer types out after its block enters the viewport and ends with the original text', async () => {
+  await mount({ reduced: false });
+  const answer = demoAnswer();
+  expect(typed(answer)).toBe('');
+  expect(answer.textContent).toBe(DEMO_ANSWER);
+  await advance(2000);
+  expect(typed(answer)).toBe('');
+  await intersect(answer);
+  await advance(300);
+  const partial = typed(answer);
+  expect(partial.length).toBeGreaterThan(0);
+  expect(partial.length).toBeLessThan(DEMO_ANSWER.length);
+  expect(DEMO_ANSWER.startsWith(partial)).toBe(true);
+  expect(answer.querySelector('.landing-caret')).not.toBeNull();
+  expect(answer.getAttribute('aria-busy')).toBe('true');
+  await advance(20000);
+  expect(typed(answer)).toBe(DEMO_ANSWER);
+  expect(answer.textContent).toBe(DEMO_ANSWER);
+  expect(answer.querySelector('.landing-caret')).toBeNull();
+  expect(answer.getAttribute('aria-busy')).toBe('false');
+});
+
+test('the hero answer types out once and does not restart when it leaves and re-enters the viewport', async () => {
+  await mount({ reduced: false });
+  const answer = heroAnswer();
+  await intersect(answer);
+  await advance(20000);
+  expect(typed(answer)).toBe(HERO_ANSWER);
+  await intersect(answer, false);
+  await intersect(answer);
+  expect(typed(answer)).toBe(HERO_ANSWER);
+});
+
+test('demo choices keep working while the first answer is typing, and the chosen answer types out too', async () => {
+  await mount({ reduced: false });
+  await intersect(demoAnswer());
+  await advance(200);
+  const buttons = [...demo().querySelectorAll('.landing-demo-options button')];
+  await act(async () => buttons[1].click());
+  expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
+  expect(demo().querySelectorAll('.landing-message')).toHaveLength(4);
+  expect(demo().textContent).toContain('Мне сложно доверять');
+  const branch = demo().querySelectorAll('.landing-message:not(.landing-message-user) p')[1];
+  expect(branch.textContent).toBe(BRANCH_TRUST);
+  expect(typed(branch)).toBe('');
+  await intersectEverything();
+  await advance(20000);
+  expect(typed(branch)).toBe(BRANCH_TRUST);
+  await act(async () => buttons[2].click());
+  expect(demo().querySelectorAll('.landing-message')).toHaveLength(4);
+  expect(demo().textContent).toContain('Я отдаляюсь, когда становится серьёзно');
+});
+
+test('the page text is identical with and without motion', async () => {
+  await mount({ reduced: true });
+  const still = container.textContent;
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  await mount({ reduced: false });
+  expect(container.textContent).toBe(still);
+});
+
+test('motion allowed: blocks below the first screen fade in once; the demo chart is live only while visible', async () => {
+  await mount({ reduced: false });
+  const shells = [...container.querySelectorAll('.landing-v2 > section:not(.landing-hero) > .shell')];
+  expect(shells).toHaveLength(8);
+  shells.forEach(shell => {
+    expect(shell.classList.contains('landing-reveal')).toBe(true);
+    expect(shell.classList.contains('is-in')).toBe(false);
+  });
+  expect(container.querySelector('.landing-hero .landing-reveal')).toBeNull();
+  await intersect(shells[2]);
+  expect(shells[2].classList.contains('is-in')).toBe(true);
+  expect(shells[3].classList.contains('is-in')).toBe(false);
+  await intersect(shells[2], false);
+  expect(shells[2].classList.contains('is-in')).toBe(true);
+
+  const figure = container.querySelector('.landing-chart-visual');
+  expect(figure.classList.contains('is-live')).toBe(false);
+  await intersect(figure);
+  expect(figure.classList.contains('is-live')).toBe(true);
+  await intersect(figure, false);
+  expect(figure.classList.contains('is-live')).toBe(false);
+});
