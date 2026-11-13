@@ -25,9 +25,10 @@ function CreationLink({ className = '', children }) {
   return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
-// One round, open curl that sweeps left into a clean arrowhead aimed at the middle choice.
-const demoCueCurve = 'M97 27C88 40 62 38 57 23C53 9 74 4 79 17C83 29 62 33 42 28C28 24 16 22 4 20';
-const demoCueHead = 'M12.4 16.7L4 20L11.1 25.6';
+// Starts under the answer, runs down, makes one round loop between the first and the middle choice, then sweeps left
+// into the arrowhead. The tip (4,74) is on the bottom edge of the viewBox: CSS lifts that edge to the middle button's centre.
+const demoCueCurve = 'M84 0C84 18 80 34 70 40C60 46 52 48 48 42C44 36 50 28 58 30C66 32 68 40 64 48C60 56 40 64 4 74';
+const demoCueHead = 'M9.65 68.34L4 74L11.86 75.52';
 
 function DemoCue() {
   const cue = useRef(null);
@@ -36,7 +37,7 @@ function DemoCue() {
   const phase = !animate ? 'static' : seen ? 'drawn' : 'pending';
 
   return <div className={`landing-demo-cue is-${phase}`} ref={cue} aria-hidden="true">
-    <svg className="landing-demo-cue-arrow" viewBox="0 0 100 40" focusable="false">
+    <svg className="landing-demo-cue-arrow" viewBox="0 0 90 74" focusable="false">
       <path className="landing-demo-cue-line" d={demoCueCurve} pathLength="1" />
       <path className="landing-demo-cue-head" d={demoCueHead} pathLength="1" />
     </svg>
