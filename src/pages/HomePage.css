@@ -209,8 +209,8 @@
 }
 
 /* Motion (see landingMotion.js): classes below are added only when the visitor has not asked to reduce motion. Only transform and opacity animate. */
-.landing-v2 .landing-typed-rest { visibility: hidden; }
-.landing-v2 .landing-caret { display: inline-block; width: 2px; height: 1.1em; margin: 0 1px; vertical-align: text-bottom; background: var(--ln-color-primary); animation: landing-caret 1s steps(1) infinite; }
+.landing-v2 .landing-typed-rest { opacity: 0; }
+.landing-v2 .landing-caret { display: inline-block; width: 2px; height: 1.1em; margin: 0 -2px 0 0; vertical-align: text-bottom; background: var(--ln-color-primary); animation: landing-caret 1s steps(1) infinite; }
 @keyframes landing-caret { 50% { opacity: 0; } }
 
 .landing-v2 .landing-reveal { opacity: 0; transform: translateY(var(--ln-space-24)); transition: opacity calc(var(--ln-motion-slow) * 2.5) var(--ln-ease-standard), transform calc(var(--ln-motion-slow) * 2.5) var(--ln-ease-standard); }
@@ -228,5 +228,6 @@
   .landing-v2 a, .landing-v2 button, .landing-v2 .landing-demo-next { transition: none; animation: none; }
   .landing-v2 .landing-reveal { opacity: 1; transform: none; transition: none; }
   .landing-v2 .landing-caret, .landing-v2 .landing-chart-visual .natal-wheel-svg, .landing-v2 .landing-chart-visual .planet-hit { animation: none; }
-  .landing-v2 .landing-typed-rest { visibility: visible; }
+  .landing-v2 .landing-typed-rest { opacity: 1; }
 }
+@media print { .landing-v2 .landing-reveal { opacity: 1; transform: none; } .landing-v2 .landing-typed-rest { opacity: 1; } .landing-v2 .landing-caret { display: none; } }

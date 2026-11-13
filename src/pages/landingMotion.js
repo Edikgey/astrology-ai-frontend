@@ -11,7 +11,8 @@ export function canAnimate() {
 const TYPE_MS = 22;
 const PAUSE_MS = 150;
 
-// The not-yet-typed rest stays in the layout (hidden), so the bubble keeps its final size while typing.
+// The not-yet-typed rest stays in the layout and the accessibility tree (transparent only), so the bubble keeps
+// its final size while typing and screen readers always get the full answer.
 export function TypedParagraph({ text }) {
   const ref = useRef(null);
   const [animate] = useState(canAnimate);
@@ -34,10 +35,10 @@ export function TypedParagraph({ text }) {
   }, [started, count, text]);
 
   const typing = started && count < text.length;
-  return <p ref={ref} aria-busy={animate ? typing : undefined}>
+  return <p ref={ref}>
     <span className="landing-typed">{text.slice(0, count)}</span>
     {typing && <span className="landing-caret" aria-hidden="true" />}
-    <span className="landing-typed-rest" aria-hidden="true">{text.slice(count)}</span>
+    <span className="landing-typed-rest">{text.slice(count)}</span>
   </p>;
 }
 

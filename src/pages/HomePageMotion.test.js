@@ -1,6 +1,8 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import HomePage from './HomePage';
+import fs from 'fs';
+import path from 'path';
 
 jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../context/UsageContext', () => ({ useUsage: () => ({ usage: null }) }));
@@ -81,12 +83,10 @@ test('motion allowed: the demo answer types out after its block enters the viewp
   expect(partial.length).toBeLessThan(DEMO_ANSWER.length);
   expect(DEMO_ANSWER.startsWith(partial)).toBe(true);
   expect(answer.querySelector('.landing-caret')).not.toBeNull();
-  expect(answer.getAttribute('aria-busy')).toBe('true');
   await advance(20000);
   expect(typed(answer)).toBe(DEMO_ANSWER);
   expect(answer.textContent).toBe(DEMO_ANSWER);
   expect(answer.querySelector('.landing-caret')).toBeNull();
-  expect(answer.getAttribute('aria-busy')).toBe('false');
 });
 
 test('the hero answer types out once and does not restart when it leaves and re-enters the viewport', async () => {
@@ -150,4 +150,28 @@ test('motion allowed: blocks below the first screen fade in once; the demo chart
   expect(figure.classList.contains('is-live')).toBe(true);
   await intersect(figure, false);
   expect(figure.classList.contains('is-live')).toBe(false);
+});
+
+// What a screen reader gets: everything except aria-hidden parts (the cursor).
+const accessibleText = p => { const copy = p.cloneNode(true); copy.querySelectorAll('[aria-hidden="true"]').forEach(node => node.remove()); return copy.textContent; };
+
+test('screen readers get the full answer before and during typing, without busy flags', async () => {
+  await mount({ reduced: false });
+  const answer = demoAnswer();
+  expect(accessibleText(answer)).toBe(DEMO_ANSWER);
+  expect(answer.hasAttribute('aria-busy')).toBe(false);
+  await intersect(answer);
+  await advance(300);
+  expect(answer.querySelector('.landing-caret')).not.toBeNull();
+  expect(accessibleText(answer)).toBe(DEMO_ANSWER);
+  expect(answer.hasAttribute('aria-busy')).toBe(false);
+});
+
+test('css: untyped rest is transparent (not removed from accessibility), cursor adds no width, print shows everything', () => {
+  const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
+  const rest = css.match(/\.landing-typed-rest \{[^}]*\}/)[0];
+  expect(rest).toContain('opacity: 0');
+  expect(rest).not.toContain('visibility');
+  expect(css.match(/\.landing-caret \{[^}]*\}/)[0]).toContain('margin: 0 -2px 0 0');
+  expect(css).toMatch(/@media print \{[^@]*\.landing-reveal[^}]*opacity: 1/);
 });
