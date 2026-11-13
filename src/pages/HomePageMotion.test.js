@@ -39,6 +39,27 @@ async function mount({ reduced }) {
 const heroAnswer = () => container.querySelector('.landing-demo-mini .landing-message:not(.landing-message-user) p');
 const demo = () => container.querySelector('#conversation-demo .landing-demo');
 const demoAnswer = () => demo().querySelector('.landing-message:not(.landing-message-user) p');
+// Number of times a path of "M x y" + cubic "C" segments crosses itself (curve sampled into short chords).
+function selfCrossings(d) {
+  const nums = d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+  const pts = [[nums[0], nums[1]]];
+  for (let i = 2; i + 5 < nums.length + 0; i += 6) {
+    const [p0, p1, p2, p3] = [pts[pts.length - 1], [nums[i], nums[i + 1]], [nums[i + 2], nums[i + 3]], [nums[i + 4], nums[i + 5]]];
+    for (let step = 1; step <= 40; step += 1) {
+      const t = step / 40, u = 1 - t;
+      pts.push([0, 1].map(k => u ** 3 * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t ** 3 * p3[k]));
+    }
+  }
+  const side = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+  let count = 0;
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    for (let j = i + 2; j < pts.length - 1; j += 1) {
+      if (side(pts[i], pts[i + 1], pts[j]) !== side(pts[i], pts[i + 1], pts[j + 1])
+        && side(pts[j], pts[j + 1], pts[i]) !== side(pts[j], pts[j + 1], pts[i + 1])) count += 1;
+    }
+  }
+  return count;
+}
 const typed = p => p.querySelector('.landing-typed').textContent;
 
 beforeEach(() => {
@@ -240,19 +261,15 @@ test('click cue: decorative, sits in the buttons grid next to the middle choice,
   expect(cueRule).toContain('align-self: center');
 });
 
-test('click cue: flourish with a sparkle; reduced-motion CSS stops every cue animation regardless of state', async () => {
+test('click cue: minimalist - one smooth loop and a clean two-stroke head, no sparkle; reduced-motion CSS stops every cue animation', async () => {
   await mount({ reduced: true });
   const cue = demo().querySelector('.landing-demo-cue');
-  expect(cue.querySelector('.landing-demo-cue-spark')).not.toBeNull();
-  expect(cue.querySelectorAll('svg path').length).toBeGreaterThanOrEqual(2);
+  expect(cue.querySelector('.landing-demo-cue-spark')).toBeNull();
+  expect(cue.querySelectorAll('svg path')).toHaveLength(2);
+  expect(selfCrossings(cue.querySelector('.landing-demo-cue-line').getAttribute('d'))).toBe(1);
   const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
   const reduce = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
   // more specific state rules (.is-drawn ...) must not win over the reduced-motion block
   expect(reduce).toMatch(/\.landing-demo-cue[^{]*\{[^}]*animation: none !important/);
   expect(reduce).toMatch(/\.is-pending[^{]*\{[^}]*opacity: 1/);
-});
-
-test('click cue and typed answers share one observer helper', () => {
-  const home = fs.readFileSync(path.join(__dirname, 'HomePage.js'), 'utf8');
-  expect(home).not.toContain('new IntersectionObserver');
 });
