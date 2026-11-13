@@ -1,14 +1,17 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { RADII, ROMAN, project, buildHouseSectors, buildPlanetAnchors, layoutPlanetLabels, buildAspectEndpoints, arcPath, sectorPath } from './geometry';
+import { RADII, ROMAN, normalizeDegrees, project, buildHouseSectors, buildPlanetAnchors, layoutPlanetLabels, buildAspectEndpoints, arcPath, sectorPath } from './geometry';
 import { ANGLES, ANGLE_LABELS, SIGNS, longitudeText } from './model';
 import { Glyph, GlyphDefs } from './Glyphs';
 import './ChartWheel.css';
 
-const keyActivate = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(); } };
+const keyActivate = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(event); } };
+const SIGN_IN = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
+const HOUSE_WORD = ['первый', 'второй', 'третий', 'четвёртый', 'пятый', 'шестой', 'седьмой', 'восьмой', 'девятый', 'десятый', 'одиннадцатый', 'двенадцатый'];
+const reducedMotion = () => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
 const pointLabel = point => `${point.name} · ${longitudeText(point.longitude)} · ${point.house != null ? `дом ${point.house}` : 'дом не указан'}${point.retrograde ? ' · ретроградная' : ''}`;
 
-export default function ChartWheel({ model, preview = false, referenceTarget = null }) {
+export default function ChartWheel({ model, preview = false, referenceTarget = null, onAsk }) {
   const container = useRef(null);
   const prefix = useId().replace(/:/g, '');
   const [compact, setCompact] = useState(false);
@@ -18,6 +21,18 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
   const [layers, setLayers] = useState({ node: true, chiron: true, extra: false });
   const [selected, setSelected] = useState(null);
   const [hover, setHover] = useState(null);
+  const [reveal, setReveal] = useState(() => !preview && !reducedMotion());
+  const tipRef = useRef(null);
+  const askRef = useRef(null);
+  const origin = useRef(null);
+  const wantFocus = useRef(false);
+  useEffect(() => {
+    if (!reveal) return;
+    const timer = setTimeout(() => setReveal(false), 2400);
+    return () => clearTimeout(timer);
+  }, [reveal]);
+  // After Enter on a wheel object the tooltip button takes focus; Escape gives it back.
+  useEffect(() => { if (wantFocus.current && askRef.current) askRef.current.focus(); wantFocus.current = false; }, [selected]);
   useEffect(() => {
     if (!container.current) return;
     const update = () => setCompact(container.current.getBoundingClientRect().width < 440);
@@ -56,7 +71,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
   const interaction = (value, label) => preview ? {} : { role: 'button', tabIndex: 0, 'aria-label': label,
     'aria-pressed': selected?.kind === value.kind && selected?.id === value.id,
     onClick: event => { event.stopPropagation(); select(value); },
-    onKeyDown: keyActivate(() => select(value)),
+    onKeyDown: keyActivate(event => { origin.current = event.currentTarget; wantFocus.current = true; select(value); }),
     onMouseEnter: () => setHover(value), onMouseLeave: () => setHover(null),
     onFocus: () => setHover(value), onBlur: () => setHover(null) };
   const pointDim = id => focusIds.length && !focusIds.includes(id) ? ' is-dim' : '';
@@ -64,6 +79,28 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
   const selectedHouse = focus?.kind === 'house' ? model.cusps.find(h => h.id === focus.id) : null;
   const group = focus?.kind === 'group' ? labels.find(label => label.id === focus.id) : null;
   const aspectLabel = aspect => `${model.byId[aspect.from]?.name || aspect.from} — ${aspect.name} — ${model.byId[aspect.to]?.name || aspect.to}. Орбис: ${aspect.orb || 'не указан'}`;
+
+  // Facts come straight from the loaded chart; interpretation is the chat's job.
+  const tip = (() => {
+    const place = (x, y) => ({ x, y });
+    if (activePoint) {
+      const label = labels.find(item => item.members.includes(activePoint.id));
+      const at = activePoint.kind === 'angle' ? project(activePoint.longitude, model.asc, RADII.angleLabel) : label;
+      const house = activePoint.house != null;
+      return at && { at: place(at.x, at.y), text: `${activePoint.name} · ${longitudeText(activePoint.longitude)}${house ? ` · ${activePoint.house} дом` : ''}`,
+        question: `Что значит ${activePoint.name} в ${SIGN_IN[Math.floor(normalizeDegrees(activePoint.longitude) / 30)]}${house ? ` в ${activePoint.house} доме` : ''} в моей карте?` };
+    }
+    if (activeAspect) {
+      const line = endpoints.find(item => item.id === activeAspect.id);
+      const names = `${model.byId[activeAspect.from]?.name || activeAspect.from} — ${activeAspect.name.toLowerCase()} — ${model.byId[activeAspect.to]?.name || activeAspect.to}`;
+      return line && { at: place((line.start.x + line.end.x) / 2, (line.start.y + line.end.y) / 2), text: `${names}, орбис ${activeAspect.orb || 'не указан'}`,
+        question: `Что значит аспект «${names}» в моей карте?` };
+    }
+    const sector = selectedHouse && sectors.find(item => item.id === selectedHouse.id);
+    return sector && { at: place(sector.label.x, sector.label.y), text: `Дом ${ROMAN[selectedHouse.number - 1]} · куспид ${longitudeText(selectedHouse.longitude)}`,
+      question: `Что значит ${HOUSE_WORD[selectedHouse.number - 1]} дом в моей карте?` };
+  })();
+  const pinned = Boolean(selected);
 
   if (!model.ready) return <div className="notice" role="status">Точные данные для круга неполны. {model.issues.join(' ')} Доступные положения перечислены ниже.</div>;
   const referenceDetails = <>
@@ -75,8 +112,8 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
       {model.patterns.length > 0 && <details className="wheel-text-details"><summary>Конфигурации · {model.patterns.length}</summary><div className="pattern-focus-list">{model.patterns.map(pattern => <button className="button-secondary" type="button" key={pattern.id} disabled={!pattern.members.length} onClick={() => select({ kind: 'pattern', id: pattern.id })}>{pattern.name}<small>{pattern.sourceBodies.map(body => body.label || body.symbol).join(' · ')}</small></button>)}</div></details>}
       {model.issues.length > 0 && <details className="wheel-text-details"><summary>Доступность данных</summary><ul>{model.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details>}
   </>;
-  return <div ref={container} className={`chart-v2 ${compact ? 'is-compact' : ''} ${preview ? 'is-preview' : ''}`}
-    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clear(); } }}>
+  return <div ref={container} className={`chart-v2 ${compact ? 'is-compact' : ''} ${preview ? 'is-preview' : ''} ${reveal ? 'is-reveal' : ''}`}
+    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); if (tipRef.current?.contains(document.activeElement)) origin.current?.focus?.(); clear(); } }}>
     {!preview && <div className="chart-toolbar" aria-label="Отображение карты">
       <button type="button" className="button-secondary" aria-pressed={showHouses} onClick={() => setShowHouses(value => !value)}>Дома</button>
       <label>Аспекты<select aria-label="Слой аспектов" value={aspectMode} onChange={event => { setAspectMode(event.target.value); clear(); }}><option value="major">Мажорные</option><option value="all">Все</option><option value="none">Без аспектов</option></select></label>
@@ -85,6 +122,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
         {[['node', 'Северный узел'], ['chiron', 'Хирон'], ['extra', 'Астероиды и другие точки']].filter(([kind]) => model.points.some(p => p.kind === kind)).map(([kind, name]) => <label key={kind}><input type="checkbox" checked={layers[kind]} onChange={event => { setLayers(value => ({ ...value, [kind]: event.target.checked })); clear(); }} />{name}</label>)}
       </div></details>
     </div>}
+    <div className="wheel-stage">
     <svg className="natal-wheel-svg" viewBox="0 0 600 600" role="img" aria-labelledby={`${prefix}-title ${prefix}-description`} onClick={clear}>
       <title id={`${prefix}-title`}>{preview ? 'Иллюстративная натальная карта' : 'Натальная карта: точные положения, дома и аспекты'}</title>
       <desc id={`${prefix}-description`}>ASC слева. Углы и куспиды стоят на точных положениях из расчёта. Точки на окружности — точные положения; линии ведут к подписям. Таблицы и доступные кнопки находятся под картой.</desc>
@@ -126,15 +164,15 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
         </g>;
       })}
       {anchors.map(point => {
-        const label = labels.find(item => item.members.includes(point.id)), inner = project(point.longitude, model.asc, RADII.anchor - 6);
-        return <g key={point.id} className={`point-anchor${pointDim(point.id)}`} data-point-anchor={point.id}>
+        const order = labels.findIndex(item => item.members.includes(point.id)), label = labels[order], inner = project(point.longitude, model.asc, RADII.anchor - 6);
+        return <g key={point.id} className={`point-anchor${pointDim(point.id)}`} style={{ '--reveal-i': order }} data-point-anchor={point.id}>
           <path d={`M ${point.anchor.x} ${point.anchor.y} L ${inner.x} ${inner.y} L ${label.x} ${label.y}`} className="anchor-leader" />
           <circle cx={point.anchor.x} cy={point.anchor.y} r="2.5" />
         </g>;
       })}
-      {labels.map(label => {
+      {labels.map((label, order) => {
         const point = model.byId[label.id], grouped = label.members.length > 1;
-        return <g key={label.id} className={`planet-label${label.members.every(id => pointDim(id)) ? ' is-dim' : ''}${focusIds.includes(label.id) ? ' is-active' : ''}`}
+        return <g key={label.id} style={{ '--reveal-i': order }} className={`planet-label${label.members.every(id => pointDim(id)) ? ' is-dim' : ''}${focusIds.includes(label.id) ? ' is-active' : ''}`}
           {...interaction({ kind: grouped ? 'group' : 'point', id: label.id, members: label.members }, grouped ? `Группа: ${label.members.map(id => model.byId[id].name).join(', ')}` : pointLabel(point))} data-label={label.id}>
           <circle className="planet-hit" cx={label.x} cy={label.y} r={compact ? 27 : 22} />
           <circle className="planet-disc" cx={label.x} cy={label.y} r={label.width / 2 + 2} />
@@ -144,6 +182,12 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
         </g>;
       })}
     </svg>
+    {!preview && tip && <div ref={tipRef} className={`wheel-tip${pinned ? ' is-pinned' : ''}`}
+      style={{ left: `${tip.at.x / 6}%`, transform: `translateX(-${tip.at.x / 6}%)`, ...(tip.at.y < 300 ? { top: `${tip.at.y / 6 + 5}%` } : { bottom: `${100 - tip.at.y / 6 + 5}%` }) }}>
+      <p>{tip.text}</p>
+      {pinned && onAsk && <button ref={askRef} type="button" className="button-secondary" onClick={() => { onAsk(tip.question); clear(); }}>Спросить об этом</button>}
+    </div>}
+    </div>
     {!preview && <>
       <div className="chart-legend" aria-label="Обозначения аспектов"><span className="legend-hard">Напряжённые</span><span className="legend-soft">Гармоничные</span><span className="legend-conjunction">Соединения</span>{aspectMode === 'all' && <span className="legend-minor">Минорные</span>}</div>
       <div className="wheel-detail" aria-live="polite">

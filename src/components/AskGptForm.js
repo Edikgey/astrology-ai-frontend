@@ -33,7 +33,7 @@ const AskGptForm = (props) => {
 };
 
 const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoading, token, unsaved = false,
-  initialQuestion = "", onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions }) => {
+  initialQuestion = "", suggestedQuestion, onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions }) => {
   const { usage, usageLoading, usageError, refreshUsage, handleLimitError } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
@@ -63,6 +63,17 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     return () => window.removeEventListener("resize", resize);
   }, [question]);
   useEffect(() => () => sending.current?.abort(), []);
+  // A question suggested from the chart wheel only fills the input; the user sends it.
+  const handledSuggestion = useRef(suggestedQuestion);
+  useEffect(() => {
+    if (!suggestedQuestion || suggestedQuestion === handledSuggestion.current) return;
+    handledSuggestion.current = suggestedQuestion;
+    setQuestion(suggestedQuestion.text);
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    input.current?.scrollIntoView?.({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    // A guest's focus would open the sign-in dialog; it opens when they send.
+    if (authenticated) input.current?.focus({ preventScroll: true });
+  }, [suggestedQuestion, authenticated]);
   useEffect(() => {
     if (history.current && followBottom.current) history.current.scrollTop = history.current.scrollHeight;
   }, [messages, loading]);
