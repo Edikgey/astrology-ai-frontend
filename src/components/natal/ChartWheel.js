@@ -1,13 +1,13 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { RADII, ROMAN, normalizeDegrees, project, buildHouseSectors, buildPlanetAnchors, layoutPlanetLabels, buildAspectEndpoints, arcPath, sectorPath } from './geometry';
-import { ANGLES, ANGLE_LABELS, SIGNS, longitudeText } from './model';
+import { ANGLES, ANGLE_LABELS, SIGNS, SIGNS_IN, HOUSE_WORDS, longitudeText } from './model';
 import { Glyph, GlyphDefs } from './Glyphs';
 import './ChartWheel.css';
 
 const keyActivate = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(event); } };
-const SIGN_IN = ['Овне', 'Тельце', 'Близнецах', 'Раке', 'Льве', 'Деве', 'Весах', 'Скорпионе', 'Стрельце', 'Козероге', 'Водолее', 'Рыбах'];
-const HOUSE_WORD = ['первый', 'второй', 'третий', 'четвёртый', 'пятый', 'шестой', 'седьмой', 'восьмой', 'девятый', 'десятый', 'одиннадцатый', 'двенадцатый'];
+const PERCENT_PER_UNIT = 600 / 100; // SVG viewBox units per percent of the wheel
+const MAX_REVEAL_STEP = 12; // keeps stagger + 1.3 s inside the 2.4 s reveal window
 const reducedMotion = () => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
 const pointLabel = point => `${point.name} · ${longitudeText(point.longitude)} · ${point.house != null ? `дом ${point.house}` : 'дом не указан'}${point.retrograde ? ' · ретроградная' : ''}`;
 
@@ -70,7 +70,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
   const clear = () => { setSelected(null); setHover(null); };
   const interaction = (value, label) => preview ? {} : { role: 'button', tabIndex: 0, 'aria-label': label,
     'aria-pressed': selected?.kind === value.kind && selected?.id === value.id,
-    onClick: event => { event.stopPropagation(); select(value); },
+    onClick: event => { event.stopPropagation(); origin.current = event.currentTarget; select(value); },
     onKeyDown: keyActivate(event => { origin.current = event.currentTarget; wantFocus.current = true; select(value); }),
     onMouseEnter: () => setHover(value), onMouseLeave: () => setHover(null),
     onFocus: () => setHover(value), onBlur: () => setHover(null) };
@@ -82,23 +82,22 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
 
   // Facts come straight from the loaded chart; interpretation is the chat's job.
   const tip = (() => {
-    const place = (x, y) => ({ x, y });
     if (activePoint) {
       const label = labels.find(item => item.members.includes(activePoint.id));
       const at = activePoint.kind === 'angle' ? project(activePoint.longitude, model.asc, RADII.angleLabel) : label;
       const house = activePoint.house != null;
-      return at && { at: place(at.x, at.y), text: `${activePoint.name} · ${longitudeText(activePoint.longitude)}${house ? ` · ${activePoint.house} дом` : ''}`,
-        question: `Что значит ${activePoint.name} в ${SIGN_IN[Math.floor(normalizeDegrees(activePoint.longitude) / 30)]}${house ? ` в ${activePoint.house} доме` : ''} в моей карте?` };
+      return at && { at, text: `${activePoint.name} · ${longitudeText(activePoint.longitude)}${house ? ` · ${activePoint.house} дом` : ''}`,
+        question: `Что значит ${activePoint.name} в ${SIGNS_IN[Math.floor(normalizeDegrees(activePoint.longitude) / 30)]}${house ? ` в ${activePoint.house} доме` : ''} в моей карте?` };
     }
     if (activeAspect) {
       const line = endpoints.find(item => item.id === activeAspect.id);
       const names = `${model.byId[activeAspect.from]?.name || activeAspect.from} — ${activeAspect.name.toLowerCase()} — ${model.byId[activeAspect.to]?.name || activeAspect.to}`;
-      return line && { at: place((line.start.x + line.end.x) / 2, (line.start.y + line.end.y) / 2), text: `${names}, орбис ${activeAspect.orb || 'не указан'}`,
+      return line && { at: { x: (line.start.x + line.end.x) / 2, y: (line.start.y + line.end.y) / 2 }, text: `${names}, орбис ${activeAspect.orb || 'не указан'}`,
         question: `Что значит аспект «${names}» в моей карте?` };
     }
     const sector = selectedHouse && sectors.find(item => item.id === selectedHouse.id);
-    return sector && { at: place(sector.label.x, sector.label.y), text: `Дом ${ROMAN[selectedHouse.number - 1]} · куспид ${longitudeText(selectedHouse.longitude)}`,
-      question: `Что значит ${HOUSE_WORD[selectedHouse.number - 1]} дом в моей карте?` };
+    return sector && { at: { x: sector.label.x, y: sector.label.y }, text: `Дом ${ROMAN[selectedHouse.number - 1]} · куспид ${longitudeText(selectedHouse.longitude)}`,
+      question: `Что значит ${HOUSE_WORDS[selectedHouse.number - 1]} дом в моей карте?` };
   })();
   const pinned = Boolean(selected);
 
@@ -113,7 +112,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
       {model.issues.length > 0 && <details className="wheel-text-details"><summary>Доступность данных</summary><ul>{model.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details>}
   </>;
   return <div ref={container} className={`chart-v2 ${compact ? 'is-compact' : ''} ${preview ? 'is-preview' : ''} ${reveal ? 'is-reveal' : ''}`}
-    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); if (tipRef.current?.contains(document.activeElement)) origin.current?.focus?.(); clear(); } }}>
+    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); if (tipRef.current?.contains(document.activeElement)) if (origin.current?.isConnected) origin.current.focus?.(); clear(); } }}>
     {!preview && <div className="chart-toolbar" aria-label="Отображение карты">
       <button type="button" className="button-secondary" aria-pressed={showHouses} onClick={() => setShowHouses(value => !value)}>Дома</button>
       <label>Аспекты<select aria-label="Слой аспектов" value={aspectMode} onChange={event => { setAspectMode(event.target.value); clear(); }}><option value="major">Мажорные</option><option value="all">Все</option><option value="none">Без аспектов</option></select></label>
@@ -165,14 +164,14 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
       })}
       {anchors.map(point => {
         const order = labels.findIndex(item => item.members.includes(point.id)), label = labels[order], inner = project(point.longitude, model.asc, RADII.anchor - 6);
-        return <g key={point.id} className={`point-anchor${pointDim(point.id)}`} style={{ '--reveal-i': order }} data-point-anchor={point.id}>
+        return <g key={point.id} className={`point-anchor${pointDim(point.id)}`} style={{ '--reveal-i': Math.min(order, MAX_REVEAL_STEP) }} data-point-anchor={point.id}>
           <path d={`M ${point.anchor.x} ${point.anchor.y} L ${inner.x} ${inner.y} L ${label.x} ${label.y}`} className="anchor-leader" />
           <circle cx={point.anchor.x} cy={point.anchor.y} r="2.5" />
         </g>;
       })}
       {labels.map((label, order) => {
         const point = model.byId[label.id], grouped = label.members.length > 1;
-        return <g key={label.id} style={{ '--reveal-i': order }} className={`planet-label${label.members.every(id => pointDim(id)) ? ' is-dim' : ''}${focusIds.includes(label.id) ? ' is-active' : ''}`}
+        return <g key={label.id} style={{ '--reveal-i': Math.min(order, MAX_REVEAL_STEP) }} className={`planet-label${label.members.every(id => pointDim(id)) ? ' is-dim' : ''}${focusIds.includes(label.id) ? ' is-active' : ''}`}
           {...interaction({ kind: grouped ? 'group' : 'point', id: label.id, members: label.members }, grouped ? `Группа: ${label.members.map(id => model.byId[id].name).join(', ')}` : pointLabel(point))} data-label={label.id}>
           <circle className="planet-hit" cx={label.x} cy={label.y} r={compact ? 27 : 22} />
           <circle className="planet-disc" cx={label.x} cy={label.y} r={label.width / 2 + 2} />
@@ -183,9 +182,9 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
       })}
     </svg>
     {!preview && tip && <div ref={tipRef} className={`wheel-tip${pinned ? ' is-pinned' : ''}`}
-      style={{ left: `${tip.at.x / 6}%`, transform: `translateX(-${tip.at.x / 6}%)`, ...(tip.at.y < 300 ? { top: `${tip.at.y / 6 + 5}%` } : { bottom: `${100 - tip.at.y / 6 + 5}%` }) }}>
-      <p>{tip.text}</p>
-      {pinned && onAsk && <button ref={askRef} type="button" className="button-secondary" onClick={() => { onAsk(tip.question); clear(); }}>Спросить об этом</button>}
+      style={{ left: `${tip.at.x / PERCENT_PER_UNIT}%`, transform: `translateX(-${tip.at.x / PERCENT_PER_UNIT}%)`, ...(tip.at.y < 300 ? { top: `${tip.at.y / PERCENT_PER_UNIT + 5}%` } : { bottom: `${100 - tip.at.y / PERCENT_PER_UNIT + 5}%` }) }}>
+      <p id={`${prefix}-tip`}>{tip.text}</p>
+      {pinned && onAsk && <button ref={askRef} type="button" aria-describedby={`${prefix}-tip`} className="button-secondary" onClick={() => { onAsk(tip.question); clear(); }}>Спросить об этом</button>}
     </div>}
     </div>
     {!preview && <>

@@ -71,9 +71,11 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     setQuestion(suggestedQuestion.text);
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     input.current?.scrollIntoView?.({ block: "center", behavior: reduce ? "auto" : "smooth" });
-    // A guest's focus would open the sign-in dialog; it opens when they send.
-    if (authenticated) input.current?.focus({ preventScroll: true });
-  }, [suggestedQuestion, authenticated]);
+    // Focus stays in the input so it is not lost with the wheel button; for a guest this must not open the sign-in dialog (it opens on send).
+    returningFocus.current = true;
+    input.current?.focus({ preventScroll: true });
+    returningFocus.current = false;
+  }, [suggestedQuestion]);
   useEffect(() => {
     if (history.current && followBottom.current) history.current.scrollTop = history.current.scrollHeight;
   }, [messages, loading]);
