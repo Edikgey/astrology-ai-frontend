@@ -239,3 +239,20 @@ test('click cue: decorative, sits in the buttons grid next to the middle choice,
   expect(cueRule).toContain('grid-row: 2');
   expect(cueRule).toContain('align-self: center');
 });
+
+test('click cue: flourish with a sparkle; reduced-motion CSS stops every cue animation regardless of state', async () => {
+  await mount({ reduced: true });
+  const cue = demo().querySelector('.landing-demo-cue');
+  expect(cue.querySelector('.landing-demo-cue-spark')).not.toBeNull();
+  expect(cue.querySelectorAll('svg path').length).toBeGreaterThanOrEqual(2);
+  const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
+  const reduce = css.slice(css.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+  // more specific state rules (.is-drawn ...) must not win over the reduced-motion block
+  expect(reduce).toMatch(/\.landing-demo-cue[^{]*\{[^}]*animation: none !important/);
+  expect(reduce).toMatch(/\.is-pending[^{]*\{[^}]*opacity: 1/);
+});
+
+test('click cue and typed answers share one observer helper', () => {
+  const home = fs.readFileSync(path.join(__dirname, 'HomePage.js'), 'utf8');
+  expect(home).not.toContain('new IntersectionObserver');
+});
