@@ -102,7 +102,7 @@ test.each([1, 2])('authenticated account with %i chart(s) enters existing Relati
 test('hero shows a fictional dialogue and leaves interactive choices in the demo section', () => {
   const hero = container.querySelector('.landing-demo-mini');
   expect(hero.textContent).toContain('Вымышленный пример');
-  expect(hero.textContent).toContain('Когда я выйду замуж — и за кого?');
+  expect(hero.textContent).toContain('Когда я выйду замуж и за кого?');
   expect(hero.textContent).toContain('Представьте: 14 сентября 2027-го');
   expect(hero.querySelector('button, .landing-demo-cue')).toBeNull();
   expect(global.fetch).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ test('demo adds precisely one selected continuation without network or chat cont
   const demo = container.querySelector('#conversation-demo .landing-demo');
   const buttons = [...demo.querySelectorAll('.landing-demo-options button')];
   expect(buttons).toHaveLength(3);
-  const cue = demo.querySelector('.landing-demo-options + .landing-demo-cue');
+  const cue = demo.querySelector('.landing-demo-options > .landing-demo-cue');
   expect(cue.textContent).toBe('Нажмите');
   expect(cue.getAttribute('aria-hidden')).toBe('true');
   expect(demo.querySelectorAll('.landing-message')).toHaveLength(2);

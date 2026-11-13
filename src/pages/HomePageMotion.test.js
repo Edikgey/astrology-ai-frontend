@@ -206,3 +206,36 @@ test('screen-reader text is one stable copy: all typing changes happen inside th
   expect(answer.querySelector('.sr-only').textContent).toBe(DEMO_ANSWER);
   expect(accessibleText(answer)).toBe(DEMO_ANSWER);
 });
+
+test('click cue: static when motion is reduced; otherwise draws itself once when the block is seen', async () => {
+  await mount({ reduced: true });
+  const staticCue = demo().querySelector('.landing-demo-cue');
+  expect(staticCue.classList.contains('is-static')).toBe(true);
+  expect(staticCue.querySelector('.landing-demo-cue-line')).not.toBeNull();
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  await mount({ reduced: false });
+  const cue = demo().querySelector('.landing-demo-cue');
+  expect(cue.classList.contains('is-pending')).toBe(true);
+  await intersect(cue);
+  expect(cue.classList.contains('is-drawn')).toBe(true);
+  await intersect(cue, false);
+  await intersect(cue);
+  expect(cue.classList.contains('is-drawn')).toBe(true);
+  expect(cue.classList.contains('is-pending')).toBe(false);
+});
+
+test('click cue: decorative, sits in the buttons grid next to the middle choice, never in the text column', async () => {
+  await mount({ reduced: true });
+  const group = demo().querySelector('.landing-demo-options');
+  const cue = group.querySelector(':scope > .landing-demo-cue');
+  expect(cue).not.toBeNull();
+  expect(cue.getAttribute('aria-hidden')).toBe('true');
+  expect(cue.textContent).toBe('Нажмите');
+  expect(group.lastElementChild).toBe(cue);
+  const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
+  const cueRule = css.match(/\.landing-demo-options > \.landing-demo-cue \{[^}]*\}/)[0];
+  expect(cueRule).toContain('grid-column: 2');
+  expect(cueRule).toContain('grid-row: 2');
+  expect(cueRule).toContain('align-self: center');
+});
