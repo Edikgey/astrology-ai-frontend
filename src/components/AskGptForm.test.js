@@ -646,3 +646,12 @@ test('asking again with the same text refills the input after the user changed i
   await render({ suggestedQuestion: { id: 2, text: 'Вопрос из круга' } });
   expect(container.querySelector('textarea').value).toBe('Вопрос из круга');
 });
+
+test('after «Спросить об этом» a guest keeps focus in the input and the sign-in dialog stays closed', async () => {
+  await render({ suggestedQuestion: null });
+  await render({ suggestedQuestion: { id: 1, text: 'Что значит первый дом в моей карте?' } });
+  expect(document.activeElement).toBe(container.querySelector('textarea'));
+  expect(container.querySelector('dialog')).toBeNull();
+  await act(async () => Simulate.focus(container.querySelector('textarea')));
+  expect(container.querySelector('dialog')).not.toBeNull();
+});

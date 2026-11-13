@@ -174,3 +174,30 @@ describe('first-open reveal', () => {
     expect(container.querySelector('.chart-v2').classList.contains('is-reveal')).toBe(false);
   });
 });
+
+// --- round 2 (review P3) ---
+test('Escape returns focus to the object that opened the tooltip, also after a mouse tap', async () => {
+  await renderAsk(jest.fn());
+  const venus = container.querySelector('[data-label="♀"]');
+  await click(venus);
+  askButton().focus();
+  await act(async () => Simulate.keyDown(askButton(), { key: 'Escape', stopPropagation() {} }));
+  expect(tip()).toBeNull();
+  expect(document.activeElement).toBe(venus);
+});
+
+test('the ask button is described by the tooltip facts', async () => {
+  await renderAsk(jest.fn());
+  await click(container.querySelector('[data-label="♀"]'));
+  const facts = document.getElementById(askButton().getAttribute('aria-describedby'));
+  expect(facts).not.toBeNull();
+  expect(facts.textContent).toContain('Венера');
+});
+
+test('a long reveal stagger stays inside the reveal window even with every optional point shown', async () => {
+  await renderAsk(jest.fn());
+  for (const box of container.querySelectorAll('.chart-more input[type="checkbox"]:not(:checked)')) await act(async () => box.click());
+  const delays = [...container.querySelectorAll('.planet-label')].map(el => Number(el.style.getPropertyValue('--reveal-i')));
+  expect(delays.length).toBeGreaterThan(13);
+  expect(Math.max(...delays)).toBeLessThanOrEqual(12);
+});
