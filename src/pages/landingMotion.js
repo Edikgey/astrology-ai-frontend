@@ -12,20 +12,25 @@ const TYPE_MS = 22;
 const PAUSE_MS = 150;
 
 // The not-yet-typed rest stays in the layout (hidden), so the bubble keeps its final size while typing.
-export function TypedParagraph({ text }) {
-  const ref = useRef(null);
-  const [animate] = useState(canAnimate);
-  const [started, setStarted] = useState(!animate);
-  const [count, setCount] = useState(animate ? 0 : text.length);
-
+// True once the element has been on screen (stays true); always true when motion is off.
+export function useSeenOnce(ref, enabled) {
+  const [seen, setSeen] = useState(!enabled);
   useEffect(() => {
-    if (!animate) return undefined;
+    if (!enabled || seen) return undefined;
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setStarted(true); observer.disconnect(); }
+      if (entry.isIntersecting) { setSeen(true); observer.disconnect(); }
     });
     observer.observe(ref.current);
     return () => observer.disconnect();
-  }, [animate]);
+  }, [ref, enabled, seen]);
+  return seen;
+}
+
+export function TypedParagraph({ text }) {
+  const ref = useRef(null);
+  const [animate] = useState(canAnimate);
+  const started = useSeenOnce(ref, animate);
+  const [count, setCount] = useState(animate ? 0 : text.length);
 
   useEffect(() => {
     if (!started || count >= text.length) return undefined;
