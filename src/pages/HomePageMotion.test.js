@@ -26,7 +26,8 @@ const intersect = (target, isIntersecting = true) => act(() => {
 const intersectEverything = () => act(() => {
   observers.forEach(observer => [...observer.targets].forEach(target => observer.callback([{ target, isIntersecting: true }], observer)));
 });
-const advance = ms => act(() => { jest.advanceTimersByTime(ms); });
+// One act per tick: each typed character is a React update that schedules the next timer.
+const advance = async ms => { for (let spent = 0; spent < ms; spent += 10) await act(async () => { jest.advanceTimersByTime(10); }); };
 
 async function mount({ reduced }) {
   window.matchMedia = jest.fn(query => ({ matches: reduced && query.includes('reduce'), media: query, addEventListener() {}, removeEventListener() {} }));

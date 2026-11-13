@@ -207,4 +207,26 @@
   .landing-v2 .landing-continuity > div { padding: var(--ln-space-16); }
   .landing-v2 .landing-continuity > div::before { left: -29px; }
 }
-@media (prefers-reduced-motion: reduce) { .landing-v2 a, .landing-v2 button, .landing-v2 .landing-demo-next { transition: none; animation: none; } }
+
+/* Motion (see landingMotion.js): classes below are added only when the visitor has not asked to reduce motion. Only transform and opacity animate. */
+.landing-v2 .landing-typed-rest { visibility: hidden; }
+.landing-v2 .landing-caret { display: inline-block; width: 2px; height: 1.1em; margin: 0 1px; vertical-align: text-bottom; background: var(--ln-color-primary); animation: landing-caret 1s steps(1) infinite; }
+@keyframes landing-caret { 50% { opacity: 0; } }
+
+.landing-v2 .landing-reveal { opacity: 0; transform: translateY(var(--ln-space-24)); transition: opacity calc(var(--ln-motion-slow) * 2.5) var(--ln-ease-standard), transform calc(var(--ln-motion-slow) * 2.5) var(--ln-ease-standard); }
+.landing-v2 .landing-reveal.is-in { opacity: 1; transform: none; }
+
+/* The wheel sways slowly (a full turn would put the glyphs upside down); the Moon and Venus named in the examples glow in turn. */
+.landing-v2 .landing-chart-visual .natal-wheel-svg { animation: landing-wheel-sway 48s ease-in-out infinite alternate paused; }
+.landing-v2 .landing-chart-visual .planet-label[data-label='☽'] .planet-hit, .landing-v2 .landing-chart-visual .planet-label[data-label='♀'] .planet-hit { fill: var(--ln-color-secondary); opacity: 0; transform-box: fill-box; transform-origin: center; animation: landing-planet-glow 7s ease-in-out infinite paused; }
+.landing-v2 .landing-chart-visual .planet-label[data-label='♀'] .planet-hit { animation-delay: 3.5s; }
+.landing-v2 .landing-chart-visual.is-live .natal-wheel-svg, .landing-v2 .landing-chart-visual.is-live .planet-hit { animation-play-state: running; }
+@keyframes landing-wheel-sway { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes landing-planet-glow { 0%, 60%, 100% { opacity: 0; transform: scale(.8); } 20% { opacity: .38; transform: scale(1.35); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-v2 a, .landing-v2 button, .landing-v2 .landing-demo-next { transition: none; animation: none; }
+  .landing-v2 .landing-reveal { opacity: 1; transform: none; transition: none; }
+  .landing-v2 .landing-caret, .landing-v2 .landing-chart-visual .natal-wheel-svg, .landing-v2 .landing-chart-visual .planet-hit { animation: none; }
+  .landing-v2 .landing-typed-rest { visibility: visible; }
+}

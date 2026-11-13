@@ -6,6 +6,7 @@ import { OrbitMark } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { useUsage } from '../context/UsageContext';
 import { LANDING_USE_CASES, LANDING_RELATIONSHIP_INTENT, landingIntent } from './landingIntent';
+import { TypedParagraph, useLandingMotion } from './landingMotion';
 import '../components/natal/ChartWheel.css';
 import '../components/synastry/SynastryChart.css';
 import './HomePage.css';
@@ -55,12 +56,12 @@ function ConversationDemo({ compact = false }) {
       <div className="landing-message landing-message-user"><span>Вы</span><p>{compact
         ? 'Когда я выйду замуж — и за кого?'
         : 'Почему у меня повторяются похожие проблемы в отношениях?'}</p></div>
-      <div className="landing-message"><span>Lunaria</span><p>{compact
+      <div className="landing-message"><span>Lunaria</span><TypedParagraph text={compact
         ? 'Представьте: 14 сентября 2027-го вы говорите «да» человеку, которого сегодня зовёте «просто другом». А теперь вопрос от вашей Венеры в Близнецах: кому вы пишете первым, когда хочется рассказать что-то смешное?'
-        : 'В этой карте Луна в Скорпионе может быть интересной отправной точкой для разговора о близости и доверии. Но сама карта не расскажет, что именно повторяется в вашей жизни.\n\nЧто вам знакомо больше: вас привлекают похожие люди, становится сложно доверять или хочется отдалиться, когда отношения становятся серьёзнее?'}</p></div>
+        : 'В этой карте Луна в Скорпионе может быть интересной отправной точкой для разговора о близости и доверии. Но сама карта не расскажет, что именно повторяется в вашей жизни.\n\nЧто вам знакомо больше: вас привлекают похожие люди, становится сложно доверять или хочется отдалиться, когда отношения становятся серьёзнее?'} /></div>
       {!compact && selected !== null && <>
         <div className="landing-message landing-message-user landing-demo-next"><span>Вы</span><p>{demoBranches[selected][0]}</p></div>
-        <div className="landing-message landing-demo-next"><span>Lunaria</span><p>{demoBranches[selected][1]}</p></div>
+        <div className="landing-message landing-demo-next"><span>Lunaria</span><TypedParagraph key={selected} text={demoBranches[selected][1]} /></div>
       </>}
     </div>
     {!compact && <>
@@ -84,7 +85,9 @@ export default function HomePage() {
     landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT,
     ...(user ? { returnTo: '/relationships/new' } : {}),
   } : undefined;
-  return <div className="home-page landing-v2">
+  const pageRef = useRef(null);
+  useLandingMotion(pageRef);
+  return <div className="home-page landing-v2" ref={pageRef}>
     <section className="landing-hero" aria-labelledby="landing-title"><div className="shell landing-hero-grid">
       <div className="landing-hero-copy"><p className="eyebrow">Персональный AI-астролог</p><h1 id="landing-title">Не просто прочитайте свою натальную карту.<br /><span>Поговорите с ней.</span></h1>
         <p className="landing-lead">Lunaria использует вашу натальную карту как основу разговора, чтобы вы могли задавать вопросы об отношениях, работе, внутренних противоречиях и других важных для вас темах.</p>
