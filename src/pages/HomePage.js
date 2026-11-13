@@ -6,7 +6,7 @@ import { OrbitMark } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { useUsage } from '../context/UsageContext';
 import { LANDING_USE_CASES, LANDING_RELATIONSHIP_INTENT, landingIntent } from './landingIntent';
-import { TypedParagraph, useLandingMotion } from './landingMotion';
+import { TypedParagraph, canAnimate, useLandingMotion } from './landingMotion';
 import '../components/natal/ChartWheel.css';
 import '../components/synastry/SynastryChart.css';
 import './HomePage.css';
@@ -25,24 +25,27 @@ function CreationLink({ className = '', children }) {
   return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
-const demoCueCurve = 'M36 4C32 13 20 16 5 15';
+// Hand-drawn swirl (one loop) that ends pointing left at the middle choice; head and line are drawn one after the other.
+const demoCueCurve = 'M68 18C62 38 40 42 35 30C31 20 46 16 49 27C52 37 30 40 8 24';
+const demoCueHead = 'M18 25L8 24L12 33';
 
 function DemoCue() {
   const cue = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [phase, setPhase] = useState(() => (canAnimate() ? 'pending' : 'static'));
 
   useEffect(() => {
-    if (!('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting));
+    if (phase !== 'pending') return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setPhase('drawn'); observer.disconnect(); }
+    });
     observer.observe(cue.current);
     return () => observer.disconnect();
-  }, []);
+  }, [phase]);
 
-  return <div className={`landing-demo-cue${isVisible ? ' is-animated' : ''}`} ref={cue} aria-hidden="true">
-    <svg className="landing-demo-cue-arrow" viewBox="0 0 40 24" focusable="false">
-      <path d={demoCueCurve} />
-      <path d="M10 10l-5 5 5 5" />
-      <path className="landing-demo-cue-ink" d={demoCueCurve} pathLength="1" />
+  return <div className={`landing-demo-cue is-${phase}`} ref={cue} aria-hidden="true">
+    <svg className="landing-demo-cue-arrow" viewBox="0 0 72 48" focusable="false">
+      <path className="landing-demo-cue-line" d={demoCueCurve} pathLength="1" />
+      <path className="landing-demo-cue-head" d={demoCueHead} pathLength="1" />
     </svg>
     <span>Нажмите</span>
   </div>;
@@ -54,7 +57,7 @@ function ConversationDemo({ compact = false }) {
     <div className="landing-demo-bar"><span><OrbitMark /> Lunaria</span><small>{compact ? 'Вымышленный пример' : 'Демонстрация · без запросов к AI'}</small></div>
     <div className="landing-demo-thread" aria-live={compact ? 'off' : 'polite'}>
       <div className="landing-message landing-message-user"><span>Вы</span><p>{compact
-        ? 'Когда я выйду замуж — и за кого?'
+        ? 'Когда я выйду замуж и за кого?'
         : 'Почему у меня повторяются похожие проблемы в отношениях?'}</p></div>
       <div className="landing-message"><span>Lunaria</span><TypedParagraph text={compact
         ? 'Представьте: 14 сентября 2027-го вы говорите «да» человеку, которого сегодня зовёте «просто другом». А теперь вопрос от вашей Венеры в Близнецах: кому вы пишете первым, когда хочется рассказать что-то смешное?'
@@ -68,8 +71,8 @@ function ConversationDemo({ compact = false }) {
       <div className="landing-demo-choices">
         <div className="landing-demo-options" role="group" aria-label="Продолжения демонстрации">
           {demoBranches.map(([text], index) => <button data-analytics="landing_demo_selected" key={text} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)}>{text} <ArrowIcon /></button>)}
+          <DemoCue />
         </div>
-        <DemoCue />
       </div>
       <div className="landing-demo-cta"><p>Хотите задать такой вопрос на основе своей карты?</p><CreationLink className="button">Создать мою карту</CreationLink></div>
     </>}
