@@ -40,17 +40,14 @@
 .landing-v2 .landing-demo-options button { grid-column: 1; }
 .landing-v2 .landing-demo-options > .landing-demo-cue { grid-column: 2; grid-row: 2; align-self: center; }
 .landing-v2 .landing-demo-cue { display: flex; align-items: center; gap: var(--ln-space-4); pointer-events: none; color: var(--ln-color-text-muted); font-size: var(--ln-text-12); font-weight: 600; }
-.landing-v2 .landing-demo-cue-arrow { width: clamp(96px, 9vw, 130px); flex: 0 0 auto; fill: none; stroke: var(--ln-color-primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.landing-v2 .landing-demo-cue-arrow { width: clamp(84px, 7vw, 100px); flex: 0 0 auto; fill: none; stroke: var(--ln-color-primary); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .landing-v2 .landing-demo-cue-line, .landing-v2 .landing-demo-cue-head { stroke-dasharray: 1; stroke-dashoffset: 0; }
-.landing-v2 .landing-demo-cue-spark { fill: var(--ln-color-secondary); stroke: none; transform-box: fill-box; transform-origin: center; }
 .landing-v2 .landing-demo-cue.is-pending .landing-demo-cue-arrow, .landing-v2 .landing-demo-cue.is-pending > span { opacity: 0; }
-.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-line { animation: landing-cue-draw 1.4s var(--ln-ease-standard) both; }
-.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-head { animation: landing-cue-draw .3s var(--ln-ease-standard) 1.3s both; }
-.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-spark { animation: landing-cue-spark .6s var(--ln-ease-standard) 1.5s both; }
-.landing-v2 .landing-demo-cue.is-drawn > span { animation: landing-reveal calc(var(--ln-motion-slow) * 2) var(--ln-ease-standard) 1.5s both; }
-.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-arrow { animation: landing-cue-bob 2.2s ease-in-out 1.9s infinite alternate; }
+.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-line { animation: landing-cue-draw 1.2s var(--ln-ease-standard) both; }
+.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-head { animation: landing-cue-draw .3s var(--ln-ease-standard) 1.1s both; }
+.landing-v2 .landing-demo-cue.is-drawn > span { animation: landing-reveal calc(var(--ln-motion-slow) * 2) var(--ln-ease-standard) 1.3s both; }
+.landing-v2 .landing-demo-cue.is-drawn .landing-demo-cue-arrow { animation: landing-cue-bob 2.2s ease-in-out 1.7s infinite alternate; }
 @keyframes landing-cue-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-@keyframes landing-cue-spark { from { opacity: 0; transform: scale(.2) rotate(-45deg); } to { opacity: 1; transform: none; } }
 @keyframes landing-cue-bob { from { transform: translateX(0) rotate(0); } to { transform: translateX(-4px) rotate(-3deg); } }
 .landing-v2 .landing-demo-options button { display: flex; justify-content: space-between; align-items: center; gap: var(--ln-space-12); min-height: 44px; font-size: var(--ln-text-12); text-align: left; font-weight: 600; padding: var(--ln-space-8) var(--ln-space-12); background: var(--ln-color-surface-tinted); border: 1px solid var(--ln-color-border-control); color: var(--ln-color-primary); }
 .landing-v2 .landing-demo-options button:hover { background: var(--ln-color-accent-soft); border-color: var(--ln-color-primary); }
@@ -206,7 +203,7 @@
 
 @media (max-width: 520px) {
   .landing-v2 .landing-demo-cue > span { display: none; }
-  .landing-v2 .landing-demo-cue-arrow { width: 68px; stroke-width: 3; }
+  .landing-v2 .landing-demo-cue-arrow { width: 62px; stroke-width: 2.4; }
 }
 @media (prefers-reduced-motion: reduce) {
   .landing-v2 a, .landing-v2 button, .landing-v2 .landing-demo-next { transition: none; animation: none; }

@@ -25,10 +25,9 @@ function CreationLink({ className = '', children }) {
   return <Link data-analytics="landing_cta_chart" className={className} to="/try-free">{children} <ArrowIcon /></Link>;
 }
 
-// Hand-drawn flourish: a big open curl, a small tight one, then the arrowhead aimed left at the middle choice.
-const demoCueCurve = 'M132 16C128 38 106 48 95 37C85 27 97 9 109 19C119 28 97 50 75 41C62 35 64 22 54 24C46 26 48 36 56 33C62 30 50 22 36 28C26 32 16 30 6 28';
-const demoCueHead = 'M16.6 24.9L6 28L14.5 35';
-const demoCueSpark = 'M134 3L135.4 6.6L139 8L135.4 9.4L134 13L132.6 9.4L129 8L132.6 6.6Z';
+// One round, open curl that sweeps left into a clean arrowhead aimed at the middle choice.
+const demoCueCurve = 'M97 27C88 40 62 38 57 23C53 9 74 4 79 17C83 29 62 33 42 28C28 24 16 22 4 20';
+const demoCueHead = 'M12.4 16.7L4 20L11.1 25.6';
 
 function DemoCue() {
   const cue = useRef(null);
@@ -37,10 +36,9 @@ function DemoCue() {
   const phase = !animate ? 'static' : seen ? 'drawn' : 'pending';
 
   return <div className={`landing-demo-cue is-${phase}`} ref={cue} aria-hidden="true">
-    <svg className="landing-demo-cue-arrow" viewBox="0 0 140 56" focusable="false">
+    <svg className="landing-demo-cue-arrow" viewBox="0 0 100 40" focusable="false">
       <path className="landing-demo-cue-line" d={demoCueCurve} pathLength="1" />
       <path className="landing-demo-cue-head" d={demoCueHead} pathLength="1" />
-      <path className="landing-demo-cue-spark" d={demoCueSpark} />
     </svg>
     <span>Нажмите</span>
   </div>;
