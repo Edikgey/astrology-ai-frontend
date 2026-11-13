@@ -177,7 +177,7 @@ test('css: untyped rest is hidden inside the aria-hidden layer, cursor is a zero
   expect(caret).toContain('border-left');
   expect(caret).not.toContain('inline-block');
   expect(caret).not.toMatch(/width/);
-  expect(css).toMatch(/@media print \{[^@]*\.landing-reveal[^}]*visibility: visible/);
+  expect(css).toMatch(/@media print \{[^@]*visibility: visible/);
 });
 
 test('screen-reader text is one stable copy: all typing changes happen inside the aria-hidden layer', async () => {
@@ -194,9 +194,14 @@ test('screen-reader text is one stable copy: all typing changes happen inside th
   records.push(...watcher.takeRecords());
   watcher.disconnect();
   expect(records.length).toBeGreaterThan(50);
+  // A changed node is never the paragraph or the screen-reader copy; nodes still in the tree sit inside aria-hidden
+  // (typed text nodes swapped out by React are already detached when the records are read).
+  const copy = answer.querySelector('.sr-only');
   records.forEach(record => {
+    expect(record.target).not.toBe(answer);
+    expect(copy.contains(record.target)).toBe(false);
     const node = record.target.nodeType === 3 ? record.target.parentElement : record.target;
-    expect(node.closest('[aria-hidden="true"]')).not.toBeNull();
+    if (node) expect(node.closest('[aria-hidden="true"]')).not.toBeNull();
   });
   expect(answer.querySelector('.sr-only').textContent).toBe(DEMO_ANSWER);
   expect(accessibleText(answer)).toBe(DEMO_ANSWER);

@@ -11,8 +11,7 @@ export function canAnimate() {
 const TYPE_MS = 22;
 const PAUSE_MS = 150;
 
-// The not-yet-typed rest stays in the layout and the accessibility tree (transparent only), so the bubble keeps
-// its final size while typing and screen readers always get the full answer.
+// The not-yet-typed rest stays in the layout (hidden), so the bubble keeps its final size while typing.
 export function TypedParagraph({ text }) {
   const ref = useRef(null);
   const [animate] = useState(canAnimate);
@@ -35,10 +34,16 @@ export function TypedParagraph({ text }) {
   }, [started, count, text]);
 
   const typing = started && count < text.length;
+  if (!animate) return <p ref={ref}><span className="landing-typed">{text}</span></p>;
+  // Assistive tech gets the whole answer once; every typing change happens inside the aria-hidden layer
+  // (the thread is an aria-live region, so per-character updates there would be announced in fragments).
   return <p ref={ref}>
-    <span className="landing-typed">{text.slice(0, count)}</span>
-    {typing && <span className="landing-caret" aria-hidden="true" />}
-    <span className="landing-typed-rest">{text.slice(count)}</span>
+    <span className="sr-only">{text}</span>
+    <span aria-hidden="true">
+      <span className="landing-typed">{text.slice(0, count)}</span>
+      {typing && <span className="landing-caret" />}
+      <span className="landing-typed-rest">{text.slice(count)}</span>
+    </span>
   </p>;
 }
 
