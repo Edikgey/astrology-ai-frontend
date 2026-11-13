@@ -257,8 +257,10 @@ test('click cue: decorative, sits in the buttons grid next to the middle choice,
   const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
   const cueRule = css.match(/\.landing-demo-options > \.landing-demo-cue \{[^}]*\}/)[0];
   expect(cueRule).toContain('grid-column: 2');
-  expect(cueRule).toContain('grid-row: 2');
-  expect(cueRule).toContain('align-self: center');
+  // spans the first two rows; the arrow tip sits on the bottom edge of the svg, lifted by half a button (22px), i.e. the middle button's centre
+  expect(cueRule).toContain('grid-row: 1 / 3');
+  expect(cueRule).toContain('align-self: end');
+  expect(cueRule).toContain('padding-bottom: 22px');
 });
 
 test('click cue: minimalist - one smooth loop and a clean two-stroke head, no sparkle; reduced-motion CSS stops every cue animation', async () => {
@@ -272,4 +274,20 @@ test('click cue: minimalist - one smooth loop and a clean two-stroke head, no sp
   // more specific state rules (.is-drawn ...) must not win over the reduced-motion block
   expect(reduce).toMatch(/\.landing-demo-cue[^{]*\{[^}]*animation: none !important/);
   expect(reduce).toMatch(/\.is-pending[^{]*\{[^}]*opacity: 1/);
+});
+
+test('click cue: starts at the top, ends with the tip exactly on the svg bottom edge, and only nudges sideways', async () => {
+  await mount({ reduced: true });
+  const svg = demo().querySelector('.landing-demo-cue svg');
+  const [, , width, height] = svg.getAttribute('viewBox').split(' ').map(Number);
+  const nums = svg.querySelector('.landing-demo-cue-line').getAttribute('d').match(/-?\d+(?:\.\d+)?/g).map(Number);
+  expect([nums[0], nums[1]]).toEqual([expect.any(Number), 0]);
+  expect(nums[1]).toBeLessThan(nums[nums.length - 1]);
+  expect(nums[nums.length - 1]).toBe(height);
+  expect(nums[nums.length - 2]).toBeLessThan(width / 10);
+  const css = fs.readFileSync(path.join(__dirname, 'HomePage.css'), 'utf8');
+  const nudge = css.match(/@keyframes landing-cue-nudge \{[^\x0a]*\}/)[0];
+  expect(nudge).toContain('translateX(-3px)');
+  expect(nudge).not.toMatch(/rotate|scale/);
+  expect(css).not.toContain('landing-cue-bob');
 });
