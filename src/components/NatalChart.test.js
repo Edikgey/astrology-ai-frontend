@@ -68,3 +68,12 @@ test('an unknown house system is stated in plain words without «API»', async (
   expect(container.querySelector('.chart-system').textContent).toBe('Положения из сохранённого расчёта. Дома: система не указана.');
   expect(container.textContent).not.toContain('API');
 });
+
+test('the wheel passes its ready question up to the page through onAsk', async () => {
+  const onAsk = jest.fn();
+  await act(async () => root.render(<NatalChart bodies={api.bodies_for_circle} houses={api.houses} aspects={api.aspects_for_circle} structuredAspects={api.aspects_structured} houseSystem="Placidus" onAsk={onAsk}><section id="conversation"><textarea aria-label="Вопрос" /></section></NatalChart>));
+  await act(async () => container.querySelector('[data-label="♀"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  const ask = [...container.querySelectorAll('.wheel-tip button')].find(b => b.textContent === 'Спросить об этом');
+  await act(async () => ask.click());
+  expect(onAsk).toHaveBeenCalledWith('Что значит Венера в Стрельце в 6 доме в моей карте?');
+});

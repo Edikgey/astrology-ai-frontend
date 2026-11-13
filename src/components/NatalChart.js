@@ -5,7 +5,7 @@ import { normalizeChart } from "./natal/model";
 import "./AspectsList.css";
 import "./NatalChart.css";
 
-const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, houseSystem, zodiacMode, children, preview = false }) => {
+const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, houseSystem, zodiacMode, children, preview = false, onAsk }) => {
   const model = useMemo(() => normalizeChart({ bodies, aspects, houses, patterns, structuredAspects, houseSystem, zodiacMode }), [bodies, aspects, houses, patterns, structuredAspects, houseSystem, zodiacMode]);
   const [referenceTarget, setReferenceTarget] = useState(null);
   const [summaryTarget, setSummaryTarget] = useState(null);
@@ -30,7 +30,7 @@ const NatalChart = ({ bodies, aspects, houses, patterns, structuredAspects, hous
       </div>;
   return <div className="natal-experience">
     <section className="chart-layout card" aria-label="Натальная карта и основные положения">
-      <div className="chart-wrapper"><ChartWheel model={model} referenceTarget={referenceTarget} /></div>
+      <div className="chart-wrapper"><ChartWheel model={model} referenceTarget={referenceTarget} onAsk={onAsk} /></div>
       {mobile && summaryTarget ? createPortal(summary, summaryTarget) : summary}
     </section>
     {children}

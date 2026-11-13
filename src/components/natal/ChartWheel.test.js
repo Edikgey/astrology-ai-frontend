@@ -92,3 +92,112 @@ test('incomplete data is explained without «API» and names the missing point',
   expect(container.textContent).toContain('Не хватает данных для точного положения ASC.');
   expect(container.textContent).not.toMatch(/API|не передан/);
 });
+
+// --- FE-WHEEL-INTERACT: tooltip with chart facts, «Спросить об этом», reveal ---
+const click = el => act(async () => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+const tip = () => container.querySelector('.wheel-tip');
+const askButton = () => [...container.querySelectorAll('.wheel-tip button')].find(b => b.textContent === 'Спросить об этом');
+const renderAsk = onAsk => act(async () => root.render(<ChartWheel model={model} onAsk={onAsk} />));
+
+test('tapping a planet shows a tooltip with only its sign, degree and house', async () => {
+  await renderAsk(jest.fn());
+  expect(tip()).toBeNull();
+  await click(container.querySelector('[data-label="♀"]'));
+  expect(tip().textContent).toContain(`Венера · ${longitudeText(model.byId['♀'].longitude)} · 6 дом`);
+  expect(tip().textContent).not.toMatch(/означает|API/);
+});
+
+test('«Спросить об этом» hands a ready question to the chat and does not send anything itself', async () => {
+  const onAsk = jest.fn(); const originalFetch = global.fetch; global.fetch = jest.fn();
+  await renderAsk(onAsk);
+  await click(container.querySelector('[data-label="♀"]'));
+  await click(askButton());
+  expect(onAsk).toHaveBeenCalledTimes(1);
+  expect(onAsk).toHaveBeenCalledWith('Что значит Венера в Стрельце в 6 доме в моей карте?');
+  expect(global.fetch).not.toHaveBeenCalled();
+  global.fetch = originalFetch;
+});
+
+test('aspect and house tooltips show type and orb or cusp, and offer their own question', async () => {
+  const onAsk = jest.fn();
+  await renderAsk(onAsk);
+  const aspect = model.aspects.find(a => a.from === '☉' && a.to === '☿');
+  await click(container.querySelector(`[data-aspect-id="${aspect.id}"] .aspect-hit`));
+  expect(tip().textContent).toContain(`Солнце — соединение — Меркурий, орбис ${aspect.orb}`);
+  await click(askButton());
+  expect(onAsk).toHaveBeenLastCalledWith('Что значит аспект «Солнце — соединение — Меркурий» в моей карте?');
+  await click(container.querySelector('.house-hit'));
+  expect(tip().textContent).toContain(`Дом I · куспид ${longitudeText(model.cusps[0].longitude)}`);
+  await click(askButton());
+  expect(onAsk).toHaveBeenLastCalledWith('Что значит первый дом в моей карте?');
+});
+
+test('keyboard: Enter opens the tooltip and moves focus to its button, Escape closes it and returns focus', async () => {
+  await renderAsk(jest.fn());
+  const venus = container.querySelector('[data-label="♀"]'); venus.focus();
+  await act(async () => Simulate.keyDown(venus, { key: 'Enter', preventDefault() {} }));
+  expect(tip()).not.toBeNull();
+  expect(document.activeElement).toBe(askButton());
+  await act(async () => Simulate.keyDown(askButton(), { key: 'Escape', stopPropagation() {} }));
+  expect(tip()).toBeNull();
+  expect(document.activeElement).toBe(venus);
+});
+
+test('tap outside the wheel closes the tooltip', async () => {
+  await renderAsk(jest.fn());
+  await click(container.querySelector('[data-label="♀"]'));
+  expect(tip()).not.toBeNull();
+  await act(async () => document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+  expect(tip()).toBeNull();
+});
+
+test('hover shows facts without the ask button, which only appears once the object is pinned', async () => {
+  await renderAsk(jest.fn());
+  await act(async () => Simulate.mouseEnter(container.querySelector('[data-label="♀"]')));
+  expect(tip().textContent).toContain('Венера');
+  expect(askButton()).toBeUndefined();
+});
+
+describe('first-open reveal', () => {
+  const setMotion = reduce => { window.matchMedia = jest.fn(() => ({ matches: reduce })); };
+  afterEach(() => { delete window.matchMedia; jest.useRealTimers(); });
+  test('the reveal class is set on first open and removed once the planets are in place', async () => {
+    setMotion(false); jest.useFakeTimers();
+    await renderAsk(jest.fn());
+    expect(container.querySelector('.chart-v2').classList.contains('is-reveal')).toBe(true);
+    await act(async () => { jest.advanceTimersByTime(2500); });
+    expect(container.querySelector('.chart-v2').classList.contains('is-reveal')).toBe(false);
+  });
+  test('with prefers-reduced-motion the reveal class is never set', async () => {
+    setMotion(true);
+    await renderAsk(jest.fn());
+    expect(container.querySelector('.chart-v2').classList.contains('is-reveal')).toBe(false);
+  });
+});
+
+// --- round 2 (review P3) ---
+test('Escape returns focus to the object that opened the tooltip, also after a mouse tap', async () => {
+  await renderAsk(jest.fn());
+  const venus = container.querySelector('[data-label="♀"]');
+  await click(venus);
+  askButton().focus();
+  await act(async () => Simulate.keyDown(askButton(), { key: 'Escape', stopPropagation() {} }));
+  expect(tip()).toBeNull();
+  expect(document.activeElement).toBe(venus);
+});
+
+test('the ask button is described by the tooltip facts', async () => {
+  await renderAsk(jest.fn());
+  await click(container.querySelector('[data-label="♀"]'));
+  const facts = document.getElementById(askButton().getAttribute('aria-describedby'));
+  expect(facts).not.toBeNull();
+  expect(facts.textContent).toContain('Венера');
+});
+
+test('a long reveal stagger stays inside the reveal window even with every optional point shown', async () => {
+  await renderAsk(jest.fn());
+  for (const box of container.querySelectorAll('.chart-more input[type="checkbox"]:not(:checked)')) await act(async () => box.click());
+  const delays = [...container.querySelectorAll('.planet-label')].map(el => Number(el.style.getPropertyValue('--reveal-i')));
+  expect(delays.length).toBeGreaterThan(13);
+  expect(Math.max(...delays)).toBeLessThanOrEqual(12);
+});

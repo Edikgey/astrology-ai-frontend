@@ -35,6 +35,7 @@ const NatalChartResultPage = () => {
   const [loaded, setLoaded] = useState(null);
   const [error, setError] = useState(null);
   const [reload, setReload] = useState(0);
+  const [suggestedQuestion, setSuggestedQuestion] = useState(null);
   const chartData = loaded?.key === requestKey ? loaded.data : null;
 
   useEffect(() => {
@@ -127,10 +128,11 @@ const NatalChartResultPage = () => {
   structuredAspects={chartData.aspects_structured}
   houses={chartData.houses}
   houseSystem={chartData.house_system}
+  onAsk={text => setSuggestedQuestion({ text })}
 >
   {/* ✅ Передаём чат как children */}
   <section id="chart-conversation" className="result-conversation" aria-label="Разговор о вашей карте">
-    <AskGptForm chartId={chartData.chart_id} unsaved={unsaved} initialQuestion={pendingQuestion}
+    <AskGptForm chartId={chartData.chart_id} unsaved={unsaved} initialQuestion={pendingQuestion} suggestedQuestion={suggestedQuestion}
       guestSessionToken={sessionToken} onQuestionConsumed={consumeQuestion} />
   </section>
 </NatalChart>

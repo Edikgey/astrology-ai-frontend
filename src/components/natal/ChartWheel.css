@@ -82,4 +82,14 @@
 .is-compact .chart-toolbar > button { padding: 8px 10px; }
 .is-compact .chart-more { margin-left: 0; }
 .is-preview .natal-wheel-svg { pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .wheel-aspect { transition: none; } }
+.wheel-stage { position: relative; }
+.wheel-tip { position: absolute; z-index: 4; width: min(260px, 82%); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--ln-color-surface-raised); box-shadow: var(--shadow); font-size: 13px; overflow-wrap: anywhere; pointer-events: none; }
+.wheel-tip.is-pinned { pointer-events: auto; }
+.wheel-tip p { margin: 0; }
+.wheel-tip button { display: block; margin-top: 8px; padding: 8px 12px; min-height: 44px; font-size: 12px; }
+/* First-open reveal: planets sweep into place, then the aspect lines fade in. */
+.is-reveal .planet-label, .is-reveal .point-anchor { transform-box: view-box; transform-origin: 50% 50%; animation: wheel-planet-in 1.3s cubic-bezier(.22, .8, .3, 1) calc(var(--reveal-i, 0) * 60ms) backwards; }
+.is-reveal .aspect-layer { animation: wheel-fade-in .6s 1.3s backwards; }
+@keyframes wheel-planet-in { from { transform: rotate(-100deg); opacity: 0; } }
+@keyframes wheel-fade-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wheel-aspect { transition: none; } .is-reveal .planet-label, .is-reveal .point-anchor, .is-reveal .aspect-layer { animation: none; } }

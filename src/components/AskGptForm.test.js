@@ -619,3 +619,39 @@ test('CQF-4: after a failed answer with markup the draft stays and the partial a
   expect(log().querySelector('.message.gpt li')).toBeNull();
   expect(container.querySelector('textarea').value).toBe('Мой вопрос');
 });
+
+test('a suggested question from the wheel fills the input for a signed-in user and is not sent', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ suggestedQuestion: null });
+  await render({ suggestedQuestion: { id: 1, text: 'Что значит Венера в Стрельце в 6 доме в моей карте?' } });
+  expect(container.querySelector('textarea').value).toBe('Что значит Венера в Стрельце в 6 доме в моей карте?');
+  expect(global.fetch.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
+});
+
+test('a suggested question reaches a guest input without opening the sign-in dialog', async () => {
+  await render({ suggestedQuestion: null });
+  await render({ suggestedQuestion: { id: 1, text: 'Что значит первый дом в моей карте?' } });
+  expect(container.querySelector('textarea').value).toBe('Что значит первый дом в моей карте?');
+  expect(container.querySelector('dialog')).toBeNull();
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test('asking again with the same text refills the input after the user changed it', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ suggestedQuestion: null });
+  await render({ suggestedQuestion: { id: 1, text: 'Вопрос из круга' } });
+  await act(async () => Simulate.change(container.querySelector('textarea'), { target: { value: 'Правка' } }));
+  await render({ suggestedQuestion: { id: 2, text: 'Вопрос из круга' } });
+  expect(container.querySelector('textarea').value).toBe('Вопрос из круга');
+});
+
+test('after «Спросить об этом» a guest keeps focus in the input and the sign-in dialog stays closed', async () => {
+  await render({ suggestedQuestion: null });
+  await render({ suggestedQuestion: { id: 1, text: 'Что значит первый дом в моей карте?' } });
+  expect(document.activeElement).toBe(container.querySelector('textarea'));
+  expect(container.querySelector('dialog')).toBeNull();
+  await act(async () => Simulate.focus(container.querySelector('textarea')));
+  expect(container.querySelector('dialog')).not.toBeNull();
+});
