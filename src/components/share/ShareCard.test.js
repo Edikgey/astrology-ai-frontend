@@ -125,3 +125,45 @@ test('a failed export tells the person what to do', async () => {
   await act(async () => { dialogButton('Скачать картинку').click(); });
   expect(container.querySelector('[role="alert"]').textContent).toMatch(/Не удалось подготовить картинку/);
 });
+
+test('closing with the cross returns the focus to the "Поделиться картой" button', async () => {
+  await render();
+  await open();
+  await act(async () => { container.querySelector('dialog .modal-dismiss').click(); });
+  expect(container.querySelector('dialog')).toBeNull();
+  expect(document.activeElement).toBe(container.querySelector('.share-card-open'));
+});
+
+test('closing with Escape returns the focus to the "Поделиться картой" button', async () => {
+  await render();
+  await open();
+  await act(async () => { container.querySelector('dialog').dispatchEvent(new Event('cancel')); });
+  expect(container.querySelector('dialog')).toBeNull();
+  expect(document.activeElement).toBe(container.querySelector('.share-card-open'));
+});
+
+test('a drawing error is shown with what to do and the buttons are not stuck disabled', async () => {
+  HTMLCanvasElement.prototype.getContext = () => null;
+  await render();
+  await open();
+  expect(container.querySelector('[role="alert"]').textContent).toBe('Не удалось подготовить картинку. Закройте окно и попробуйте ещё раз.');
+  expect(dialogButton('Скачать картинку').disabled).toBe(false);
+  await act(async () => { dialogButton('Скачать картинку').click(); });
+  expect(URL.createObjectURL).not.toHaveBeenCalled();
+  expect(container.querySelector('[role="alert"]')).not.toBeNull();
+});
+
+test('a second "Поделиться" while the share sheet is open is ignored and shows no error', async () => {
+  let finish;
+  navigator.canShare = jest.fn(() => true);
+  navigator.share = jest.fn(() => new Promise(resolve => { finish = resolve; }));
+  await render();
+  await open();
+  await act(async () => { dialogButton('Поделиться').click(); });
+  await act(async () => { dialogButton('Поделиться').click(); });
+  expect(navigator.share).toHaveBeenCalledTimes(1);
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  await act(async () => { finish(); });
+  await act(async () => { dialogButton('Поделиться').click(); });
+  expect(navigator.share).toHaveBeenCalledTimes(2);
+});
