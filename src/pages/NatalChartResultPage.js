@@ -8,6 +8,7 @@ import { chartLabel } from '../api/chartPresentation';
 import { timezoneLabel } from '../utils/timezoneLabel';
 import './NatalChartResultPage.css';
 import NatalChart from '../components/NatalChart';
+import ShareCard from '../components/share/ShareCard';
 import AskGptForm from '../components/AskGptForm'; // Подключаем компонент чата
 import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent, normalizeLandingIntent } from './landingIntent';
 
@@ -105,6 +106,7 @@ const NatalChartResultPage = () => {
        landingIntent ? "Теперь можно вернуться к вопросу, с которого вы начали." : "Карта — отправная точка. Вы выбираете, о чём поговорить."}</p>
      {birthZone && <p className="result-metadata">Часовой пояс рождения: {birthZone}</p>}
    </PageHeading>
+   <ShareCard bodies={chartData.bodies_for_circle} timeProvenance={chartData.time_provenance} />
    {Array.isArray(chartData.calculation_warnings) && chartData.calculation_warnings.length > 0 &&
      <aside className="notice" role="status" aria-label="Неполные данные карты">
        {chartData.calculation_warnings.map((warning, index) => <p key={index}>{warning}</p>)}

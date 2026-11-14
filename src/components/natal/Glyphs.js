@@ -38,6 +38,7 @@ const paths = {
   'sign-10': 'M2 9l4-4 4 4 4-4 4 4 4-4 M2 19l4-4 4 4 4-4 4 4 4-4',
   'sign-11': 'M5 2q9 10 0 20 M19 2q-9 10 0 20 M2 12h20',
 };
+export const glyphPath = id => paths[id];
 export function glyphKey(id) { return Object.keys(paths).indexOf(id); }
 export function GlyphDefs({ prefix }) {
   return <defs>{Object.entries(paths).map(([key, path], index) => <symbol id={`${prefix}-g${index}`} key={key} viewBox="0 0 24 24"><path d={path} fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" /></symbol>)}</defs>;
