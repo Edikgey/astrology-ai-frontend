@@ -4,6 +4,8 @@ import {ANALYTICS_POLICY_VERSION, safeClientEvent, safeRouteKey, CAMPAIGN_SOURCE
 
 const IDENTITY_KEY = 'lunaria.product-analytics.identity';
 const SESSION_KEY = 'lunaria.product-analytics.session';
+const ERRORS_KEY = 'lunaria.product-analytics.errors';
+const MAX_ERROR_REPORTS = 5;
 // Essential privacy-control delivery only; never use this queue for analytics.
 const PRIVACY_KEY = 'lunaria.analytics.privacy-pending';
 const UUID4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -17,7 +19,7 @@ export function createProductAnalytics({win = window, config, consent = readCons
   const options = config || {enabled: process.env.REACT_APP_POSTHOG_ENABLED === 'true',
     production: process.env.NODE_ENV === 'production', apiUrl: API_URL};
   let ready = false, identity = null, actor = null, page = null, lastPage = null;
-  let queue = [], seen = new Set(), timer = null, generation = 0, control = null, busy = false;
+  let queue = [], seen = new Set(), earlyErrors = [], timer = null, generation = 0, control = null, busy = false;
   const flights = new Set();
   let provider = null;
   let privacyPending = null, privacyFlight = null;
@@ -57,7 +59,7 @@ export function createProductAnalytics({win = window, config, consent = readCons
   }
   function abortEvents() {
     generation += 1;
-    ready = false; busy = false; queue = []; seen.clear(); provider = null; lastPage = null;
+    ready = false; busy = false; queue = []; seen.clear(); earlyErrors = []; provider = null; lastPage = null;
     if (timer) win.clearTimeout(timer);
     timer = null;
     for (const controller of flights) controller.abort();
@@ -123,13 +125,13 @@ export function createProductAnalytics({win = window, config, consent = readCons
     abortEvents();
     if (withdraw || resetBrowser) revoke(previous, withdraw ? 'withdraw' : 'reset');
     identity = null;
-    remove(win.localStorage, IDENTITY_KEY); remove(win.sessionStorage, SESSION_KEY);
+    remove(win.localStorage, IDENTITY_KEY); remove(win.sessionStorage, SESSION_KEY); remove(win.sessionStorage, ERRORS_KEY);
   }
   function pause() {abortEvents();}
   function reset() {
     const previous = identity || read(win.localStorage, IDENTITY_KEY);
     abortEvents(); revoke(previous, 'reset'); identity = null; actor = null;
-    remove(win.localStorage, IDENTITY_KEY); remove(win.sessionStorage, SESSION_KEY);
+    remove(win.localStorage, IDENTITY_KEY); remove(win.sessionStorage, SESSION_KEY); remove(win.sessionStorage, ERRORS_KEY);
   }
   async function refresh({actorKey = actor, pathname = win.location.pathname, explicit = false} = {}) {
     page = safeRouteKey(pathname);
@@ -185,9 +187,26 @@ export function createProductAnalytics({win = window, config, consent = readCons
     schedule(500);
     return true;
   }
+  // One report per (kind, section) and at most MAX_ERROR_REPORTS per analytics session; the counter
+  // lives in sessionStorage so a reload does not reset it. No counter, no report.
+  function reportError(kind) {
+    // A page that crashes on first load fails before the consent round-trip is done: keep the kind
+    // in memory (nothing stored) and report it once analytics is ready.
+    if (eligible() && !canTrack()) {if (earlyErrors.length < 3 && !earlyErrors.includes(kind)) earlyErrors.push(kind); return false;}
+    if (!canTrack() || !page) return false;
+    const sessionId = session();
+    if (!sessionId) return false;
+    const saved = read(win.sessionStorage, ERRORS_KEY);
+    const pairs = saved?.session === sessionId && Array.isArray(saved.pairs) ? saved.pairs : [];
+    const pair = `${kind}:${page}`;
+    if (pairs.length >= MAX_ERROR_REPORTS || pairs.includes(pair)) return false;
+    if (!store(win.sessionStorage, ERRORS_KEY, {session: sessionId, pairs: [...pairs, pair]})) return false;
+    return emit('site_error_occurred', {kind});
+  }
   function pageView() {
     if (page && page !== lastPage && emit('page_viewed')) lastPage = page;
     if (!page) lastPage = null;
+    earlyErrors.splice(0).forEach(reportError);
   }
   function schedule(delay) {
     if (!timer) timer = win.setTimeout(() => {timer = null; flush();}, delay);
@@ -240,7 +259,7 @@ export function createProductAnalytics({win = window, config, consent = readCons
     return false;
   }
   const safe = fn => (...args) => {try {const value = fn(...args); return value?.catch ? value.catch(() => false) : value;} catch {return false;}};
-  return {refresh: safe(refresh), emit: safe(emit), forward: safe(forward), flush: safe(flush),
+  return {refresh: safe(refresh), emit: safe(emit), reportError: safe(reportError), forward: safe(forward), flush: safe(flush),
     halt: safe(halt), pause: safe(pause), reset: safe(reset), headers: safe(headers), canTrack: safe(canTrack),
     pageLeave: safe(() => {if (emit('page_leave_hint')) flush({keepalive: true});}),
     status: () => ({configured: options.enabled, ready, pending: queue.length, page})};

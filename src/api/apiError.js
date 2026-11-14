@@ -1,3 +1,5 @@
+import {reportSiteError} from "../analytics/reporting";
+
 export const NETWORK_ERROR_TEXT = "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
 export const UNEXPECTED_RESPONSE_TEXT = "Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.";
 
@@ -7,8 +9,11 @@ export const stripLeadingEmoji = text => text.replace(/^[\s\p{Extended_Pictograp
 // fetch rejects with TypeError when there is no connection; an abort must stay an abort.
 export async function apiFetch(url, options) {
   try {
-    return await fetch(url, options);
+    const response = await fetch(url, options);
+    if (response.status >= 500) reportSiteError("request");
+    return response;
   } catch (error) {
+    if (error instanceof TypeError) reportSiteError("request");
     throw error instanceof TypeError ? new Error(NETWORK_ERROR_TEXT) : error;
   }
 }

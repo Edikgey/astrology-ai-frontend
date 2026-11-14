@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { RADII, ROMAN, normalizeDegrees, project, buildHouseSectors, buildPlanetAnchors, layoutPlanetLabels, buildAspectEndpoints, arcPath, sectorPath } from './geometry';
 import { ANGLES, ANGLE_LABELS, SIGNS, SIGNS_IN, HOUSE_WORDS, longitudeText } from './model';
 import { Glyph, GlyphDefs } from './Glyphs';
+import { track } from '../../analytics/reporting';
 import './ChartWheel.css';
 
 const keyActivate = action => event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action(event); } };
@@ -100,6 +101,10 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
       question: `Что значит ${HOUSE_WORDS[selectedHouse.number - 1]} дом в моей карте?` };
   })();
   const pinned = Boolean(selected);
+  // A newly pinned object whose tooltip is shown; hover and focus do not count. Only the kind leaves the browser.
+  useEffect(() => {
+    if (!preview && tip && ['point', 'house', 'aspect'].includes(selected?.kind)) track('wheel_tooltip_opened', { object: selected.kind });
+  }, [selected?.kind, selected?.id]);
 
   if (!model.ready) return <div className="notice" role="status">Точные данные для круга неполны. {model.issues.join(' ')} Доступные положения перечислены ниже.</div>;
   const referenceDetails = <>
@@ -184,7 +189,7 @@ export default function ChartWheel({ model, preview = false, referenceTarget = n
     {!preview && tip && <div ref={tipRef} className={`wheel-tip${pinned ? ' is-pinned' : ''}`}
       style={{ left: `${tip.at.x / PERCENT_PER_UNIT}%`, transform: `translateX(-${tip.at.x / PERCENT_PER_UNIT}%)`, ...(tip.at.y < 300 ? { top: `${tip.at.y / PERCENT_PER_UNIT + 5}%` } : { bottom: `${100 - tip.at.y / PERCENT_PER_UNIT + 5}%` }) }}>
       <p id={`${prefix}-tip`}>{tip.text}</p>
-      {pinned && onAsk && <button ref={askRef} type="button" aria-describedby={`${prefix}-tip`} className="button-secondary" onClick={() => { onAsk(tip.question); clear(); }}>Спросить об этом</button>}
+      {pinned && onAsk && <button ref={askRef} type="button" aria-describedby={`${prefix}-tip`} className="button-secondary" onClick={() => { track('wheel_question_selected', { object: selected.kind }); onAsk(tip.question); clear(); }}>Спросить об этом</button>}
     </div>}
     </div>
     {!preview && <>
