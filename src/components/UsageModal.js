@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { PLANS } from "../config/plans";
+import { PACK_SIZE, PLANS } from "../config/plans";
+import { canBuy, hasNewOffers } from "../utils/offers";
+import OfferOptions from "./OfferOptions";
 import { useBilling } from "../context/BillingContext";
 import { DialogClose } from "./UI";
 import {newAnalyticsFlow,trackEvent} from '../analytics/clarity';
@@ -12,7 +14,7 @@ export function formatPeriodDate(value) {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("ru-RU", { timeZone: "UTC" });
 }
 
-export default function UsageModal({ state, usage, onClose }) {
+export default function UsageModal({ state, usage, onClose, noteOffer = () => {} }) {
   const dialog = useRef(null);
   const analyticsFlow=useRef(null);
   const billing = useBilling();
@@ -23,6 +25,15 @@ export default function UsageModal({ state, usage, onClose }) {
   const periodInvalid = state.codeNormalized === "gpt_period_invalid";
   const limited = Boolean(state.codeNormalized);
   const end = formatPeriodDate(usage?.current_period_end);
+  // Offers by moment (DESIGN 4). Only the server flags decide; during the beta nothing new is offered and the old window stays.
+  const newOffers = !beta && hasNewOffers(usage);
+  const gptLimit = state.codeNormalized === "gpt_limit_reached";
+  const products = !newOffers || periodInvalid ? [] : free ? (charts ? ["premium_month", "premium_year"] : ["premium_month", "premium_year", "question_pack"]) :
+    (gptLimit || !limited) ? ["question_pack"] : [];
+  const showOptions = products.some(product => canBuy(usage, product));
+  const freeQuestionsOver = free && !beta && gptLimit;
+  const packOffered = canBuy(usage, "question_pack");
+  const resetDate = formatPeriodDate(usage?.gpt_messages_reset_at);
   const feedback = provider => <div className="payment-feedback" aria-live="polite">
     {provider === "stripe" && !billing.configured && <p role="status">Оплата пока не настроена.</p>}
     {billing.feedbackProvider === provider && <>
@@ -38,18 +49,28 @@ export default function UsageModal({ state, usage, onClose }) {
       trackEvent('premium_modal_opened',analyticsFlow.current);
     }
   }, [billing.checkoutVisible, billing.busy, free]);
+  useEffect(() => { if (showOptions && state.moment) noteOffer(state.moment); }, [showOptions, state.moment, noteOffer]);
   return <dialog ref={dialog} className="usage-modal" aria-labelledby="usage-modal-title" onCancel={onClose}>
     <DialogClose onClose={onClose} />
     <h2 id="usage-modal-title">{limited ? (periodInvalid ? "Расчётный период Premium недоступен" :
-      charts ? "Достигнут лимит сохранённых карт" : "Достигнут лимит AI-вопросов") : beta ? "Подписка Premium" : "Больше возможностей с Premium"}</h2>
-    {limited && <p>{charts ? "Удалите ненужную карту в разделе «Мои карты», чтобы освободить место." :
+      charts ? "Достигнут лимит сохранённых карт" : freeQuestionsOver ? "Бесплатные вопросы закончились" : "Достигнут лимит AI-вопросов") :
+      beta ? "Подписка Premium" : !free ? "Пакет вопросов" : "Больше возможностей с Premium"}</h2>
+    {limited && <p>{charts ? (newOffers && free ? "Бесплатно можно сохранить 3 карты. Удалите ненужную в «Мои карты» или перейдите на Premium — до 10 карт." :
+        "Удалите ненужную карту в разделе «Мои карты», чтобы освободить место.") :
       periodInvalid ? "Ваш план — Premium. Для продолжения разговора нужен действующий расчётный период." :
-      free ? "Бесплатный лимит действует на весь аккаунт за всё время. Удаление карт или истории не возвращает сообщения." :
+      free ? (freeQuestionsOver && showOptions ? `Вы задали все ${PLANS.free.gptLimit} бесплатных вопросов. Чтобы продолжить разговор, выберите Premium${packOffered ? " или пакет вопросов" : ""}. История сохранится.` :
+        "Бесплатный лимит действует на весь аккаунт за всё время. Удаление карт или истории не возвращает сообщения.") :
+      showOptions ? `Вопросы Premium на этот месяц закончились.${resetDate ? ` Новые ${PLANS.premium.gptLimit} — ${resetDate} (UTC).` : ""} Чтобы не ждать, купите пакет +${PACK_SIZE} вопросов.` :
       "Ваш лимит действует на весь аккаунт за расчётный период. Дождитесь обновления периода или завершения запросов в обработке."}</p>}
+    {!limited && !free && showOptions && <p>Пакет добавляет вопросы к вашему лимиту и не меняет подписку.</p>}
     {limited && Number.isFinite(state.used) && Number.isFinite(state.limit) && <p>Использовано: {state.used} / {state.limit}{state.reserved > 0 ? `; в обработке: ${state.reserved}` : ""}.</p>}
     {free && !limited && !beta && <p>Продолжайте разбирать отношения, работу и свои сильные стороны. Больше вопросов для каждой истории.</p>}
     <BetaPurchaseNote enabled={beta} />
-    {free ? <>
+    {showOptions ? <>
+      <OfferOptions usage={usage} products={products} />
+      <p className="payment-summary">{free ? <>Отменить продление Premium можно в разделе «Мои карты».{' '}</> : null}
+        <a href="/refunds" target="_blank" rel="noopener noreferrer">Правила отмены и возвратов</a>.</p>
+    </> : free ? <>
       {beta && <p>Обычные лимиты тарифов вне бета-теста:</p>}
       <div className="usage-plan-grid">
         <section><h3>Бесплатно</h3><p>{PLANS.free.chartLimit} карты</p><p>{PLANS.free.gptLimit} AI-вопросов за всё время аккаунта</p></section>
@@ -62,7 +83,7 @@ export default function UsageModal({ state, usage, onClose }) {
             <p className="payment-option-price">$9.99 USD / месяц</p>
             <p className="payment-option-note">Автоматическое продление каждый месяц. Отмена в любое время.</p>
           </div>
-          <button type="button" className="usage-button" disabled={!billing.configured || billing.busy} onClick={billing.startCheckout}>Оплатить через Stripe</button>
+          <button type="button" className="usage-button" disabled={!billing.configured || billing.busy} onClick={() => billing.startCheckout()}>Оплатить через Stripe</button>
           {feedback("stripe")}
         </section>
         {billing.lavaConfigured && <section className="payment-option" aria-label="Оплата в рублях — Lava.top">
@@ -71,15 +92,15 @@ export default function UsageModal({ state, usage, onClose }) {
             <p className="payment-option-price">799 ₽ / месяц</p>
             <p className="payment-option-note">Автоматическое продление каждый месяц. Отмена в любое время.</p>
           </div>
-          <button type="button" className="usage-button" disabled={billing.busy} onClick={billing.startLavaCheckout}>Оплатить в RUB</button>
+          <button type="button" className="usage-button" disabled={billing.busy} onClick={() => billing.startLavaCheckout()}>Оплатить в RUB</button>
           {feedback("lava")}
         </section>}
       </div>
       <p className="payment-summary">Отменить продление можно в разделе «Мои карты».{' '}
         <a href="/refunds" target="_blank" rel="noopener noreferrer">Правила отмены и возвратов</a>.</p>
     </> : <p>{plan === "premium" ? "Ваш текущий план — Premium." : "Лимит определяет сервер."}{end && plan === "premium" ? ` Конец расчётного периода: ${end} (UTC).` : ""}</p>}
-    {(!free || !billing.feedbackProvider) && billing.message && <p role="status">{billing.message}</p>}
-    {(!free || !billing.feedbackProvider) && billing.error && <p role="alert">{billing.error}</p>}
+    {!showOptions && (!free || !billing.feedbackProvider) && billing.message && <p role="status">{billing.message}</p>}
+    {!showOptions && (!free || !billing.feedbackProvider) && billing.error && <p role="alert">{billing.error}</p>}
     <button type="button" className="usage-button usage-close" onClick={onClose}>Закрыть</button>
   </dialog>;
 }

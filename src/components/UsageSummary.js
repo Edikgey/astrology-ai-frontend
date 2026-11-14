@@ -17,6 +17,7 @@ export default function UsageSummary() {
     <p role="alert">{usageError.status === 401 ? "Сессия истекла. Войдите снова." : "Не удалось обновить лимиты аккаунта."}</p>
     {usageError.status === 401 ? <a href="/authorization">Войти</a> :
       <button type="button" className="usage-button" onClick={refreshUsage}>Обновить лимиты</button>}
+    {billing.message && <p role="status">{billing.message}</p>}
   </section>;
   if (!usage) return usageLoading ? <p role="status">Загрузка лимитов...</p> : null;
   const premium = usage.plan === "premium";

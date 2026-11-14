@@ -86,3 +86,12 @@
   .stream-indicator { animation: none; }
   .chat-follow-ups .preset-btn { transition: none; }
 }
+
+/* Offer at the right moment: a quiet line for the last free question, a card when they are gone. */
+.chat-offer-line { margin: var(--ln-space-8) 0 0; font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
+.chat-offer-link { background: none; border: 0; padding: 0; font: inherit; color: var(--ln-color-primary); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.chat-offer-card { margin-top: var(--ln-space-12); padding: var(--ln-space-16); border: 1px solid var(--ln-color-accent); border-radius: var(--ln-radius-md); background: var(--ln-color-surface-raised); }
+.chat-offer-card > h3 { margin: 0 0 var(--ln-space-4); font-size: var(--ln-text-19); }
+.chat-offer-card > p { margin: 0; font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
+.chat-offer-card .offer-options { margin: var(--ln-space-12) 0 0; }
+@media (min-width: 701px) { .is-chat-active .chat-offer-card { max-height: 46dvh; overflow-y: auto; } }

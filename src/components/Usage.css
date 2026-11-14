@@ -36,3 +36,14 @@
 .usage-modal:not(.stripe-checkout-modal) .usage-plan-grid,
 .usage-modal:not(.stripe-checkout-modal) .payment-options { margin: 16px 0; }
 @media (max-width: 560px) { .usage-modal:not(.stripe-checkout-modal) { padding: 20px; } }
+
+/* Offers: one container per option, with its own payment buttons. */
+.offer-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: var(--ln-space-24) 0; }
+.offer-option { display: flex; flex-direction: column; min-width: 0; padding: 18px; border: 1px solid var(--ln-color-border-control); border-radius: var(--ln-radius-control); background: var(--ln-color-surface-tinted); }
+.offer-option h3 { color: var(--ln-color-primary); margin: 0 0 var(--ln-space-8); font-size: var(--ln-text-19); }
+.offer-option p { margin: var(--ln-space-4) 0; font-size: var(--ln-text-13); }
+.offer-option p.offer-price { font-weight: 700; color: var(--ln-color-text); overflow-wrap: anywhere; }
+.offer-option p.offer-blurb { color: var(--ln-color-text-muted); font-size: var(--ln-text-12); margin: var(--ln-space-8) 0 var(--ln-space-16); }
+.offer-buttons { display: grid; gap: var(--ln-space-8); margin-top: auto; }
+.offer-buttons .usage-button { width: 100%; min-height: 44px; margin: 0; padding: var(--ln-space-8); font-size: var(--ln-text-13); }
+.usage-modal:not(.stripe-checkout-modal) .offer-options { margin: 16px 0; }

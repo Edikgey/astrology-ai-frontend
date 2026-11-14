@@ -1,9 +1,11 @@
 import {productAnalytics} from '../analytics/productAnalytics';
 import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
-import { billingRequest, getStripe, stripeConfigured } from "../api/stripe";
+import { billingRequest, getStripe, stripeConfigured, stripeSessionPrefix } from "../api/stripe";
 import { lavaRequest, checkoutUrl } from "../api/lava";
 import { canManageStripe } from '../utils/billingEligibility';
+import { providersFor, packBalance } from '../utils/offers';
+import { PACK_SIZE, PRODUCT_IDS } from '../config/plans';
 
 import StripeCheckout from "../components/StripeCheckout";
 import {clarityAnalytics,newAnalyticsFlow,trackEvent} from '../analytics/clarity';
@@ -20,6 +22,10 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   const inFlight = useRef(false);
   const [checkout, setCheckout] = useState(null);
   const pollRef = useRef(null);
+  // Set only while a pack payment started in this tab is awaited: confirmed by the pack balance growing over {baseline}, never by the plan.
+  const pack = useRef(null);
+  // A return tab (?billing=…&product=question_pack) waits for the pack from the server's own flags. Product started in this tab wins.
+  const returnPack = useRef(false);
   const timer = useRef(null);
   const refresh = useRef(refreshUsage);
   refresh.current = refreshUsage;
@@ -32,18 +38,33 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   useEffect(() => {
     active.current = true;
     setBusy(false); setVisible(false); setError(""); setMessage(""); inFlight.current = false;
-    setFeedbackProvider(null); setCheckout(null);
+    setFeedbackProvider(null); setCheckout(null); pack.current = null; returnPack.current = false;
     const valid = () => active.current && current.current === identity && localStorage.getItem("access_token") === token;
     const poll = async attempt => {
       if (!valid()) return;
       const usage = await refresh.current();
       if (!valid()) return;
-      if (usage?.plan === "premium") { setMessage(usage.payment_provider === "stripe" ? "Premium активирован." : "Premium подтверждён сервером. Проверьте выбранный способ оплаты в аккаунте."); return; }
+      // The wait follows the product started in this tab (memory only). pack_pending may be stale (an old unpaid invoice) and decides nothing.
+      if (pack.current) {
+        if (usage && packBalance(usage) > pack.current.baseline) { setMessage(`Пакет добавлен: +${PACK_SIZE} вопросов.`); return; }
+      } else if (returnPack.current) {
+        // Only the server says a pack was paid (pack_recently_paid); pack_pending true means it is still being checked.
+        if (usage && usage.pack_pending !== true) {
+          setMessage(usage.pack_recently_paid === true ? `Пакет добавлен: +${PACK_SIZE} вопросов.` :
+            `Вопросов из пакетов на аккаунте: ${packBalance(usage)}. Если оплаченный пакет не появился через несколько минут, напишите в поддержку: lunariaai.support@gmail.com.`);
+          return;
+        }
+        if (attempt >= 20) { setMessage("Оплата пакета ещё проверяется. Не оплачивайте повторно — обновите страницу через минуту."); return; }
+      } else if (usage?.plan === "premium") { setMessage(usage.payment_provider === "stripe" ? "Premium активирован." : "Premium подтверждён сервером. Проверьте выбранный способ оплаты в аккаунте."); return; }
       if (attempt < 20) timer.current = setTimeout(() => poll(attempt + 1), 3000);
       else setMessage("Подтверждение оплаты ещё обрабатывается. Обновите лимиты чуть позже.");
     };
     pollRef.current = poll;
-    // Return status is navigation only. Only /account/usage can confirm access.
+    // Return status and product are navigation only: the product (one closed value, else ignored) just picks which server confirmation to wait for.
+    const products = new URLSearchParams(window.location.search).getAll("product");
+    returnPack.current = products.length === 1 && products[0] === "question_pack";
+    const waitText = provider => returnPack.current ? "Проверяем оплату пакета. Не оплачивайте повторно — обновите страницу через минуту." :
+      provider === "lava" ? "Ожидаем подтверждение оплаты от сервера…" : "Ожидаем подтверждение Premium от сервера…";
     if (token && new URLSearchParams(window.location.search).get("billing") === "lava") {
       setFeedbackProvider("lava");
       const returned = new URLSearchParams(window.location.search).get("status");
@@ -51,21 +72,25 @@ export function BillingProvider({ children, refreshUsage, usage }) {
         setMessage("Оплата не завершена. Можно снова открыть Lava; доступность другого способа проверит сервер.");
         refresh.current();
       } else {
-        setMessage("Ожидаем подтверждение оплаты от сервера…");
+        setMessage(waitText("lava"));
         poll(0);
       }
     }
     if (token && new URLSearchParams(window.location.search).get("billing") === "stripe") {
-      setFeedbackProvider("stripe"); setMessage("Ожидаем подтверждение Premium от сервера…"); poll(0);
+      setFeedbackProvider("stripe"); setMessage(waitText("stripe")); poll(0);
     }
     return () => {
       active.current = false; clearTimeout(timer.current); pollRef.current = null;
     };
   }, [identity, token]);
 
-  const startLavaCheckout = async () => {
-    if (inFlight.current || !user || !token || loading || !usage?.lava_checkout_available) return;
+  const startLavaCheckout = async (product = "premium_month") => {
+    if (!PRODUCT_IDS.includes(product)) product = "premium_month"; // onClick may hand over an event
+    if (inFlight.current || !user || !token || loading || !providersFor(usage, product).lava) return;
     const analyticsFlow=newAnalyticsFlow();trackEvent('lava_selected',analyticsFlow);
+    productAnalytics.emit('offer_option_selected', {option: product});
+    pack.current = product === "question_pack" ? { baseline: packBalance(usage) } : null;
+    returnPack.current = false;
     setFeedbackProvider("lava"); setError(""); setMessage("");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
@@ -75,7 +100,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     if (!tab) { trackEvent('checkout_failed',analyticsFlow);setError("Разрешите всплывающие окна и попробуйте снова."); return; }
     inFlight.current = true; setBusy(true); setError("");
     try {
-      const result = await lavaRequest("checkout", token);
+      const result = await lavaRequest("checkout", token, product);
       if (!valid()) { tab.close(); return; }
       tab.location.href = checkoutUrl(result.url);
       trackEvent('checkout_initiated',analyticsFlow);clarityAnalytics.beginCheckout(analyticsFlow);
@@ -113,13 +138,17 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   }, []);
   const checkoutComplete = useCallback(() => {
     if (!active.current || current.current !== identity || localStorage.getItem("access_token") !== token) return;
-    setMessage("Оплата обрабатывается. Ожидаем подтверждение Premium от сервера…");
+    setMessage(pack.current ? "Проверяем оплату пакета. Не оплачивайте повторно — обновите страницу через минуту." : "Оплата обрабатывается. Ожидаем подтверждение Premium от сервера…");
     clearTimeout(timer.current); pollRef.current?.(0);
     setVisible(false); setCheckout(null); setBusy(false); inFlight.current = false;
   }, [identity, token]);
-  const startCheckout = async () => {
-    if (inFlight.current || !user || !token || loading || !stripeConfigured || !usage?.stripe_checkout_available) return;
+  const startCheckout = async (product = "premium_month") => {
+    if (!PRODUCT_IDS.includes(product)) product = "premium_month"; // onClick may hand over an event
+    if (inFlight.current || !user || !token || loading || !stripeConfigured || !providersFor(usage, product).stripe) return;
     const analyticsFlow=newAnalyticsFlow();trackEvent('stripe_selected',analyticsFlow);
+    productAnalytics.emit('offer_option_selected', {option: product});
+    pack.current = product === "question_pack" ? { baseline: packBalance(usage) } : null;
+    returnPack.current = false;
     setFeedbackProvider("stripe");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
@@ -127,14 +156,14 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     try {
       const stripe = await getStripe();
       if (!valid()) return;
-      const result = await billingRequest("checkout", token);
+      const result = await billingRequest("checkout", token, product);
       if (!valid()) return;
-      if (!result.session_id?.startsWith("cs_live_") || typeof result.client_secret !== "string" || !result.client_secret.startsWith(result.session_id + "_secret_")) {
+      if (!result.session_id?.startsWith(stripeSessionPrefix) || typeof result.client_secret !== "string" || !result.client_secret.startsWith(result.session_id + "_secret_")) {
         throw new Error("Не удалось подтвердить параметры оплаты.");
       }
       document.querySelector("dialog.usage-modal[open]")?.close();
       trackEvent('checkout_initiated',analyticsFlow);clarityAnalytics.beginCheckout(analyticsFlow);
-      setCheckout({ stripe, clientSecret: result.client_secret, identity: origin }); setVisible(true); setBusy(false);
+      setCheckout({ stripe, clientSecret: result.client_secret, identity: origin, product }); setVisible(true); setBusy(false);
     } catch (err) {
       if (valid()) { trackEvent('checkout_failed',analyticsFlow);setError(err.message || "Не удалось открыть оплату."); setVisible(false); setBusy(false); inFlight.current = false; }
     }
@@ -166,7 +195,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
 
   return <BillingContext.Provider value={{ configured: stripeConfigured && Boolean(usage?.stripe_checkout_available), busy, checkoutVisible,
     message, error, feedbackProvider, startCheckout, manageSubscription, startLavaCheckout, cancelLavaSubscription,
-    lavaConfigured: Boolean(usage?.lava_checkout_available) }}>{children}
-    {checkoutVisible && checkout?.identity === identity && <StripeCheckout key={identity} freeBetaEnabled={usage?.free_beta_enabled === true} stripe={checkout.stripe} clientSecret={checkout.clientSecret} onComplete={checkoutComplete} onClose={closeCheckout} />}
+    lavaConfigured: Boolean(usage?.lava_checkout_available), stripeConfigured }}>{children}
+    {checkoutVisible && checkout?.identity === identity && <StripeCheckout key={identity} product={checkout.product} freeBetaEnabled={usage?.free_beta_enabled === true} stripe={checkout.stripe} clientSecret={checkout.clientSecret} onComplete={checkoutComplete} onClose={closeCheckout} />}
   </BillingContext.Provider>;
 }

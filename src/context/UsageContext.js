@@ -5,9 +5,10 @@ import { API_URL } from "../config/api";
 import { apiError } from "../api/apiError";
 import UsageModal from "../components/UsageModal";
 import {clarityAnalytics} from '../analytics/clarity';
+import {productAnalytics} from '../analytics/productAnalytics';
 
 const UsageContext = createContext({ usage: null, usageLoading: false, usageError: null,
-  refreshUsage: async () => null, handleLimitError: () => false, openUpgrade: () => {} });
+  refreshUsage: async () => null, handleLimitError: () => false, openUpgrade: () => {}, noteOffer: () => {} });
 export const useUsage = () => useContext(UsageContext);
 
 export function UsageProvider({ children }) {
@@ -26,6 +27,13 @@ export function UsageProvider({ children }) {
   const modal = modalRecord?.key === key ? modalRecord : null;
   const request = useRef(null);
   const active = useRef(false);
+  // Each offer moment is reported once per account session in this tab, however often it is shown again.
+  const reported = useRef(new Set());
+  const noteOffer = useCallback(moment => {
+    if (reported.current.has(moment)) return;
+    reported.current.add(moment);
+    productAnalytics.emit('offer_moment_shown', { moment });
+  }, []);
 
   const refreshUsage = useCallback(async () => {
     if (!authenticated || !active.current || identity.current !== key || localStorage.getItem("access_token") !== token) return null;
@@ -61,6 +69,7 @@ export function UsageProvider({ children }) {
 
   useEffect(() => {
     active.current = true;
+    reported.current = new Set();
     setRecord(null);
     setModal(null);
     setStatus(null);
@@ -80,18 +89,21 @@ export function UsageProvider({ children }) {
     const code = (error?.code || error?.detail?.code || "").toLowerCase();
     if (!authenticated || !active.current || identity.current !== key || localStorage.getItem("access_token") !== token ||
         !["gpt_limit_reached", "chart_limit_reached", "gpt_period_invalid"].includes(code)) return false;
-    setModal({ ...error.detail, key, plan: error.detail?.plan, codeNormalized: code });
+    setModal({ ...error.detail, key, plan: error.detail?.plan, codeNormalized: code,
+      moment: code === "gpt_limit_reached" ? "question_limit" : code === "chart_limit_reached" ? "chart_limit" : undefined });
     refreshUsage();
     return true;
   }, [token, key, authenticated, refreshUsage]);
-  const openUpgrade = () => { if (usage?.plan === "free") {
-    setModal({ key, plan: "free" });
-  } };
+  // The argument is a moment name or "pack"; anything else (a click event) opens the plain offer.
+  const openUpgrade = arg => {
+    if (usage?.plan === "free") setModal({ key, plan: "free", moment: arg === "last_free_question" ? arg : undefined });
+    else if (usage?.plan === "premium" && arg === "pack") setModal({ key, plan: "premium" });
+  };
 
-  return <UsageContext.Provider value={{ usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade }}>
+  return <UsageContext.Provider value={{ usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade, noteOffer }}>
     <BillingProvider refreshUsage={refreshUsage} usage={usage}>
     {children}
-    {modal && <UsageModal state={modal} usage={usage} onClose={() => setModal(null)} />}
+    {modal && <UsageModal state={modal} usage={usage} noteOffer={noteOffer} onClose={() => setModal(null)} />}
     </BillingProvider>
   </UsageContext.Provider>;
 }

@@ -9,6 +9,8 @@ import { readChatResponse } from "../api/chatStream";
 import { FOLLOW_UP_LABELS, normalizeFollowUps } from "./followUpSuggestions";
 import { DialogClose } from "./UI";
 import ChatMarkdown from "./chatMarkdown";
+import OfferOptions from "./OfferOptions";
+import { canBuy, hasNewOffers, packBalance } from "../utils/offers";
 import "./AskGptChat.css";
 
 export const CHAT_INTRO = "Карта готова. Давайте поговорим о том, что важно для вас: характере, отношениях, работе или сильных сторонах.";
@@ -34,7 +36,7 @@ const AskGptForm = (props) => {
 
 const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoading, token, unsaved = false,
   initialQuestion = "", suggestedQuestion, onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions }) => {
-  const { usage, usageLoading, usageError, refreshUsage, handleLimitError } = useUsage();
+  const { usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade, noteOffer } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -187,10 +189,18 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const latestSuggestions = !loading && messages[messages.length - 1]?.user === "GPT" ? messages[messages.length - 1].suggestions || [] : [];
   const showStarters = !authenticated || (canChat && !historyLoading && !historyError &&
     !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim()));
+  // Offers by moment: only for a free account outside the beta, only if the server sells something, never while a pack is left.
+  const freeOffer = authenticated && usage?.plan === "free" && hasNewOffers(usage) && packBalance(usage) === 0;
+  const lastFree = freeOffer && usage.gpt_messages_available === 1;
+  const noFree = freeOffer && usage.gpt_messages_available === 0;
+  useEffect(() => {
+    if (lastFree) noteOffer?.("last_free_question"); else if (noFree) noteOffer?.("question_limit");
+  }, [lastFree, noFree, noteOffer]);
+  const packLeft = packBalance(usage);
   const allowance = usageError ? "Не удалось обновить лимиты аккаунта." : usage?.free_beta_enabled ? "Бесплатный бета-тест · AI-вопросы без лимита" : usage ?
     `${usage.plan === "premium" ? "Premium" : "Бесплатно"} · ${usage.plan === "premium" && !usage.gpt_period_valid ?
       "Нет действующего периода" : Number.isFinite(usage.gpt_messages_available) ?
-      `Доступно вопросов: ${usage.gpt_messages_available}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
+      `Доступно вопросов: ${usage.gpt_messages_available}${packLeft > 0 ? ` + ${packLeft} из пакета` : ""}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
     usageLoading ? "Загрузка лимитов…" : null;
   const questions = starterQuestions || (subjectType === "relationship" ? RELATIONSHIP_QUESTIONS : NATAL_QUESTIONS);
   const starters = <div className="predefined-questions">
@@ -220,6 +230,13 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
         <span className="chat-follow-up-text">{suggestion.text}</span>
       </button>)}
     </div>}
+    {lastFree && <p className="chat-offer-line">Остался 1 бесплатный вопрос. Потом — Premium{canBuy(usage, "question_pack") ? " или пакет вопросов" : ""}.{" "}
+      <button type="button" className="chat-offer-link" onClick={() => openUpgrade("last_free_question")}>Посмотреть варианты</button></p>}
+    {noFree && <section className="chat-offer-card" aria-labelledby="chat-offer-title">
+      <h3 id="chat-offer-title">Бесплатные вопросы закончились</h3>
+      <p>Чтобы продолжить разговор, выберите Premium{canBuy(usage, "question_pack") ? " или пакет вопросов" : ""}. История сохранится.</p>
+      <OfferOptions usage={usage} products={["premium_month", "premium_year", "question_pack"]} />
+    </section>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
     {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
     <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
