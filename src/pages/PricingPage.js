@@ -23,9 +23,9 @@ export default function PricingPage() {
   // Вошедший пользователь без загруженных данных аккаунта пока не может открыть оплату.
   const upgradeWaiting = Boolean(user && !usage);
   const upgrade = arg => user ? openUpgrade(arg) : navigate("/authorization", { state: { returnTo: "/pricing" } });
-  // The year and the pack: only outside the beta, only if the server sells them (config for everyone, account flags once loaded).
-  const showYear = !beta && offers.premium_year === true && (!usage || canBuy(usage, "premium_year"));
-  const showPack = !beta && offers.question_pack === true && (!usage || canBuy(usage, "question_pack"));
+  // The year and the pack: only if the server sells them (config for everyone, account flags once loaded), in the beta too.
+  const showYear = offers.premium_year === true && (!usage || canBuy(usage, "premium_year"));
+  const showPack = offers.question_pack === true && (!usage || canBuy(usage, "question_pack"));
   const premiumPlan = usage?.plan === "premium";
   return <section className="pricing-section page">
     <PageHeading eyebrow={beta ? "Бесплатный бета-тест" : "Тарифы"} title={beta ? "Исследуйте Lunaria без лимитов." : "Больше места для ваших открытий."}><p>{beta ? "Сохраняйте карты и задавайте AI-вопросы бесплатно после входа в аккаунт. Покупка Premium необязательна." : "Начните бесплатно. Выберите Premium, когда захотите продолжить разговор."}</p></PageHeading>
@@ -43,12 +43,12 @@ export default function PricingPage() {
         {usage?.plan !== "premium" && <button className="filled-button" onClick={() => upgrade()} disabled={upgradeWaiting} aria-describedby={upgradeWaiting ? "premium-unavailable" : undefined}>Перейти на Premium</button>}
       </div>
       {showYear && <div className="pricing-card popular"><span className="eyebrow">Выгоднее всего</span><h3>{OFFER_TITLES.premium_year}</h3>
-        <OfferDetails product="premium_year" />
+        <OfferDetails product="premium_year" beta={beta} />
         <p>{PLANS.premium.chartLimit} сохранённых карт</p>
         {!premiumPlan && <button className="filled-button" onClick={() => upgrade()} disabled={upgradeWaiting}>Выбрать Premium на год</button>}
       </div>}
       {showPack && <div className="pricing-card"><span className="eyebrow">Без подписки</span><h3>{OFFER_TITLES.question_pack}</h3>
-        <OfferDetails product="question_pack" />
+        <OfferDetails product="question_pack" beta={beta} />
         <p>Подходит и бесплатному аккаунту, и Premium: пакет добавляет вопросы к вашему лимиту.</p>
         <button className="button-secondary" onClick={() => upgrade("pack")} disabled={upgradeWaiting}>Купить пакет</button>
       </div>}

@@ -2,6 +2,7 @@ import React from "react";
 import { OFFER_TITLES, PACK_SIZE, PREMIUM_CHART_LIMIT, PREMIUM_GPT_LIMIT, PRICES } from "../config/plans";
 import { providersFor } from "../utils/offers";
 import { useBilling } from "../context/BillingContext";
+import BetaPurchaseNote from "./BetaPurchaseNote";
 import "./Usage.css";
 
 const price = (product, currency, savings = true) => {
@@ -18,12 +19,14 @@ const BLURB = {
   question_pack: "Вопросы не сгорают и тратятся, когда закончатся бесплатные или месячные.",
 };
 
-// Prices and what the buyer gets; shared by the pricing page and the payment options. Providers say whose price is shown.
-export function OfferDetails({ product, stripe = true, lava = true }) {
+// Prices and what the buyer gets; shared by the pricing page and the payment options. Providers say whose price is shown;
+// in the beta the product's own beta note follows.
+export function OfferDetails({ product, stripe = true, lava = true, beta = false }) {
   return <>
     {stripe && <p className="offer-price">{price(product, "usd")}</p>}
     {lava && <p className="offer-price">{price(product, "rub")}</p>}
     <p className="offer-blurb">{BLURB[product]}</p>
+    <BetaPurchaseNote enabled={beta} product={product} />
   </>;
 }
 
@@ -38,7 +41,7 @@ export default function OfferOptions({ usage, products }) {
     <div className="offer-options">
       {shown.map(({ product, stripe, lava }) => <section key={product} className="offer-option" aria-label={OFFER_TITLES[product]}>
         <h3>{OFFER_TITLES[product]}</h3>
-        <OfferDetails product={product} stripe={stripe} lava={lava} />
+        <OfferDetails product={product} stripe={stripe} lava={lava} beta={usage?.free_beta_enabled === true} />
         <div className="offer-buttons">
           {stripe && <button type="button" className="usage-button" disabled={!billing.stripeConfigured || billing.busy}
             onClick={() => billing.startCheckout(product)}>Оплатить через Stripe</button>}

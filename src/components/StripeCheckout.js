@@ -21,10 +21,12 @@ export default function StripeCheckout({ stripe, clientSecret, onComplete, onClo
     {product === "question_pack" ? <>
       <h2 id="stripe-checkout-title">Пакет вопросов Lunaria</h2>
       <p>+{PACK_SIZE} вопросов · {PRICES.question_pack.usd} USD один раз, без подписки</p>
+      <BetaPurchaseNote enabled={freeBetaEnabled} product="question_pack" />
       <p>Вопросы не сгорают и тратятся, когда закончатся бесплатные или месячные. Пакет не меняет вашу подписку.</p>
     </> : product === "premium_year" ? <>
       <h2 id="stripe-checkout-title">Lunaria Premium на год</h2>
-      <p>{PRICES.premium_year.usd} USD / год · {PREMIUM_CHART_LIMIT} сохранённых карт · {PREMIUM_GPT_LIMIT} AI-вопросов каждый месяц</p>
+      <p>{PRICES.premium_year.usd} USD / год · {freeBetaEnabled && "обычные лимиты вне бета-теста: "}{PREMIUM_CHART_LIMIT} сохранённых карт · {PREMIUM_GPT_LIMIT} AI-вопросов каждый месяц</p>
+      <BetaPurchaseNote enabled={freeBetaEnabled} product="premium_year" />
       <p>Продление раз в год, отмена в любой момент. Отменить продление можно в разделе «Мои карты».</p>
     </> : <>
       <h2 id="stripe-checkout-title">Lunaria Premium</h2>
