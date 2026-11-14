@@ -222,7 +222,7 @@ describe('FE-4: what the modal offers follows the server flags and the beta', ()
 });
 
 describe('FE-5: «Пакет добавлен» only from the server', () => {
-  test('completing the payment, a pending pack or a growing balance with a pending flag never show success; only pending cleared and balance up do', async () => {
+  test('completing the payment, a pending flag or an unchanged balance never show success; only a grown balance does (round 2: a stale pending flag no longer blocks it)', async () => {
     jest.useFakeTimers();
     serverUsage = { ...FREE, pack_questions_remaining: 20, pack_pending: false };
     await openOffers();
@@ -230,9 +230,6 @@ describe('FE-5: «Пакет добавлен» only from the server', () => {
     serverUsage = { ...FREE, pack_questions_remaining: 20, pack_pending: true };
     await act(async () => mockOptions.onComplete());
     expect(container.textContent).not.toContain('Пакет добавлен');
-    await act(async () => jest.advanceTimersByTime(3000));
-    expect(container.textContent).not.toContain('Пакет добавлен');
-    serverUsage = { ...FREE, pack_questions_remaining: 70, pack_pending: true };
     await act(async () => jest.advanceTimersByTime(3000));
     expect(container.textContent).not.toContain('Пакет добавлен');
     serverUsage = { ...FREE, pack_questions_remaining: 20, pack_pending: false };
