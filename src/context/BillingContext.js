@@ -24,6 +24,8 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   const pollRef = useRef(null);
   // Set only while a pack payment started in this tab is awaited: confirmed by the pack balance growing over {baseline}, never by the plan.
   const pack = useRef(null);
+  // A return tab (?billing=…&product=question_pack) waits for the pack from the server's own flags. Product started in this tab wins.
+  const returnPack = useRef(false);
   const timer = useRef(null);
   const refresh = useRef(refreshUsage);
   refresh.current = refreshUsage;
@@ -36,7 +38,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   useEffect(() => {
     active.current = true;
     setBusy(false); setVisible(false); setError(""); setMessage(""); inFlight.current = false;
-    setFeedbackProvider(null); setCheckout(null); pack.current = null;
+    setFeedbackProvider(null); setCheckout(null); pack.current = null; returnPack.current = false;
     const valid = () => active.current && current.current === identity && localStorage.getItem("access_token") === token;
     const poll = async attempt => {
       if (!valid()) return;
@@ -45,12 +47,24 @@ export function BillingProvider({ children, refreshUsage, usage }) {
       // The wait follows the product started in this tab (memory only). pack_pending may be stale (an old unpaid invoice) and decides nothing.
       if (pack.current) {
         if (usage && packBalance(usage) > pack.current.baseline) { setMessage(`Пакет добавлен: +${PACK_SIZE} вопросов.`); return; }
+      } else if (returnPack.current) {
+        // Only the server says a pack was paid (pack_recently_paid); pack_pending true means it is still being checked.
+        if (usage && usage.pack_pending !== true) {
+          setMessage(usage.pack_recently_paid === true ? `Пакет добавлен: +${PACK_SIZE} вопросов.` :
+            `Вопросов из пакетов на аккаунте: ${packBalance(usage)}. Если оплаченный пакет не появился через несколько минут, напишите в поддержку: lunariaai.support@gmail.com.`);
+          return;
+        }
+        if (attempt >= 20) { setMessage("Оплата пакета ещё проверяется. Не оплачивайте повторно — обновите страницу через минуту."); return; }
       } else if (usage?.plan === "premium") { setMessage(usage.payment_provider === "stripe" ? "Premium активирован." : "Premium подтверждён сервером. Проверьте выбранный способ оплаты в аккаунте."); return; }
       if (attempt < 20) timer.current = setTimeout(() => poll(attempt + 1), 3000);
       else setMessage("Подтверждение оплаты ещё обрабатывается. Обновите лимиты чуть позже.");
     };
     pollRef.current = poll;
-    // Return status is navigation only. Only /account/usage can confirm access.
+    // Return status and product are navigation only: the product (one closed value, else ignored) just picks which server confirmation to wait for.
+    const products = new URLSearchParams(window.location.search).getAll("product");
+    returnPack.current = products.length === 1 && products[0] === "question_pack";
+    const waitText = provider => returnPack.current ? "Проверяем оплату пакета. Не оплачивайте повторно — обновите страницу через минуту." :
+      provider === "lava" ? "Ожидаем подтверждение оплаты от сервера…" : "Ожидаем подтверждение Premium от сервера…";
     if (token && new URLSearchParams(window.location.search).get("billing") === "lava") {
       setFeedbackProvider("lava");
       const returned = new URLSearchParams(window.location.search).get("status");
@@ -58,12 +72,12 @@ export function BillingProvider({ children, refreshUsage, usage }) {
         setMessage("Оплата не завершена. Можно снова открыть Lava; доступность другого способа проверит сервер.");
         refresh.current();
       } else {
-        setMessage("Ожидаем подтверждение оплаты от сервера…");
+        setMessage(waitText("lava"));
         poll(0);
       }
     }
     if (token && new URLSearchParams(window.location.search).get("billing") === "stripe") {
-      setFeedbackProvider("stripe"); setMessage("Ожидаем подтверждение Premium от сервера…"); poll(0);
+      setFeedbackProvider("stripe"); setMessage(waitText("stripe")); poll(0);
     }
     return () => {
       active.current = false; clearTimeout(timer.current); pollRef.current = null;
@@ -76,6 +90,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     const analyticsFlow=newAnalyticsFlow();trackEvent('lava_selected',analyticsFlow);
     productAnalytics.emit('offer_option_selected', {option: product});
     pack.current = product === "question_pack" ? { baseline: packBalance(usage) } : null;
+    returnPack.current = false;
     setFeedbackProvider("lava"); setError(""); setMessage("");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
@@ -133,6 +148,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
     const analyticsFlow=newAnalyticsFlow();trackEvent('stripe_selected',analyticsFlow);
     productAnalytics.emit('offer_option_selected', {option: product});
     pack.current = product === "question_pack" ? { baseline: packBalance(usage) } : null;
+    returnPack.current = false;
     setFeedbackProvider("stripe");
     const origin = identity;
     const valid = () => active.current && current.current === origin && localStorage.getItem("access_token") === token;
