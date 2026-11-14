@@ -22,7 +22,7 @@ export function BillingProvider({ children, refreshUsage, usage }) {
   const inFlight = useRef(false);
   const [checkout, setCheckout] = useState(null);
   const pollRef = useRef(null);
-  // A pack in progress is confirmed by the pack balance, never by the plan: {baseline} is the balance before the payment.
+  // Set only while a pack payment started in this tab is awaited: confirmed by the pack balance growing over {baseline}, never by the plan.
   const pack = useRef(null);
   const timer = useRef(null);
   const refresh = useRef(refreshUsage);
@@ -42,9 +42,9 @@ export function BillingProvider({ children, refreshUsage, usage }) {
       if (!valid()) return;
       const usage = await refresh.current();
       if (!valid()) return;
-      if (usage?.pack_pending === true && !pack.current) pack.current = { baseline: packBalance(usage) };
+      // The wait follows the product started in this tab (memory only). pack_pending may be stale (an old unpaid invoice) and decides nothing.
       if (pack.current) {
-        if (usage && usage.pack_pending !== true && packBalance(usage) > pack.current.baseline) { setMessage(`Пакет добавлен: +${PACK_SIZE} вопросов.`); return; }
+        if (usage && packBalance(usage) > pack.current.baseline) { setMessage(`Пакет добавлен: +${PACK_SIZE} вопросов.`); return; }
       } else if (usage?.plan === "premium") { setMessage(usage.payment_provider === "stripe" ? "Premium активирован." : "Premium подтверждён сервером. Проверьте выбранный способ оплаты в аккаунте."); return; }
       if (attempt < 20) timer.current = setTimeout(() => poll(attempt + 1), 3000);
       else setMessage("Подтверждение оплаты ещё обрабатывается. Обновите лимиты чуть позже.");
