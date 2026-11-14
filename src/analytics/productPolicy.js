@@ -15,6 +15,7 @@ const error = ['network', 'unavailable', 'access_denied', 'quota', 'invalid_inpu
 const subject = ['natal', 'relationship'];
 const latency = ['under_5s', '5_to_15s', '15_to_30s', 'over_30s'];
 const empty = {};
+const wheelObject = ['point', 'house', 'aspect'];
 export const CLIENT_EVENTS = Object.freeze({
   page_viewed: empty,
   page_leave_hint: empty,
@@ -35,6 +36,9 @@ export const CLIENT_EVENTS = Object.freeze({
   payment_provider_selected: {provider},
   checkout_initiation_failed: {provider, reason: error},
   billing_portal_opened: {provider},
+  wheel_tooltip_opened: {object: wheelObject},
+  wheel_question_selected: {object: wheelObject},
+  site_error_occurred: {kind: ['render', 'script', 'request']},
 });
 
 // Paid conversions and successful business writes are server-owned facts.
@@ -52,6 +56,9 @@ export const SERVER_EVENTS = Object.freeze({
   billing_period_paid: {provider},
   subscription_cancel_scheduled: {provider},
   subscription_expired: {provider},
+  guest_chart_saved: {method: ['email', 'google']},
+  payment_failed: {provider, stage: ['checkout', 'first_payment', 'renewal', 'confirmation']},
+  free_limit_would_block: {resource: ['chart', 'question']},
 });
 
 export function safeRouteKey(pathname) {

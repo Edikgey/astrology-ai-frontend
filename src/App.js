@@ -13,6 +13,7 @@ import { UsageProvider } from "./context/UsageContext";
 import CookiePreferences from './components/CookiePreferences';
 import AnalyticsRouteGuard from './components/AnalyticsRouteGuard';
 import PublicBehavior from './components/PublicBehavior';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import Header from "./components/Header";
 import FreeBetaNotice from "./components/FreeBetaNotice";
@@ -83,6 +84,7 @@ function AppContent() {
       <AuthNotice />
       <FreeBetaNotice />
       <main id="main-content" tabIndex={-1}>
+      <ErrorBoundary key={pathname}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/try-free" element={<TryFreePage />} />
@@ -101,6 +103,7 @@ function AppContent() {
         <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/my-charts" replace /></ProtectedRoute>} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </ErrorBoundary>
       </main>
       <Footer />
       <FeedbackWidget />
