@@ -6,7 +6,7 @@ import {productAnalytics} from '../analytics/productAnalytics';
 
 let mockAuth, mockPath, root, container;
 jest.mock('../context/AuthContext', () => ({useAuth: () => mockAuth}));
-jest.mock('react-router-dom', () => ({useLocation: () => ({pathname: mockPath})}));
+jest.mock('react-router-dom', () => ({useLocation: () => ({pathname: mockPath})}), {virtual: true});
 jest.mock('../analytics/productAnalytics', () => ({productAnalytics: {
   refresh: jest.fn(), pause: jest.fn(), pageLeave: jest.fn(),
 }}));
