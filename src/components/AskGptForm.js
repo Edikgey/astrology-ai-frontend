@@ -192,7 +192,9 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   // «Мой месяц» page (MY-MONTH-PAGE DESIGN §3): the same chart conversation, shown from the last month question on.
   const monthView = view === "month" && subjectType === "natal";
   const monthStart = monthView ? messages.map(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION).lastIndexOf(true) : 0;
-  const noOverview = monthView && monthStart < 0;
+  // While the history loads nobody knows yet whether an overview exists: no button, no empty-chat layout.
+  const monthWait = monthView && canChat && historyLoading;
+  const noOverview = monthView && !monthWait && monthStart < 0;
   const shown = !monthView ? messages : noOverview ? [] : messages.slice(monthStart);
   const overviewDate = monthView && shown[0]?.createdAt ? new Date(`${shown[0].createdAt}Z`) : null;
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
@@ -250,7 +252,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     {showMonth && <div className="chat-month" role="group" aria-label="Обзор месяца">
       <button type="button" className="preset-btn" disabled={blocked} onClick={() => navigate(`/my-month?chart=${chartId}`)}>{MONTH_LABEL}</button>
     </div>}
-    {monthView && <div className="chat-month-actions">
+    {monthView && !monthWait && <div className="chat-month-actions">
       {error && <p role="alert">{error}</p>}
       <button type="button" className={noOverview ? "chat-send" : "button-secondary"} disabled={blocked}
         onClick={() => sendQuestion(MONTH_QUESTION, true)}>{noOverview ? "Собрать обзор месяца" : "Собрать новый обзор"}</button>
@@ -264,7 +266,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     </section>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
     {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
-    {!noOverview && <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
+    {!noOverview && !monthWait && <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
       <textarea ref={input} aria-label="Ваш вопрос" rows={1} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate && !returningFocus.current) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}

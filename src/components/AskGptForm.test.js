@@ -806,11 +806,26 @@ const typedSuggestions = semanticSuggestions(['Что усилит этот пе
 const MONTH_HISTORY = [
   { role: 'user', content: MONTH_TEXT, created_at: '2026-10-01T09:00:00' }, { role: 'gpt', content: 'Прошлый обзор месяца' },
   ...OLD_EXCHANGE,
-  { role: 'user', content: MONTH_TEXT, created_at: '2026-11-14T12:00:00' }, { role: 'gpt', content: 'Обзор: любовь и работа' },
+  { role: 'user', content: MONTH_TEXT, created_at: '2026-11-14T12:00:00.123456' }, { role: 'gpt', content: 'Обзор: любовь и работа' },
   { role: 'user', content: 'Что с деньгами?' }, { role: 'gpt', content: 'Ответ про деньги' },
 ];
 
 describe('MM4: view="month", в переписке нет вопроса MONTH_QUESTION', () => {
+  test('P3-4: пока грузится история — ни «Собрать обзор месяца», ни «Собрать новый обзор», ни поля, ни вёрстки пустого чата', async () => {
+    authenticate();
+    let finish;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await monthChat();
+    expect(container.textContent).toContain('Загрузка истории');
+    expect(overviewButton()).toBeUndefined();
+    expect(newOverviewButton()).toBeUndefined();
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.askgpt-container').classList).not.toContain('is-empty-chat');
+    await act(async () => finish(response(OLD_EXCHANGE)));
+    expect(overviewButton()).not.toBeUndefined();
+    expect(container.querySelector('.askgpt-container').classList).toContain('is-empty-chat');
+  });
+
   test('старая переписка не видна; вступление и одна кнопка обзора; нет поля, стартовых, .chat-month; классы is-month-view is-empty-chat', async () => {
     authenticate();
     global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
@@ -954,6 +969,32 @@ describe('MM5: view="month", в переписке есть MONTH_QUESTION', () 
     expect(container.querySelector('button[type="submit"]').disabled).toBe(true); // поле пустое
     expect(newOverviewButton().disabled).toBe(false);
     expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+  });
+});
+
+describe('P3-2: черновик под «Собрать новый обзор» (keepDraft)', () => {
+  test('успех: набранный черновик остаётся в поле и после ответа, вопрос обзора в поле не появляется', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    await typeQuestion('Мой черновик');
+    global.fetch.mockResolvedValueOnce(response({ response: 'Новый обзор', follow_up_suggestions: [] }));
+    await click(newOverviewButton());
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+    expect(container.textContent).toContain('Новый обзор');
+    expect(container.querySelector('textarea').value).toBe('Мой черновик');
+  });
+
+  test('отказ: черновик на месте, вопрос обзора в поле не появился', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    await typeQuestion('Мой черновик');
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: 'Отказ сервера' }) }).mockResolvedValueOnce(response(MONTH_HISTORY));
+    await click(newOverviewButton());
+    expect(container.querySelector('[role="alert"]').textContent).toBe('Отказ сервера');
+    expect(container.querySelector('textarea').value).toBe('Мой черновик');
   });
 });
 
