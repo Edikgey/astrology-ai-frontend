@@ -21,3 +21,6 @@
 @media (max-width: 650px) { .pricing-grid { grid-template-columns: 1fr; } .pricing-card { padding: 28px; } .pricing-section .page-heading { text-align: left; } }
 
 .pricing-card { box-shadow: var(--ln-shadow-small); }
+
+.pricing-card > p.offer-price { font-size: var(--ln-text-15); font-weight: 700; margin: var(--ln-space-4) 0; overflow-wrap: anywhere; }
+.pricing-card > p.offer-blurb { color: var(--ln-color-text-muted); margin: var(--ln-space-8) 0 var(--ln-space-16); padding-bottom: 20px; border-bottom: 1px solid var(--ln-color-border); }

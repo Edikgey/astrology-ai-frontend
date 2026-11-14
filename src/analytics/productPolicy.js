@@ -11,6 +11,7 @@ const STATIC_ROUTES = {'/': 'home', '/pricing': 'pricing', '/authorization': 'au
   '/terms': 'terms', '/privacy': 'privacy', '/refunds': 'refunds', '/support': 'support'};
 const UUID4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const provider = ['stripe', 'lava'];
+const product = ['premium_month', 'premium_year', 'question_pack'];
 const error = ['network', 'unavailable', 'access_denied', 'quota', 'invalid_input', 'cancelled', 'unknown'];
 const subject = ['natal', 'relationship'];
 const latency = ['under_5s', '5_to_15s', '15_to_30s', 'over_30s'];
@@ -34,6 +35,8 @@ export const CLIENT_EVENTS = Object.freeze({
   ai_followup_selected: {subject},
   premium_offer_viewed: empty,
   payment_provider_selected: {provider},
+  offer_moment_shown: {moment: ['last_free_question', 'question_limit', 'chart_limit']},
+  offer_option_selected: {option: product},
   checkout_initiation_failed: {provider, reason: error},
   billing_portal_opened: {provider},
   wheel_tooltip_opened: {object: wheelObject},
@@ -51,8 +54,10 @@ export const SERVER_EVENTS = Object.freeze({
   relationship_creation_completed: empty,
   ai_answer_completed: {subject, latency},
   feedback_submitted: {category: ['idea', 'bug', 'feedback']},
-  checkout_initiated: {provider},
+  checkout_initiated: {provider, product},
   subscription_started: {provider},
+  question_pack_purchased: {provider},
+  annual_plan_started: {provider},
   billing_period_paid: {provider},
   subscription_cancel_scheduled: {provider},
   subscription_expired: {provider},
