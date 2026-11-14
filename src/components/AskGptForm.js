@@ -15,7 +15,10 @@ import "./AskGptChat.css";
 
 export const CHAT_INTRO = "Карта готова. Давайте поговорим о том, что важно для вас: характере, отношениях, работе или сильных сторонах.";
 const NATAL_QUESTIONS = ["Какие у меня сильные стороны?", "Что у меня с отношениями?", "Какая карьера мне подходит?"];
-export const RELATIONSHIP_QUESTIONS = ["В чём наша главная сила как пары?", "Почему мы можем конфликтовать?", "Как мы проявляем чувства по-разному?", "Что нам важно понимать друг о друге?"];
+// «Мой месяц» (MY-MONTH DESIGN §2.3, §7): the server recognises the question by its words; the button only suggests it.
+export const MONTH_LABEL = "Мой месяц";
+export const MONTH_QUESTION = "Мой месяц: что меня ждёт в ближайшие 30 дней?";
+export const RELATIONSHIP_QUESTIONS =["В чём наша главная сила как пары?", "Почему мы можем конфликтовать?", "Как мы проявляем чувства по-разному?", "Что нам важно понимать друг о друге?"];
 const requestError = (status, subjectType) => status === 401 ? "Сессия истекла. Войдите снова." :
   status === 403 || status === 404 ? `Чат ${subjectType === "relationship" ? "этого разбора" : "этой карты"} недоступен для вашего аккаунта.` :
   status === 409 ? "Запрос сейчас недоступен. Попробуйте позже." :
@@ -203,7 +206,14 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       `Доступно вопросов: ${usage.gpt_messages_available}${packLeft > 0 ? ` + ${packLeft} из пакета` : ""}` : `AI-вопросы: ${usage.gpt_messages_used} / ${usage.gpt_messages_limit}`}` :
     usageLoading ? "Загрузка лимитов…" : null;
   const questions = starterQuestions || (subjectType === "relationship" ? RELATIONSHIP_QUESTIONS : NATAL_QUESTIONS);
+  // The month overview is a chart-chat hint, not a right: the server refuses old charts and pairs (DESIGN §3).
+  const monthChat = subjectType !== "relationship";
+  const last = messages[messages.length - 1];
+  const showMonth = monthChat && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
+    && !messages.some(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION);
   const starters = <div className="predefined-questions">
+    {monthChat && <button type="button" className="preset-btn" disabled={blocked}
+      onClick={() => authenticated ? setQuestion(MONTH_QUESTION) : openGate(MONTH_QUESTION)}>{MONTH_LABEL}</button>}
     {questions.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
       onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
     <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
@@ -229,6 +239,10 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
         {suggestion.type && <span className="chat-follow-up-label">{FOLLOW_UP_LABELS[suggestion.type]}</span>}
         <span className="chat-follow-up-text">{suggestion.text}</span>
       </button>)}
+    </div>}
+    {/* Outside .chat-follow-ups and without ai_followup_selected: this is not a model suggestion. */}
+    {showMonth && <div className="chat-month" role="group" aria-label="Обзор месяца">
+      <button type="button" className="preset-btn" disabled={blocked} onClick={() => sendQuestion(MONTH_QUESTION)}>{MONTH_LABEL}</button>
     </div>}
     {lastFree && <p className="chat-offer-line">Остался 1 бесплатный вопрос. Потом — Premium{canBuy(usage, "question_pack") ? " или пакет вопросов" : ""}.{" "}
       <button type="button" className="chat-offer-link" onClick={() => openUpgrade("last_free_question")}>Посмотреть варианты</button></p>}
