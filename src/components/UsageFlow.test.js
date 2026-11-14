@@ -146,7 +146,7 @@ test.each(["GPT_LIMIT_REACHED", "gpt_limit_reached"])("%s retains pending questi
   serverUsage = { ...FREE, gpt_messages_used: 10 };
   global.fetch.mockResolvedValueOnce(fail(409, { code, plan: "free", used: 10, limit: 10 }));
   await click(button("Спросить"));
-  expect(container.querySelector("dialog[open]").textContent).toContain("Достигнут лимит AI-вопросов");
+  expect(container.querySelector("dialog[open]").textContent).toContain("Бесплатные вопросы закончились"); // PRICING-1 contract change (decisions 27, 28): the free question limit has its own title outside the beta
   expect(container.textContent).not.toContain("Не удалось выполнить запрос");
   expect(container.querySelector("textarea").value).toBe("Pending question"); expect(consumed).not.toHaveBeenCalled();
   expect(calls("/ask-gpt")).toHaveLength(1); expect(calls("/gpt-messages")).toHaveLength(1);

@@ -147,8 +147,10 @@ describe('FE-3: the chat — last free question, empty balance, balance with a p
     const link = [...chat.querySelectorAll('button,a')].find(el => el.textContent === 'Посмотреть варианты');
     expect(link).toBeDefined();
     await click(link);
-    const dialog = modal();
-    expect(dialog ? offered(dialog).length > 0 : mockNavigate.mock.calls.some(([path]) => path === '/pricing') || link.getAttribute('href') === '/pricing').toBe(true);
+    // DESIGN §12: the same options window as the limit, no navigation away from the chat.
+    expect(modal()).not.toBeNull();
+    expect(offered(modal())).toEqual(TITLES);
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   test('free questions used up, no pack: a card in the chat with the options, no window over the page', async () => {
