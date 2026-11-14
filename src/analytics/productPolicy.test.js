@@ -23,6 +23,12 @@ test.each([
   expect(safeRouteKey(path)).toBeNull();
 });
 
+// MY-MONTH-PAGE MM8 (DESIGN §3, §7 контур 5): страница «Мой месяц» не получает ключа — её события отбрасываются
+// (productAnalytics.js:177), Clarity и PostHog её не видят. Охрана зелёная на базе и должна такой остаться.
+test.each(['/my-month', '/my-month?chart=7', '/my-month/', '/my-month#CANARY'])('MM8: %s has no analytics route key', path => {
+  expect(safeRouteKey(path)).toBeNull();
+});
+
 test('serialized client envelope contains no account, URL, form or billing data', () => {
   const record = event({routeKey: safeRouteKey('/relationships/87654')});
   expect(record).toEqual({event_id: eventId, session_id: sessionId, name: 'page_viewed',

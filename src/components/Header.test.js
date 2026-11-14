@@ -54,8 +54,11 @@ test('signed-in navigation exposes owned charts, relationship analysis and logou
   mockAuth.user = { id: 1 };
   await act(async () => root.render(<Header />));
   const charts = container.querySelector('a[href="/my-charts"]');
-  expect(charts.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(charts.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
+  // MY-MONTH-PAGE MM1: «Мой месяц» стоит сразу после «Мои карты», дальше — «Разбор отношений».
+  expect(charts.nextElementSibling.textContent).toBe('Мой месяц');
+  expect(charts.nextElementSibling.getAttribute('href')).toBe('/my-month');
+  expect(charts.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(charts.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
   expect(container.querySelector('a[href="/settings"]')).toBeNull();
   await act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
   expect(mockAuth.logout).toHaveBeenCalledTimes(1);
@@ -69,4 +72,28 @@ test('the plan page is called «Тарифы» and the plan badge has no English
   mockAuth = { user: { id: 1 }, logout: jest.fn(), loading: false };
   await act(async () => root.render(<Header />));
   expect(container.querySelector('.nav-account .badge').textContent).toBe('Бесплатно');
+});
+
+// ---- MY-MONTH-PAGE-fe, MM1 (DESIGN §3 «Меню», §5): пункт «Мой месяц» в верхнем меню, его видят все ----
+const navLink = text => [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === text);
+
+test('MM1: guest menu has «Мой месяц» → /my-month right after «Создать карту»', async () => {
+  const create = navLink('Создать карту');
+  expect(create.nextElementSibling.textContent).toBe('Мой месяц');
+  expect(create.nextElementSibling.getAttribute('href')).toBe('/my-month');
+  expect(create.nextElementSibling.dataset.state).toBeUndefined(); // обычная ссылка, без намерения «разбор отношений»
+  expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
+});
+
+test.each([['guest', null], ['signed-in', { id: 1 }]])('MM1: %s — tapping «Мой месяц» closes the mobile menu', async (_who, user) => {
+  mockAuth.user = user;
+  await act(async () => root.render(<Header />));
+  const toggle = container.querySelector('[aria-controls="main-navigation"]');
+  await act(async () => toggle.click());
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  const link = navLink('Мой месяц');
+  expect(link.getAttribute('href')).toBe('/my-month');
+  link.addEventListener('click', event => event.preventDefault(), { once: true });
+  await act(async () => link.click());
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
 });
