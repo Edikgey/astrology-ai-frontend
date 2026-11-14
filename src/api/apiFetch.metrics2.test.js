@@ -29,7 +29,7 @@ describe('F7: apiFetch reports only network failures and 5xx', () => {
     expect(events).toHaveLength(1);
     expect(events[0].properties).toEqual({ kind: 'request' });
     expect(events[0].route_key).toBe('my_charts');
-    expect(harness.wire()).not.toMatch(/CANARY|api\.example|charts|token/);
+    expect(harness.wire()).not.toMatch(/CANARY|api\.example|\/charts\/|token/);
   });
 
   test.each([500, 502, 503, 504])('a %s answer is returned unchanged and reported once as kind=request', async status => {

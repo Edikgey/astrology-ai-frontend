@@ -9,7 +9,7 @@ import {saveConsent, setExcluded} from '../analytics/consent';
 
 let mockAuth, mockPath, mockTarget;
 jest.mock('../context/AuthContext', () => ({useAuth: () => mockAuth}));
-jest.mock('react-router-dom', () => ({useLocation: () => ({pathname: mockPath})}));
+jest.mock('react-router-dom', () => ({useLocation: () => ({pathname: mockPath})}), {virtual: true});
 jest.mock('../analytics/productAnalytics', () => {
   const real = jest.requireActual('../analytics/productAnalytics');
   const proxy = new Proxy({}, {get: (_, key) => mockTarget[key]});
