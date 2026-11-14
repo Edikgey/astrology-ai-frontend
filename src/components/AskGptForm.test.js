@@ -1,7 +1,8 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import AskGptForm, { CHAT_INTRO } from "./AskGptForm";
+import AskGptForm, { CHAT_INTRO, MONTH_QUESTION } from "./AskGptForm";
+import { productAnalytics } from "../analytics/productAnalytics";
 import { TextEncoder, TextDecoder } from "util";
 
 let mockAuth;
@@ -157,10 +158,10 @@ test("a denied follow-up keeps its draft without retry or duplicate message", as
   expect(container.querySelector('[role="alert"]')).not.toBeNull();
 });
 
-test("guest preview has static intro, four suggestions, no history, GPT requests or allowance", async () => {
+test("guest preview has static intro, five suggestions, no history, GPT requests or allowance", async () => {
   await render();
   expect(container.textContent).toContain(CHAT_INTRO);
-  expect(container.querySelectorAll(".predefined-questions button")).toHaveLength(4);
+  expect(container.querySelectorAll(".predefined-questions button")).toHaveLength(5);
   expect(container.querySelector("textarea")).not.toBeNull();
   expect(global.fetch).not.toHaveBeenCalled();
   expect(container.textContent).not.toMatch(/10|300|allowance/);
@@ -173,7 +174,7 @@ test('empty chat has starters until its first completed answer, including answer
   expect(container.querySelector('h2').textContent).toBe('Ваш персональный AI-астролог');
   expect(container.querySelector('.badge')).toBeNull();
   expect(container.querySelector('.chat-usage')).toBeNull();
-  expect(container.querySelectorAll('.chat-starters button')).toHaveLength(4);
+  expect(container.querySelectorAll('.chat-starters button')).toHaveLength(5);
   const stream = controlledStream();
   global.fetch.mockResolvedValueOnce(stream.response);
   await click(button('Спросить'));
@@ -654,4 +655,166 @@ test('after «Спросить об этом» a guest keeps focus in the input 
   expect(container.querySelector('dialog')).toBeNull();
   await act(async () => Simulate.focus(container.querySelector('textarea')));
   expect(container.querySelector('dialog')).not.toBeNull();
+});
+
+// ---- MY-MONTH-fe, MF1-MF5 (DESIGN.md §7, §10): кнопка «Мой месяц» в чате карты ----
+// Литералы из DESIGN §2.3 и §3.4: тесты сравнивают дословно, не через константу кода.
+const MONTH_TEXT = "Мой месяц: что меня ждёт в ближайшие 30 дней?";
+const MONTH_LEGACY_TEXT = "Обзор месяца строится по транзитам, а для этой карты они не считаются: она построена в старой версии Lunaria, где часовой пояс рождения не проверялся. Постройте карту заново, выбрав место рождения из подсказок, и спросите о своём месяце в её чате.";
+const MONTH_UNAVAILABLE_TEXT = "Сейчас не получилось рассчитать транзиты для обзора месяца. Квота не списана — попробуйте ещё раз через несколько минут.";
+const OLD_EXCHANGE = [{ role: 'user', content: 'Привет' }, { role: 'gpt', content: 'Старый ответ' }];
+const monthButton = () => container.querySelector('.chat-month button');
+const posts = () => global.fetch.mock.calls.filter(([, init]) => init?.method === 'POST');
+
+test('MF1: signed-in first screen — MONTH_QUESTION is the literal, «Мой месяц» is the first starter and only fills the input', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render();
+  expect(MONTH_QUESTION).toBe(MONTH_TEXT);
+  const first = container.querySelector('.chat-starters button');
+  expect(first.textContent).toBe('Мой месяц');
+  expect(first.classList).toContain('preset-btn');
+  expect(first.disabled).toBe(false);
+  await click(first);
+  expect(container.querySelector('textarea').value).toBe(MONTH_TEXT);
+  expect(posts()).toHaveLength(0);
+  expect(container.querySelector('dialog')).toBeNull();
+});
+
+test('MF2: guest — «Мой месяц» is the first suggestion, opens the sign-in window with the question in the field and in pendingQuestion', async () => {
+  await render();
+  const first = container.querySelector('.predefined-questions button');
+  expect(first.textContent).toBe('Мой месяц');
+  await click(first);
+  expect(container.querySelector('dialog[open]')).not.toBeNull();
+  expect(container.querySelector('textarea').value).toBe(MONTH_TEXT);
+  await click(button('Продолжить бесплатно'));
+  expect(mockNavigate).toHaveBeenCalledWith('/authorization', { state: {
+    mode: 'register', returnTo: '/natal-chart-result/7',
+    guestChart: { chartId: 7, sessionToken: 'guest-token', pendingQuestion: MONTH_TEXT },
+  } });
+  expect(global.fetch).not.toHaveBeenCalled();
+});
+
+test('MF3: after a fresh answer «Мой месяц» sits in its own .chat-month group and sends one POST even on double click, without ai_followup_selected', async () => {
+  authenticate();
+  const emit = jest.spyOn(productAnalytics, 'emit');
+  try {
+    global.fetch.mockResolvedValueOnce(response([]));
+    await render({ initialQuestion: 'Что важно в работе?' });
+    const suggestions = ['Как проявляется моё лидерство?', 'Что мешает мне развиваться?', 'Что карта говорит о деньгах?'];
+    global.fetch.mockResolvedValueOnce(response({ response: 'Ответ о карьере', follow_up_suggestions: suggestions }));
+    await click(button('Спросить'));
+    expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3); // the group of 3 stays as it is
+    const group = container.querySelector('.chat-month');
+    expect(group.getAttribute('role')).toBe('group');
+    expect(group.getAttribute('aria-label')).toBe('Обзор месяца');
+    expect(group.closest('.chat-follow-ups')).toBeNull();
+    expect(container.querySelector('.chat-follow-ups').contains(group)).toBe(false);
+    expect(monthButton().textContent).toBe('Мой месяц');
+    emit.mockClear();
+    let finish;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const month = monthButton();
+    await act(async () => { month.click(); month.click(); });
+    expect(posts()).toHaveLength(2); // Original question and precisely one month request.
+    expect(JSON.parse(posts()[1][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+    expect(posts()[1][1].headers.Authorization).toBe('Bearer jwt');
+    expect(container.querySelector('button[type="submit"]').disabled).toBe(true);
+    await act(async () => finish(response({ response: 'Обзор месяца' })));
+    expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).toContain(MONTH_TEXT);
+    expect(container.textContent).toContain('Обзор месяца');
+    const names = emit.mock.calls.map(([name]) => name);
+    expect(names).toContain('ai_question_started');
+    expect(names).not.toContain('ai_followup_selected');
+  } finally { emit.mockRestore(); }
+});
+
+test('MF3: «Мой месяц» is also under an answer loaded from history (no suggestions there) and sends the open chart id', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+  await render({ chartId: 55 });
+  expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  expect(monthButton().textContent).toBe('Мой месяц');
+  global.fetch.mockResolvedValueOnce(response({ response: 'Обзор месяца' }));
+  await click(monthButton());
+  expect(posts()).toHaveLength(1);
+  expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 55, question: MONTH_TEXT });
+});
+
+test('MF4 guard (green on base): no month group under an answer while it streams, after a month answer, in history with the question or on the first screen', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ initialQuestion: MONTH_TEXT });
+  expect(container.querySelector('.chat-month')).toBeNull(); // first screen
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: 'Начало обзора' });
+  expect(container.querySelector('.chat-month')).toBeNull(); // while the answer streams
+  await stream.event({ type: 'done', response: 'Обзор месяца', follow_up_suggestions: [] });
+  expect(container.textContent).toContain('Обзор месяца');
+  expect(container.querySelector('.chat-month')).toBeNull(); // after the answer to MONTH_QUESTION
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  global.fetch.mockResolvedValueOnce(response([{ role: 'user', content: MONTH_TEXT }, { role: 'gpt', content: 'Обзор месяца' }]));
+  await render();
+  expect(container.textContent).toContain('Обзор месяца');
+  expect(container.querySelector('.chat-month')).toBeNull(); // the question is already in the stored history
+});
+
+test('MF4 guard (green on base): while an ordinary answer streams over an old history there is no month group', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+  await render({ initialQuestion: 'Обычный вопрос' });
+  const stream = controlledStream();
+  global.fetch.mockResolvedValueOnce(stream.response);
+  await click(button('Спросить'));
+  await stream.event({ type: 'delta', text: 'Часть ответа' });
+  expect(container.textContent).toContain('Часть ответа');
+  expect(container.querySelector('.chat-month')).toBeNull();
+});
+
+test('MF4 guard (green on base): the pair chat has no «Мой месяц» in starters, under an answer or in history', async () => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response([]));
+  await render({ subjectType: 'relationship', relationshipId: 42 });
+  expect(container.textContent).not.toContain('Мой месяц');
+  global.fetch.mockResolvedValueOnce(response({ response: 'Ответ о паре', follow_up_suggestions: [] }));
+  await act(async () => Simulate.change(container.querySelector('textarea'), { target: { value: 'Вопрос о паре' } }));
+  await click(button('Спросить'));
+  expect(container.textContent).toContain('Ответ о паре');
+  expect(container.textContent).not.toContain('Мой месяц');
+  expect(container.querySelector('.chat-month')).toBeNull();
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  global.fetch.mockResolvedValueOnce(response([{ role: 'gpt', content: 'Старый ответ о паре' }]));
+  await render({ subjectType: 'relationship', relationshipId: 43 });
+  expect(container.textContent).toContain('Старый ответ о паре');
+  expect(container.querySelector('.chat-month')).toBeNull();
+});
+
+test.each([
+  ['422 JSON', MONTH_LEGACY_TEXT, 'json'],
+  ['SSE error 503', MONTH_UNAVAILABLE_TEXT, 'sse'],
+])('MF5: month refusal (%s) shows the server text as is, keeps MONTH_QUESTION in the field and never retries the POST', async (_name, text, kind) => {
+  authenticate();
+  global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+  await render();
+  if (kind === 'json') {
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: text }) }).mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await click(monthButton());
+  } else {
+    const stream = controlledStream();
+    global.fetch.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await click(monthButton());
+    await stream.event({ type: 'error', status: 503, detail: text });
+  }
+  expect(container.querySelector('[role="alert"]').textContent).toBe(text);
+  expect(container.querySelector('textarea').value).toBe(MONTH_TEXT);
+  expect(container.querySelector('textarea').disabled).toBe(false);
+  expect(posts()).toHaveLength(1);
+  expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+  expect(container.textContent).toContain('Старый ответ');
+  expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).not.toContain(MONTH_TEXT);
 });
