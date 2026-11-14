@@ -1,0 +1,12 @@
+.share-card-entry { margin: 0 0 var(--ln-space-16); }
+.share-card-dialog { width: min(440px, calc(100% - 24px)); padding: var(--ln-space-24); }
+.share-card-dialog h2 { margin: 0 0 var(--ln-space-8); font-size: var(--ln-text-22); }
+.share-card-privacy { margin: 0 0 var(--ln-space-16); font-size: var(--ln-text-13); color: var(--ln-color-text-muted); }
+.share-card-canvas {
+  display: block; width: auto; height: auto; max-width: 100%; max-height: min(58svh, 620px);
+  margin: 0 auto; border-radius: var(--ln-radius-md); box-shadow: var(--ln-shadow-medium);
+}
+.share-card-actions { display: flex; flex-wrap: wrap; gap: var(--ln-space-8); margin-top: var(--ln-space-16); }
+.share-card-actions > button { flex: 1 1 160px; }
+.share-card-actions > button:disabled { opacity: .55; cursor: default; }
+.share-card-error { margin: var(--ln-space-12) 0 0; font-size: var(--ln-text-13); color: var(--ln-color-error); }
