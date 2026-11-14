@@ -9,7 +9,7 @@
 .nav-account { display: flex; align-items: center; gap: var(--ln-space-16); padding-left: var(--ln-space-24); border-left: 1px solid var(--ln-color-border); }
 .nav-account a { text-decoration: none; }
 .nav-toggle { display: none; }
-@media (max-width: 850px) {
+@media (max-width: 1000px) {
   .navbar { min-height: 72px; }
   .nav-toggle { display: inline-flex; min-height: 42px; padding: var(--ln-space-8) var(--ln-space-12); font-size: var(--ln-text-12); }
   .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--ln-color-surface-raised); padding: 20px var(--ln-space-24) var(--ln-space-24); border-bottom: 1px solid var(--ln-color-border); box-shadow: var(--ln-shadow-medium); }

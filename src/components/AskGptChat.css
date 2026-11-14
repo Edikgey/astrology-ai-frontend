@@ -52,7 +52,7 @@
 
 /* A bounded chat window keeps its composer next to the scrollable history. */
 .askgpt-container.is-chat-active { display: flex; flex-direction: column; height: clamp(600px, calc(100dvh - 48px), 920px); padding: var(--ln-space-24); }
-.askgpt-container.is-relationship-chat.is-empty-chat { height: auto; }
+.askgpt-container.is-relationship-chat.is-empty-chat, .askgpt-container.is-month-view.is-empty-chat { height: auto; }
 .is-chat-active > * { flex-shrink: 0; }
 .is-chat-active .chat-heading { padding-bottom: var(--ln-space-12); }
 .is-chat-active .chat-heading h2 { font-size: var(--ln-text-32); margin-bottom: var(--ln-space-8); }
@@ -98,3 +98,9 @@
 .chat-offer-card > p { margin: 0; font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
 .chat-offer-card .offer-options { margin: var(--ln-space-12) 0 0; }
 @media (min-width: 701px) { .is-chat-active .chat-offer-card { max-height: 46dvh; overflow-y: auto; } }
+
+/* «Мой месяц»: дата обзора и кнопка обзора в одном потоке с лентой. */
+.chat-month-date { margin: 0 0 var(--ln-space-8); color: var(--ln-color-text-muted); font-size: var(--ln-text-12); }
+.chat-month-actions { margin-top: var(--ln-space-16); }
+.chat-month-actions [role='alert'] { margin: 0 0 var(--ln-space-12); }
+.chat-month-actions button { min-height: 44px; }

@@ -27,6 +27,7 @@ import AuthorizationPage from "./pages/AuthorizationPage";
 import TryFreePage from "./pages/TryFreePage";
 import PricingPage from "./pages/PricingPage";
 import MyCharts from "./pages/MyCharts";
+import MyMonthPage from "./pages/MyMonthPage";
 import NatalChartResultPage from "./pages/NatalChartResultPage";
 import RelationshipNewPage from "./pages/RelationshipNewPage";
 import RelationshipResultPage from "./pages/RelationshipResultPage";
@@ -98,6 +99,7 @@ function AppContent() {
         <Route path="/refunds" element={<RefundPage />} />
         <Route path="/support" element={<SupportPage />} />
         <Route path="/my-charts" element={<MyCharts />} />
+        <Route path="/my-month" element={<MyMonthPage />} />
         <Route path="/relationships/new" element={<ProtectedRoute><RelationshipNewPage /></ProtectedRoute>} />
         <Route path="/relationships/:relationshipId" element={<ProtectedRoute><RelationshipResultPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/my-charts" replace /></ProtectedRoute>} />
