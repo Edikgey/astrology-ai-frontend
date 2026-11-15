@@ -1,0 +1,37 @@
+.moon-page > :not(.page-heading) { max-width: 860px; }
+.moon-note { padding: var(--ln-space-24) 0; }
+.moon-note h2 { margin: 0 0 var(--ln-space-8); }
+.moon-note p { margin: 0 0 var(--ln-space-16); color: var(--ln-color-text-muted); }
+.moon-note [role='alert'] { color: inherit; }
+.moon-chart { display: block; margin: 0 0 var(--ln-space-24); font-size: var(--ln-text-14); }
+.moon-chart select { display: block; width: 100%; max-width: 420px; min-height: 44px; margin-top: var(--ln-space-4); }
+
+/* The night sky panel is the one bold element of the page; everything below stays quiet. */
+.moon-sky { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--ln-space-32);
+  padding: var(--ln-space-32); border-radius: var(--ln-radius-lg); background: var(--ln-gradient-cosmic); color: var(--ln-color-text-inverse); }
+.moon-picture { display: block; width: 168px; height: 168px; filter: drop-shadow(0 0 28px rgba(237, 231, 246, .28)); }
+.moon-picture-dark { fill: #2B2340; }
+.moon-picture-lit { fill: #EFEAF7; }
+.moon-picture-rim { fill: none; stroke: var(--ln-color-inverse-border); stroke-width: 1; }
+.moon-sky-text h2 { margin: 0 0 var(--ln-space-12); font-family: var(--ln-font-display); font-size: var(--ln-text-38); font-weight: 600; line-height: 1.1; color: inherit; }
+.moon-sky-text p { margin: 0; }
+.moon-light { font-size: var(--ln-text-16); color: var(--ln-color-text-inverse-muted); }
+.moon-sky-text .moon-sign { margin-top: var(--ln-space-16); padding-top: var(--ln-space-16); border-top: 1px solid var(--ln-color-inverse-border); font-size: var(--ln-text-18); font-weight: 600; }
+
+.moon-advice, .moon-aspects { margin-top: var(--ln-space-32); }
+.moon-advice h2, .moon-aspects h2 { margin: 0 0 var(--ln-space-12); font-size: var(--ln-text-21); }
+.moon-advice p { max-width: 68ch; margin: 0 0 var(--ln-space-12); font-family: var(--ln-font-display); font-size: var(--ln-text-18); line-height: 1.65; }
+.moon-aspects ol { margin: 0; padding: 0; list-style: none; }
+.moon-aspects li { padding: var(--ln-space-12) 0; border-bottom: 1px solid var(--ln-color-border-subtle); font-size: var(--ln-text-16); line-height: 1.5; }
+.moon-aspects li:first-child { border-top: 1px solid var(--ln-color-border-subtle); }
+.moon-aspects time { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ln-color-primary); }
+.moon-aspects > p { margin: 0; color: var(--ln-color-text-muted); }
+.moon-footnotes { margin-top: var(--ln-space-32); font-size: var(--ln-text-13); color: var(--ln-color-text-muted); }
+.moon-footnotes p { margin: 0 0 var(--ln-space-4); }
+
+@media (max-width: 700px) {
+  .moon-note .button, .moon-note button { min-height: 44px; }
+  .moon-sky { grid-template-columns: 1fr; gap: var(--ln-space-24); padding: var(--ln-space-24); }
+  .moon-picture { width: 128px; height: 128px; }
+  .moon-sky-text h2 { font-size: var(--ln-text-30); }
+}
