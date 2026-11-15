@@ -11,7 +11,9 @@ jest.mock("../context/AuthContext", () => ({ useAuth: () => mockAuth }));
 const mockHandleLimitError = jest.fn(() => false);
 jest.mock("../context/UsageContext", () => ({ useUsage: () => ({ usage: null, usageLoading: false, usageError: null,
   refreshUsage: async () => null, handleLimitError: error => mockHandleLimitError(error), openUpgrade: () => {}, noteOffer: () => {} }) }));
-jest.mock("react-router-dom", () => ({ useNavigate: () => mockNavigate }), { virtual: true });
+// TOPICS-1 TF2: «Спросить подробнее в чате карты» — ссылка или переход, на выбор автора; поэтому Link тоже подменён.
+jest.mock("react-router-dom", () => ({ useNavigate: () => mockNavigate,
+  Link: ({ to, state, children, ...props }) => <a href={to} data-state={state ? JSON.stringify(state) : undefined} {...props}>{children}</a> }), { virtual: true });
 let root, container, originalFetch;
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -1131,5 +1133,269 @@ describe('monthSlice: срез переписки для страницы «Мо
     expect(monthSlice([gpt(MONTH_QUESTION)]).hasOverview).toBe(false);
     expect(monthSlice([user(MONTH_QUESTION, 'не дата'), gpt('Обзор')])).toMatchObject({ hasOverview: true, overviewDate: null });
     expect(monthSlice([user(MONTH_QUESTION), gpt('Обзор')]).overviewDate).toBeNull();
+  });
+});
+
+// ---- TOPICS-1-fe, TF2 (tasks/TOPICS-1/DESIGN.md §3.2, §4, §5): чатик view="topic" над той же перепиской карты ----
+// Регрессия до кода. Литералы — DESIGN §2.1 (текст вопроса темы) и §3.1/§3.2 (подписи): тесты сравнивают дословно.
+// heading / subtitle / intro и topicQuestion чату передаёт страница (props).
+// Допущения, которых DESIGN прямо не фиксирует (автору учесть или вернуть вопрос координатору):
+//  1. Пока история грузится, ни «Собрать разбор», ни «Собрать новый разбор», ни ссылки нет (как P3-4 у месяца): иначе человек
+//     соберёт повторный разбор, не зная, что он уже есть.
+//  2. «Разбор от <дата>» — подпись: нет created_at или он не разобрался — строки нет, остальное на месте (как у месяца).
+//  3. «Спросить подробнее в чате карты» — ссылка (<a href>) или переход navigate на /natal-chart-result/<chartId>; тест принимает оба.
+//  4. Фокус после отказа — на [role="alert"] (DESIGN §3.2: «role=alert у кнопки с фокусом»); классы вёрстки тест не фиксирует.
+const TOPIC_HEADING = 'Деньги';
+const TOPIC_SUBTITLE = 'Разбор сохраняется в разговоре этой карты.';
+const TOPIC_INTRO = 'Соберу разбор вашей карты по этой теме — по планетам, домам и аспектам.';
+const MONEY_Q = 'Деньги: разбор моей карты';
+const LOVE_Q = 'Любовь: разбор моей карты';
+const topicChat = props => render({ view: 'topic', topicQuestion: MONEY_Q, heading: TOPIC_HEADING, subtitle: TOPIC_SUBTITLE, intro: TOPIC_INTRO, ...props });
+const collectButton = () => button('Собрать разбор');
+const newTopicButton = () => button('Собрать новый разбор');
+const chatLink = () => [...container.querySelectorAll('a, button')].find(el => el.textContent.trim() === 'Спросить подробнее в чате карты');
+const TOPIC_LEGACY = 'Разбор по темам строится по домам карты, а в этой карте они могут быть неточными: она построена в старой версии Lunaria, где часовой пояс рождения не проверялся. Постройте карту заново, выбрав место рождения из подсказок, и откройте разбор для новой карты.';
+// Переписка карты целиком: обычный обмен, старый разбор «Деньги», новый «Деньги», разбор «Любовь», вопрос в чате карты.
+const TOPIC_HISTORY = [
+  ...OLD_EXCHANGE,
+  { role: 'user', content: MONEY_Q, created_at: '2026-10-01T09:00:00' }, { role: 'gpt', content: 'Старый разбор денег' },
+  { role: 'user', content: MONEY_Q, created_at: '2026-11-14T12:00:00.123456' }, { role: 'gpt', content: 'Разбор: ваши деньги и ценности' },
+  { role: 'user', content: LOVE_Q, created_at: '2026-11-14T12:05:00' }, { role: 'gpt', content: 'Разбор любви' },
+  { role: 'user', content: 'Что с работой?' }, { role: 'gpt', content: 'Ответ про работу' },
+];
+
+describe('TF2: view="topic", в переписке нет пары темы', () => {
+  test('пока грузится история — ни «Собрать разбор», ни «Собрать новый разбор», ни ссылки, ни поля', async () => {
+    authenticate();
+    let finish;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await topicChat();
+    expect(container.textContent).toContain('Загрузка истории');
+    expect(collectButton()).toBeUndefined();
+    expect(newTopicButton()).toBeUndefined();
+    expect(chatLink()).toBeUndefined();
+    expect(container.querySelector('textarea')).toBeNull();
+    await act(async () => finish(response(OLD_EXCHANGE)));
+    expect(collectButton()).not.toBeUndefined();
+  });
+
+  test('обычная переписка не видна; заголовок, подзаголовок, вступление и одна кнопка «Собрать разбор»; нет поля, стартовых, подсказок, «Мой месяц»', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await topicChat();
+    expect(container.querySelector('h2').textContent).toBe(TOPIC_HEADING);
+    expect(container.querySelector('.chat-heading p').textContent).toBe(TOPIC_SUBTITLE);
+    expect(messageTexts('gpt')).toEqual([TOPIC_INTRO]);
+    expect(messageTexts('user')).toEqual([]);
+    expect(container.textContent).not.toContain('Привет');
+    expect(container.textContent).not.toContain('Старый ответ');
+    expect(collectButton().disabled).toBe(false);
+    expect(newTopicButton()).toBeUndefined();
+    expect(chatLink()).toBeUndefined();
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.chat-starters')).toBeNull();
+    expect(container.querySelector('.chat-follow-ups')).toBeNull();
+    expect(container.querySelector('.chat-month')).toBeNull();
+    expect(container.textContent).not.toContain('Разбор от');
+    expect(posts()).toHaveLength(0);
+  });
+
+  test('пустая переписка и переписка с парой ДРУГОЙ темы выглядят так же: вступление и «Собрать разбор»', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await topicChat();
+    expect(messageTexts('gpt')).toEqual([TOPIC_INTRO]);
+    expect(collectButton()).not.toBeUndefined();
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    global.fetch.mockResolvedValueOnce(response([{ role: 'user', content: LOVE_Q }, { role: 'gpt', content: 'Разбор любви' }, ...OLD_EXCHANGE]));
+    await topicChat();
+    expect(messageTexts('gpt')).toEqual([TOPIC_INTRO]);
+    expect(container.textContent).not.toContain('Разбор любви');
+    expect(collectButton()).not.toBeUndefined();
+    expect(newTopicButton()).toBeUndefined();
+  });
+
+  test('двойной клик по «Собрать разбор» — один POST {chart_id: 7, question: текст темы}; пока идёт ответ всё заблокировано; после done — разбор и «Собрать новый разбор», без поля и подсказок', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await topicChat();
+    const stream = controlledStream();
+    global.fetch.mockResolvedValueOnce(stream.response);
+    await act(async () => { const start = collectButton(); start.click(); start.click(); });
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONEY_Q });
+    expect(posts()[0][1].headers.Authorization).toBe('Bearer jwt');
+    expect(messageTexts('user')).toEqual([MONEY_Q]);
+    expect(collectButton()?.disabled ?? true).toBe(true);
+    await stream.event({ type: 'delta', text: 'Разбор: ' });
+    expect(messageTexts('gpt').join('\n')).toContain('Разбор: ');
+    expect(collectButton()?.disabled ?? true).toBe(true);
+    await stream.event({ type: 'done', response: 'Разбор: ваши деньги и ценности', follow_up_suggestions: typedSuggestions });
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([MONEY_Q]);
+    expect(messageTexts('gpt').join('\n')).toContain('Разбор: ваши деньги и ценности');
+    expect(newTopicButton().disabled).toBe(false);
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.chat-follow-ups')).toBeNull(); // подсказки модели в разборе не показываются
+    expect(container.querySelector('.chat-starters')).toBeNull();
+    expect(container.querySelector('.chat-month')).toBeNull();
+  });
+});
+
+describe('TF2: view="topic", в переписке есть пара темы', () => {
+  test('видна только ПОСЛЕДНЯЯ пара «Деньги»: «Разбор от 14 ноября 2026», «Собрать новый разбор», ссылка в чат карты; поля, стартовых и подсказок нет', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(TOPIC_HISTORY));
+    await topicChat();
+    expect(messageTexts('user')).toEqual([MONEY_Q]);
+    expect(messageTexts('gpt')).toEqual(['Разбор: ваши деньги и ценности']);
+    for (const hidden of ['Старый разбор денег', 'Разбор любви', 'Ответ про работу', 'Что с работой?', 'Привет', 'Старый ответ']) {
+      expect(container.textContent).not.toContain(hidden);
+    }
+    expect(container.textContent).toContain('Разбор от 14 ноября 2026');
+    expect(container.textContent).not.toContain('октября');
+    expect(newTopicButton()).not.toBeUndefined();
+    expect(newTopicButton().classList).toContain('button-secondary');
+    expect(newTopicButton().disabled).toBe(false);
+    expect(collectButton()).toBeUndefined();
+    expect(chatLink()).not.toBeUndefined();
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.chat-starters')).toBeNull();
+    expect(container.querySelector('.chat-follow-ups')).toBeNull();
+    expect(container.querySelector('.chat-month')).toBeNull();
+    expect(posts()).toHaveLength(0); // перечитывание — без модели и без квоты
+  });
+
+  test('«Спросить подробнее в чате карты» ведёт на /natal-chart-result/7 и ничего не отправляет', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(TOPIC_HISTORY));
+    await topicChat();
+    const link = chatLink();
+    link.addEventListener('click', event => event.preventDefault(), { once: true });
+    await click(link);
+    const to = link.tagName === 'A' ? link.getAttribute('href') : mockNavigate.mock.calls[0]?.[0];
+    expect(to).toBe('/natal-chart-result/7');
+    expect(posts()).toHaveLength(0);
+  });
+
+  test.each([['нет created_at', undefined], ['created_at = null', null], ['дата не разобралась', 'не дата']])(
+    'дата — только подпись: %s — строки «Разбор от» нет, остальное на месте', async (_name, createdAt) => {
+      authenticate();
+      global.fetch.mockResolvedValueOnce(response([{ role: 'user', content: MONEY_Q, created_at: createdAt }, { role: 'gpt', content: 'Разбор без даты' }]));
+      await topicChat();
+      expect(container.textContent).toContain('Разбор без даты');
+      expect(newTopicButton()).not.toBeUndefined();
+      expect(container.textContent).not.toContain('Разбор от');
+      expect(container.textContent).not.toContain('Invalid Date');
+    });
+
+  test('«Собрать новый разбор»: один POST при двойном клике, всё заблокировано до конца ответа, затем видна только НОВАЯ пара', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(TOPIC_HISTORY));
+    await topicChat();
+    const stream = controlledStream();
+    global.fetch.mockResolvedValueOnce(stream.response);
+    await act(async () => { const again = newTopicButton(); again.click(); again.click(); });
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONEY_Q });
+    expect(newTopicButton()?.disabled ?? true).toBe(true);
+    await stream.event({ type: 'delta', text: 'Новый разбор: ' });
+    expect(newTopicButton()?.disabled ?? true).toBe(true);
+    await stream.event({ type: 'done', response: 'Новый разбор: траты и сбережения', follow_up_suggestions: typedSuggestions });
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([MONEY_Q]);
+    expect(messageTexts('gpt').join('\n')).toContain('Новый разбор: траты и сбережения');
+    for (const hidden of ['Разбор: ваши деньги и ценности', 'Старый разбор денег', 'Разбор любви', 'Ответ про работу']) {
+      expect(container.textContent).not.toContain(hidden);
+    }
+    expect(newTopicButton().disabled).toBe(false);
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.chat-follow-ups')).toBeNull();
+  });
+
+  test('guard (зелёный на базе): без view="topic" та же переписка показывается целиком, с полем ввода', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(TOPIC_HISTORY));
+    await render();
+    expect(messageTexts('user')).toEqual(['Привет', MONEY_Q, MONEY_Q, LOVE_Q, 'Что с работой?']);
+    expect(container.querySelector('textarea')).not.toBeNull();
+    expect(collectButton()).toBeUndefined();
+    expect(newTopicButton()).toBeUndefined();
+  });
+});
+
+describe('TF2: view="topic", отказы — текст сервера у кнопки в фокусе, один POST, без повтора', () => {
+  test.each([
+    ['422 JSON (старая карта)', TOPIC_LEGACY, 'json'],
+    ['SSE error 503', 'Сейчас не получилось собрать разбор. Квота не списана — попробуйте ещё раз через несколько минут.', 'sse'],
+  ])('%s: текст как есть в [role=alert]; фокус на нём, не на <body>; один POST; кнопка снова доступна; ленты нет', async (_name, text, kind) => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await topicChat();
+    collectButton().focus();
+    if (kind === 'json') {
+      global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: text }) }).mockResolvedValueOnce(response(OLD_EXCHANGE));
+      await click(collectButton());
+    } else {
+      const stream = controlledStream();
+      global.fetch.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(response(OLD_EXCHANGE));
+      await click(collectButton());
+      await stream.event({ type: 'error', status: 503, detail: text });
+    }
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toBe(text);
+    expect(document.activeElement).toBe(alerts[0]);
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONEY_Q });
+    expect(messageTexts('user')).toEqual([]); // вопрос не остался висеть
+    expect(collectButton().disabled).toBe(false); // повторить может только человек
+    expect(container.querySelector('textarea')).toBeNull();
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    expect(posts()).toHaveLength(1); // автоповтора нет
+  });
+
+  test('отказ при «Собрать новый разбор»: текст сервера, фокус на нём, прежний разбор на месте, один POST', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(TOPIC_HISTORY));
+    await topicChat();
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: TOPIC_LEGACY }) }).mockResolvedValueOnce(response(TOPIC_HISTORY));
+    await click(newTopicButton());
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toBe(TOPIC_LEGACY);
+    expect(document.activeElement).toBe(alerts[0]);
+    expect(posts()).toHaveLength(1);
+    expect(container.textContent).toContain('Разбор: ваши деньги и ценности');
+    expect(messageTexts('user')).toEqual([MONEY_Q]);
+    expect(newTopicButton().disabled).toBe(false);
+  });
+
+  test('лимит вопросов — handleLimitError (окно тарифов), без текста ошибки и без повтора', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await topicChat();
+    mockHandleLimitError.mockReturnValueOnce(true);
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ detail: { code: 'gpt_limit_reached', plan: 'free' } }) });
+    await click(collectButton());
+    expect(mockHandleLimitError).toHaveBeenCalledTimes(1);
+    expect(mockHandleLimitError.mock.calls[0][0].code).toBe('gpt_limit_reached');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([]);
+    expect(collectButton()).not.toBeUndefined();
+  });
+
+  test('смена темы (новый topicQuestion) скрывает ошибку прошлой темы', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await topicChat();
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: TOPIC_LEGACY }) }).mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await click(collectButton());
+    expect(container.querySelector('[role="alert"]').textContent).toBe(TOPIC_LEGACY);
+    await topicChat({ topicQuestion: LOVE_Q, heading: 'Любовь' });
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(posts()).toHaveLength(1);
   });
 });

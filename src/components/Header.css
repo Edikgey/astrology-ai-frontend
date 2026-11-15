@@ -9,9 +9,10 @@
 .nav-account { display: flex; align-items: center; gap: var(--ln-space-16); padding-left: var(--ln-space-24); border-left: 1px solid var(--ln-color-border); }
 .nav-account a { text-decoration: none; }
 .nav-toggle { display: none; }
-/* LUNAR-1: one more menu item; the narrowest desktop width keeps the menu on one line. */
-@media (min-width: 1001px) and (max-width: 1200px) { .navbar { gap: 20px; } .nav-links { gap: 18px; } }
-@media (max-width: 1000px) {
+/* LUNAR-1, TOPICS-1: the narrowest desktop width keeps the menu on one line. TOPICS-1 measured the signed-in menu
+   at 1037px of content (shell = 100% - 64px, so it fits from 1101px); the burger stays up to 1120px for font differences. */
+@media (min-width: 1121px) and (max-width: 1200px) { .navbar { gap: 20px; } .nav-links { gap: 18px; } }
+@media (max-width: 1120px) {
   .navbar { min-height: 72px; }
   .nav-toggle { display: inline-flex; min-height: 42px; padding: var(--ln-space-8) var(--ln-space-12); font-size: var(--ln-text-12); }
   .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--ln-color-surface-raised); padding: 20px var(--ln-space-24) var(--ln-space-24); border-bottom: 1px solid var(--ln-color-border); box-shadow: var(--ln-shadow-medium); }

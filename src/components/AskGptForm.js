@@ -1,7 +1,7 @@
 import {productAnalytics, analyticsHeaders} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { apiFetch, errorFromResponse, errorText } from "../api/apiError";
@@ -19,9 +19,11 @@ const NATAL_QUESTIONS = ["Какие у меня сильные стороны?"
 export const MONTH_LABEL = "Мой месяц";
 export const MONTH_QUESTION = "Мой месяц: что меня ждёт в ближайшие 30 дней?";
 // The month page shows the chart chat from the last month question on (MY-MONTH-PAGE DESIGN §3).
-export const monthSlice = messages => {
-  const start = messages.map(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION).lastIndexOf(true);
-  const shown = start < 0 ? [] : messages.slice(start);
+// The topics page shows only the pair: the last topic question and the reply right after it (TOPICS-1 DESIGN §3.2).
+export const monthSlice = (messages, question = MONTH_QUESTION, pairOnly = false) => {
+  const start = messages.map(msg => msg.user === "Вы" && msg.text === question).lastIndexOf(true);
+  const tail = start < 0 ? [] : messages.slice(start);
+  const shown = pairOnly ? tail.slice(0, tail[1]?.user === "Вы" ? 1 : 2) : tail;
   const date = shown[0]?.createdAt ? new Date(`${shown[0].createdAt}Z`) : null;
   return { shown, hasOverview: start >= 0, overviewDate: date && !Number.isNaN(date.getTime()) ? date : null };
 };
@@ -45,7 +47,7 @@ const AskGptForm = (props) => {
 };
 
 const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoading, token, unsaved = false,
-  initialQuestion = "", suggestedQuestion, onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions, view }) => {
+  initialQuestion = "", suggestedQuestion, onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions, view, topicQuestion }) => {
   const { usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade, noteOffer } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
@@ -197,23 +199,29 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     }
   };
   // «Мой месяц» page (MY-MONTH-PAGE DESIGN §3): the same chart conversation, shown from the last month question on.
+  // «Разборы по темам» page (TOPICS-1 DESIGN §3.2): the same chart conversation, only the last pair of this topic.
   const monthView = view === "month" && subjectType === "natal";
-  const { shown, hasOverview, overviewDate } = monthView ? monthSlice(messages) : { shown: messages };
+  const topicView = view === "topic" && subjectType === "natal" && Boolean(topicQuestion);
+  const pageView = monthView || topicView;
+  const fixedQuestion = topicView ? topicQuestion : MONTH_QUESTION;
+  const { shown, hasOverview, overviewDate } = pageView ? monthSlice(messages, fixedQuestion, topicView) : { shown: messages };
   // While the history loads nobody knows yet whether an overview exists: no button, no empty-chat layout.
-  const monthWait = monthView && canChat && historyLoading;
-  const noOverview = monthView && !monthWait && !hasOverview;
+  const monthWait = pageView && canChat && historyLoading;
+  const noOverview = pageView && !monthWait && !hasOverview;
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
-  // A refusal in the month view: the history is re-read, the actions are rebuilt and the focus would fall to <body>.
+  // Another topic: the refusal of the previous one no longer applies (a running request is not aborted).
+  useEffect(() => setError(""), [topicQuestion]);
+  // A refusal in the month or topic view: the history is re-read, the actions are rebuilt and the focus would fall to <body>.
   // Put it on the refusal and bring the refusal with its button into view (nothing is sent again).
   const monthActions = useRef(null);
   const monthAlert = useRef(null);
   useEffect(() => {
-    if (!monthView || monthWait || !error) return;
+    if (!pageView || monthWait || !error) return;
     monthAlert.current?.focus({ preventScroll: true });
     monthActions.current?.scrollIntoView?.({ block: "nearest" });
-  }, [monthView, monthWait, error]);
-  const latestSuggestions = !loading && shown[shown.length - 1]?.user === "GPT" ? shown[shown.length - 1].suggestions || [] : [];
-  const showStarters = !monthView && (!authenticated || (canChat && !historyLoading && !historyError &&
+  }, [pageView, monthWait, error]);
+  const latestSuggestions = !topicView && !loading && shown[shown.length - 1]?.user === "GPT" ? shown[shown.length - 1].suggestions || [] : [];
+  const showStarters = !pageView && (!authenticated || (canChat && !historyLoading && !historyError &&
     !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim())));
   // Offers by moment: only for a free account outside the beta, only if the server sells something, never while a pack is left.
   const freeOffer = authenticated && usage?.free_beta_enabled !== true && usage?.plan === "free" && hasNewOffers(usage) && packBalance(usage) === 0;
@@ -231,7 +239,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const questions = starterQuestions || (subjectType === "relationship" ? RELATIONSHIP_QUESTIONS : NATAL_QUESTIONS);
   // The month overview is a chart-chat hint, not a right: the server refuses old charts and pairs (DESIGN §3).
   const last = messages[messages.length - 1];
-  const showMonthEntry = subjectType !== "relationship" && !monthView && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
+  const showMonthEntry = subjectType !== "relationship" && !pageView && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
     && !messages.some(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION);
   const starters = <div className="predefined-questions">
     {questions.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
@@ -239,13 +247,13 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
   </div>;
   return <div className={["askgpt-container", canChat && "is-chat-active", subjectType === "relationship" && "is-relationship-chat",
-    (noOverview || (subjectType === "relationship" && showStarters)) && "is-empty-chat", monthView && "is-month-view"].filter(Boolean).join(" ")}>
+    (noOverview || (subjectType === "relationship" && showStarters)) && "is-empty-chat", pageView && "is-month-view", topicView && "is-topic-view"].filter(Boolean).join(" ")}>
     <div className="chat-heading"><h2>{heading || <>Ваш персональный <span>AI-астролог</span></>}</h2><p>{subtitle || "Поговорим о вас и о том, что показывает ваша карта."}</p></div>
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
-    {error && !monthView && <p role="alert">{error}</p>}
-    {overviewDate && <p className="chat-month-date">Обзор от {overviewDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>}
+    {error && !pageView && <p role="alert">{error}</p>}
+    {overviewDate && <p className="chat-month-date">{topicView ? "Разбор" : "Обзор"} от {overviewDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions"
       onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
       {(!authenticated || (canChat && !historyLoading && !historyError && shown.length === 0)) && <div className="message gpt"><div>{intro || CHAT_INTRO}</div></div>}
@@ -266,10 +274,12 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     {showMonthEntry && <div className="chat-month" role="group" aria-label="Обзор месяца">
       <button type="button" className="preset-btn" disabled={blocked} onClick={() => navigate(`/my-month?chart=${chartId}`)}>{MONTH_LABEL}</button>
     </div>}
-    {monthView && !monthWait && <div className="chat-month-actions" ref={monthActions}>
+    {pageView && !monthWait && <div className="chat-month-actions" ref={monthActions}>
       {error && <p role="alert" tabIndex={-1} ref={monthAlert}>{error}</p>}
       <button type="button" className={noOverview ? "chat-send" : "button-secondary"} disabled={blocked}
-        onClick={() => sendQuestion(MONTH_QUESTION, true)}>{noOverview ? "Собрать обзор месяца" : "Собрать новый обзор"}</button>
+        onClick={() => sendQuestion(fixedQuestion, true)}>{topicView ? (noOverview ? "Собрать разбор" : "Собрать новый разбор") :
+          noOverview ? "Собрать обзор месяца" : "Собрать новый обзор"}</button>
+      {topicView && !noOverview && <Link className="chat-topic-link" to={`/natal-chart-result/${chartId}`}>Спросить подробнее в чате карты</Link>}
     </div>}
     {lastFree && <p className="chat-offer-line">Остался 1 бесплатный вопрос. Потом — Premium{canBuy(usage, "question_pack") ? " или пакет вопросов" : ""}.{" "}
       <button type="button" className="chat-offer-link" onClick={() => openUpgrade("last_free_question")}>Посмотреть варианты</button></p>}
@@ -280,7 +290,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     </section>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
     {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
-    {!noOverview && !monthWait && <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
+    {!topicView && !noOverview && !monthWait && <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
       <textarea ref={input} aria-label="Ваш вопрос" rows={1} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate && !returningFocus.current) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}

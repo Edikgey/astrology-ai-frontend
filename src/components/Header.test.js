@@ -60,8 +60,11 @@ test('signed-in navigation exposes owned charts, relationship analysis and logou
   expect(charts.nextElementSibling.getAttribute('href')).toBe('/my-month');
   expect(charts.nextElementSibling.nextElementSibling.textContent).toBe('Луна сегодня');
   expect(charts.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/moon');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
+  // TOPICS-1 TF3: «Разборы по темам» — сразу после «Луна сегодня», дальше — «Разбор отношений» (порядок обновлён).
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/topics');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
   expect(container.querySelector('a[href="/settings"]')).toBeNull();
   await act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
   expect(mockAuth.logout).toHaveBeenCalledTimes(1);
@@ -96,6 +99,40 @@ test.each([['guest', null], ['signed-in', { id: 1 }]])('MM1: %s — tapping «М
   expect(toggle.getAttribute('aria-expanded')).toBe('true');
   const link = navLink('Мой месяц');
   expect(link.getAttribute('href')).toBe('/my-month');
+  link.addEventListener('click', event => event.preventDefault(), { once: true });
+  await act(async () => link.click());
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+});
+
+// ---- TOPICS-1-fe, TF3 (tasks/TOPICS-1/DESIGN.md §3.3, §5): пункт «Разборы по темам» в верхнем меню, его видят все ----
+test('TF3: guest menu — «Разборы по темам» → /topics right after «Луна сегодня», before «Разбор отношений»', () => {
+  const topics = navLink('Разборы по темам');
+  expect(topics).toBeDefined();
+  expect(topics.getAttribute('href')).toBe('/topics');
+  expect(topics.dataset.state).toBeUndefined(); // обычная ссылка, без намерения и состояния
+  expect(topics.previousElementSibling.textContent).toBe('Луна сегодня');
+  expect(topics.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
+});
+
+test('TF3: signed-in menu — the same place; the link is there exactly once', async () => {
+  mockAuth.user = { id: 1 };
+  await act(async () => root.render(<Header />));
+  const topics = navLink('Разборы по темам');
+  expect(topics.getAttribute('href')).toBe('/topics');
+  expect(topics.previousElementSibling.textContent).toBe('Луна сегодня');
+  expect(topics.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(container.querySelectorAll('a[href="/topics"]')).toHaveLength(1);
+});
+
+test.each([['guest', null], ['signed-in', { id: 1 }]])('TF3: %s — tapping «Разборы по темам» closes the mobile menu', async (_who, user) => {
+  mockAuth.user = user;
+  await act(async () => root.render(<Header />));
+  const toggle = container.querySelector('[aria-controls="main-navigation"]');
+  await act(async () => toggle.click());
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  const link = navLink('Разборы по темам');
+  expect(link.getAttribute('href')).toBe('/topics');
   link.addEventListener('click', event => event.preventDefault(), { once: true });
   await act(async () => link.click());
   expect(toggle.getAttribute('aria-expanded')).toBe('false');

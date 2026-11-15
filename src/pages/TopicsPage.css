@@ -1,0 +1,12 @@
+/* TOPICS-1: the page reuses the «Мой месяц» column; the topic choice is its one distinct element. */
+.topics-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ln-space-8); margin: var(--ln-space-8) 0 var(--ln-space-12); }
+.topics-choice button { min-height: 52px; padding: var(--ln-space-12) var(--ln-space-16); border: 1px solid var(--ln-color-border-control); border-radius: var(--ln-radius-md);
+  background: var(--ln-color-surface); color: var(--ln-color-primary); font-size: var(--ln-text-15); font-weight: 600; text-align: left; }
+.topics-choice button:hover { background: var(--ln-color-surface-tinted); border-color: var(--ln-color-primary); }
+.topics-choice button[aria-pressed='true'] { background: var(--ln-color-primary); border-color: var(--ln-color-primary); color: var(--ln-color-text-inverse); }
+.topics-line { max-width: 68ch; margin: 0 0 var(--ln-space-8); font-size: var(--ln-text-15); line-height: 1.55; }
+.topics-accuracy { max-width: 68ch; margin: 0 0 var(--ln-space-24); color: var(--ln-color-text-muted); font-size: var(--ln-text-12); }
+@media (max-width: 700px) {
+  .topics-choice { grid-template-columns: 1fr; }
+  .topics-choice button { min-height: 44px; }
+}
