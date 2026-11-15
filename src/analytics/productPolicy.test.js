@@ -35,6 +35,12 @@ test.each(['/moon', '/moon?chart=7', '/moon/', '/moon#CANARY', '/moon?tz=Europe%
   expect(safeRouteKey(path)).toBeNull();
 });
 
+// TOPICS-1 TF3 (DESIGN §3.3, §5): страница «Разборы по темам» не получает ключа маршрута — как «Мой месяц» (MM8) и «Луна сегодня» (LD8).
+// Охрана зелёная на базе (ключа у /topics нет) и должна такой остаться, когда появится страница.
+test.each(['/topics', '/topics?chart=7', '/topics?chart=7&topic=money', '/topics/', '/topics#CANARY'])('TF3: %s has no analytics route key', path => {
+  expect(safeRouteKey(path)).toBeNull();
+});
+
 test('serialized client envelope contains no account, URL, form or billing data', () => {
   const record = event({routeKey: safeRouteKey('/relationships/87654')});
   expect(record).toEqual({event_id: eventId, session_id: sessionId, name: 'page_viewed',
