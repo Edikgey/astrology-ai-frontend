@@ -46,6 +46,10 @@ afterEach(async () => {
 const signIn = () => { mockAuth = { user: { id: 1 }, token: 'jwt', loading: false }; localStorage.setItem('access_token', 'jwt'); };
 const render = async () => act(async () => root.render(
   <ServiceConfigProvider><UsageProvider><PricingPage /></UsageProvider></ServiceConfigProvider>));
+const MONTH_NOTE = 'Во время бета-теста карты и AI-вопросы доступны бесплатно без лимита. Покупка Premium необязательна и оформляет платную подписку с ежемесячным продлением.';
+const YEAR_NOTE = 'Во время бета-теста карты и AI-вопросы доступны бесплатно без лимита. Покупка Premium на год необязательна и оформляет платную подписку с ежегодным продлением.';
+const PACK_NOTE = 'Во время бета-теста карты и AI-вопросы доступны бесплатно без лимита. Покупка пакета необязательна: его вопросы не тратятся до конца бета-теста и не сгорают.';
+const count = (text, part) => text.split(part).length - 1;
 const page = () => container.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ');
 
 describe.each([['guest', false], ['signed-in free account', true]])('FE-1 pricing page outside the beta, %s', (_, signedIn) => {
@@ -106,29 +110,68 @@ describe.each([['guest', false], ['signed-in free account', true]])('FE-1 pricin
     expect(text).toContain('10 AI-вопросов за всё время аккаунта');
   });
 
-  test('during the free beta the page is the old one and sells nothing new, whatever the offers say', async () => {
+  // PRICING-BETA-SALE FS-1 (decision 41 replaces the old "page sells nothing new in the beta" contract):
+  // in the beta the page sells the year and the pack like the month; each card has its own beta note.
+  test('during the free beta the page shows the year and the pack like the month, each with its own beta note', async () => {
     publicConfig = { free_beta_enabled: true, offers: OFFERS };
     serverUsage = { ...FREE, free_beta_enabled: true, saved_charts_limit: null, gpt_messages_limit: null,
       gpt_messages_available: null, gpt_limit_type: 'unlimited' };
     await render();
     const text = page();
     expect(text).toContain('Исследуйте Lunaria без лимитов.');
-    expect(text).toContain('Покупка Premium необязательна');
-    expect(text).not.toContain('Premium на год');
-    expect(text).not.toContain('+50 вопросов');
-    expect(text).not.toContain('$69.99');
-    expect(text).not.toContain('$4.99');
-    expect(text).not.toMatch(/пакет/i);
+    expect(text).toContain('$9.99');
+    expect(text).toContain('799 ₽');
+    expect(text).toContain('Premium на год');
+    expect(text).toContain('$69.99');
+    expect(text).toContain('4 790 ₽');
+    expect(text).toContain('+50 вопросов');
+    expect(text).toContain('$4.99');
+    expect(text).toContain('399 ₽');
+    expect(text).toContain('один раз, без подписки');
+    expect(count(text, MONTH_NOTE)).toBe(1);
+    expect(count(text, YEAR_NOTE)).toBe(1);
+    expect(count(text, PACK_NOTE)).toBe(1);
+    const buttons = [...container.querySelectorAll('button')].map(b => b.textContent);
+    expect(buttons).toEqual(expect.arrayContaining(['Перейти на Premium', 'Выбрать Premium на год', 'Купить пакет']));
   });
 });
 
-test('FE-1 guard: the account state wins over a stale public config that still lists offers', async () => {
+test('FE-1 guard: the account flags win over a public config that lists offers, in the beta too', async () => {
+  signIn();
+  publicConfig = { free_beta_enabled: true, offers: OFFERS };
+  serverUsage = { ...FREE, free_beta_enabled: true, saved_charts_limit: null, gpt_messages_limit: null,
+    gpt_messages_available: null, gpt_limit_type: 'unlimited',
+    stripe_annual_checkout_available: false, lava_annual_checkout_available: false };
+  await render();
+  expect(page()).toContain('Исследуйте Lunaria без лимитов.');
+  expect(page()).not.toContain('Premium на год');
+  expect(page()).not.toContain('$69.99');
+  expect(page()).toContain('+50 вопросов');
+  expect(count(page(), PACK_NOTE)).toBe(1);
+  await act(async () => root.unmount()); root = createRoot(container);
+  serverUsage = { ...serverUsage, stripe_annual_checkout_available: true, lava_annual_checkout_available: true,
+    stripe_pack_checkout_available: false, lava_pack_checkout_available: false };
+  await render();
+  expect(page()).toContain('Premium на год');
+  expect(count(page(), YEAR_NOTE)).toBe(1);
+  expect(page()).not.toContain('+50 вопросов');
+  expect(page()).not.toContain('$4.99');
+});
+
+test('FS-1: in the beta the account state still wins over a stale public config that says no beta and lists offers', async () => {
   signIn();
   publicConfig = { free_beta_enabled: false, offers: OFFERS };
   serverUsage = { ...FREE, free_beta_enabled: true, saved_charts_limit: null, gpt_messages_limit: null,
     gpt_messages_available: null, gpt_limit_type: 'unlimited' };
   await render();
   expect(page()).toContain('Исследуйте Lunaria без лимитов.');
-  expect(page()).not.toContain('Premium на год');
-  expect(page()).not.toContain('+50 вопросов');
+  expect(page()).toContain('Premium на год');
+  expect(page()).toContain('+50 вопросов');
+});
+
+test('FS-1: outside the beta no beta note is shown on any card', async () => {
+  await render();
+  expect(page()).toContain('Premium на год');
+  expect(page()).toContain('+50 вопросов');
+  expect(page()).not.toContain('Во время бета-теста');
 });

@@ -193,7 +193,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const showStarters = !authenticated || (canChat && !historyLoading && !historyError &&
     !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim()));
   // Offers by moment: only for a free account outside the beta, only if the server sells something, never while a pack is left.
-  const freeOffer = authenticated && usage?.plan === "free" && hasNewOffers(usage) && packBalance(usage) === 0;
+  const freeOffer = authenticated && usage?.free_beta_enabled !== true && usage?.plan === "free" && hasNewOffers(usage) && packBalance(usage) === 0;
   const lastFree = freeOffer && usage.gpt_messages_available === 1;
   const noFree = freeOffer && usage.gpt_messages_available === 0;
   useEffect(() => {

@@ -29,6 +29,11 @@ const PREMIUM = { ...FREE, plan: 'premium', saved_charts_limit: 10, gpt_messages
   current_period_start: '2026-11-12T00:00:00', current_period_end: '2026-12-12T00:00:00',
   gpt_messages_reset_at: '2026-12-12T00:00:00', payment_provider: 'stripe', subscription_status: 'active',
   stripe_checkout_available: false, lava_checkout_available: false };
+const BETA = { free_beta_enabled: true, saved_charts_limit: null, gpt_messages_limit: null, gpt_messages_available: null, gpt_limit_type: 'unlimited' };
+const MONTH_NOTE = 'Во время бета-теста карты и AI-вопросы доступны бесплатно без лимита. Покупка Premium необязательна и оформляет платную подписку с ежемесячным продлением.';
+const YEAR_NOTE = 'Во время бета-теста карты и AI-вопросы доступны бесплатно без лимита. Покупка Premium на год необязательна и оформляет платную подписку с ежегодным продлением.';
+const PACK_NOTE = 'Во время бета-теста карты и AI-вопросы доступны бесплатно без лимита. Покупка пакета необязательна: его вопросы не тратятся до конца бета-теста и не сгорают.';
+const count = (text, part) => text.split(part).length - 1;
 const SESSION = { session_id: 'cs_live_fixture', client_secret: 'cs_live_fixture_secret_fixture' };
 const INVOICE = { url: 'https://pay.example.test/invoice' };
 const ok = data => ({ ok: true, status: 200, json: async () => data });
@@ -58,7 +63,8 @@ afterEach(async () => {
   await act(async () => root.unmount()); container.remove(); global.fetch = originalFetch;
   localStorage.clear(); jest.restoreAllMocks(); jest.useRealTimers(); window.history.replaceState({}, '', '/');
 });
-const Probe = () => { limit = useUsage().handleLimitError; return null; };
+let upgrade;
+const Probe = () => { const usage = useUsage(); limit = usage.handleLimitError; upgrade = usage.openUpgrade; return null; };
 const render = async () => act(async () => root.render(
   <UsageProvider><Probe /><UsageSummary /><textarea defaultValue="Pending question" /></UsageProvider>));
 const flat = el => el.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ');
@@ -208,16 +214,77 @@ describe('FE-4: what the modal offers follows the server flags and the beta', ()
     expect(flat(dialog)).not.toContain(PACK);
   });
 
-  test('guard: during the beta the modal keeps the old Premium offer and adds neither year nor pack, whatever the flags say', async () => {
-    serverUsage = { ...FREE, free_beta_enabled: true, saved_charts_limit: null, gpt_messages_limit: null,
-      gpt_messages_available: null, gpt_limit_type: 'unlimited' };
+  // PRICING-BETA-SALE FS-2 (decision 41 replaces the old "beta modal adds neither year nor pack" contract).
+  test('during the beta the modal opened by the button offers month, year and pack, each with its own beta note once', async () => {
+    serverUsage = { ...FREE, ...BETA };
     await openOffers();
     const dialog = container.querySelector('dialog[open]');
-    expect(flat(dialog)).toContain('Покупка Premium необязательна');
-    expect(dialog.querySelectorAll('.payment-option')).toHaveLength(2);
+    expect(dialog.querySelector('#usage-modal-title').textContent).toBe('Больше возможностей с Premium');
+    expect([...dialog.querySelectorAll('.offer-option')].map(el => el.getAttribute('aria-label')))
+      .toEqual(['Premium на месяц', 'Premium на год', '+50 вопросов']);
+    expect(dialog.querySelectorAll('.payment-option')).toHaveLength(0);
+    const text = flat(dialog);
+    expect(count(text, MONTH_NOTE)).toBe(1);
+    expect(count(text, YEAR_NOTE)).toBe(1);
+    expect(count(text, PACK_NOTE)).toBe(1);
+    expect(text).toContain('$69.99');
+    expect(text).toContain('$4.99');
+  });
+
+  test('during the beta each provider flag still shows or hides its own button in the modal', async () => {
+    serverUsage = { ...FREE, ...BETA, stripe_annual_checkout_available: false, lava_annual_checkout_available: true,
+      stripe_pack_checkout_available: false, lava_pack_checkout_available: false };
+    await openOffers();
+    const dialog = container.querySelector('dialog[open]');
+    expect(optionButton(dialog, YEAR, STRIPE)).toBeUndefined();
+    expect(optionButton(dialog, YEAR, LAVA)).toBeDefined();
+    expect(flat(dialog)).not.toContain(PACK);
+    expect(count(flat(dialog), PACK_NOTE)).toBe(0);
+  });
+
+  test.each([[YEAR, 'premium_year', STRIPE, '/payments/stripe/checkout'], [PACK, 'question_pack', STRIPE, '/payments/stripe/checkout'],
+    [YEAR, 'premium_year', LAVA, '/payments/lava/checkout'], [PACK, 'question_pack', LAVA, '/payments/lava/checkout']])(
+    'during the beta %s is paid through the same product call: only {"product":"%s"} is sent (%s)', async (title, product, provider, path) => {
+      serverUsage = { ...FREE, ...BETA };
+      await openOffers();
+      await click(need(container.querySelector('dialog[open]'), title, provider));
+      const calls = posts(path);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][1].body).toBe(JSON.stringify({ product }));
+      expect(container.querySelector('textarea').value).toBe('Pending question');
+    });
+
+  test('during the beta a Premium buyer who presses «Купить пакет» gets the pack window with the pack note and one Stripe call', async () => {
+    serverUsage = { ...PREMIUM, ...BETA };
+    await render();
+    await act(async () => upgrade('pack'));
+    const dialog = container.querySelector('dialog[open]');
+    expect(dialog.querySelector('#usage-modal-title').textContent).toBe('Пакет вопросов');
+    expect([...dialog.querySelectorAll('.offer-option')].map(el => el.getAttribute('aria-label'))).toEqual(['+50 вопросов']);
+    expect(count(flat(dialog), PACK_NOTE)).toBe(1);
+    expect(flat(dialog)).not.toContain(YEAR);
+    await click(need(dialog, PACK, STRIPE));
+    expect(posts('/payments/stripe/checkout')).toHaveLength(1);
+    expect(posts('/payments/stripe/checkout')[0][1].body).toBe(JSON.stringify({ product: 'question_pack' }));
+  });
+
+  test('guard: during the beta a limit window or an offer moment is still the old window — no variants, no notes of year or pack', async () => {
+    serverUsage = { ...FREE, ...BETA };
+    await render();
+    await act(async () => limit({ code: 'gpt_limit_reached', detail: { code: 'GPT_LIMIT_REACHED', plan: 'free', used: 10, limit: 10 } }));
+    let dialog = container.querySelector('dialog[open]');
+    expect(dialog.querySelectorAll('.offer-option')).toHaveLength(0);
     expect(flat(dialog)).not.toContain(YEAR);
     expect(flat(dialog)).not.toContain(PACK);
-    expect(flat(dialog)).not.toMatch(/пакет/i);
+    await act(async () => root.unmount()); root = createRoot(container);
+    serverUsage = { ...FREE, ...BETA };
+    await render();
+    await act(async () => upgrade('last_free_question'));
+    dialog = container.querySelector('dialog[open]');
+    expect(dialog.querySelectorAll('.offer-option')).toHaveLength(0);
+    expect(flat(dialog)).toContain('Покупка Premium необязательна');
+    expect(flat(dialog)).not.toContain(YEAR);
+    expect(flat(dialog)).not.toContain(PACK);
   });
 });
 

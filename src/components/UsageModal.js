@@ -25,8 +25,9 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
   const periodInvalid = state.codeNormalized === "gpt_period_invalid";
   const limited = Boolean(state.codeNormalized);
   const end = formatPeriodDate(usage?.current_period_end);
-  // Offers by moment (DESIGN 4). Only the server flags decide; during the beta nothing new is offered and the old window stays.
-  const newOffers = !beta && hasNewOffers(usage);
+  // Offers by moment (DESIGN 4). Only the server flags decide. In the beta there are no limits: a limit window or a moment
+  // keeps the old window, only a window opened by a button shows the variants (decision 41).
+  const newOffers = hasNewOffers(usage) && (!beta || (!limited && !state.moment));
   const gptLimit = state.codeNormalized === "gpt_limit_reached";
   const products = !newOffers || periodInvalid ? [] : free ? (charts ? ["premium_month", "premium_year"] : ["premium_month", "premium_year", "question_pack"]) :
     (gptLimit || !limited) ? ["question_pack"] : [];
@@ -54,7 +55,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
     <DialogClose onClose={onClose} />
     <h2 id="usage-modal-title">{limited ? (periodInvalid ? "Расчётный период Premium недоступен" :
       charts ? "Достигнут лимит сохранённых карт" : freeQuestionsOver ? "Бесплатные вопросы закончились" : "Достигнут лимит AI-вопросов") :
-      beta ? "Подписка Premium" : !free ? "Пакет вопросов" : "Больше возможностей с Premium"}</h2>
+      beta && !showOptions ? "Подписка Premium" : !free ? "Пакет вопросов" : "Больше возможностей с Premium"}</h2>
     {limited && <p>{charts ? (newOffers && free ? "Бесплатно можно сохранить 3 карты. Удалите ненужную в «Мои карты» или перейдите на Premium — до 10 карт." :
         "Удалите ненужную карту в разделе «Мои карты», чтобы освободить место.") :
       periodInvalid ? "Ваш план — Premium. Для продолжения разговора нужен действующий расчётный период." :
@@ -65,7 +66,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
     {!limited && !free && showOptions && <p>Пакет добавляет вопросы к вашему лимиту и не меняет подписку.</p>}
     {limited && Number.isFinite(state.used) && Number.isFinite(state.limit) && <p>Использовано: {state.used} / {state.limit}{state.reserved > 0 ? `; в обработке: ${state.reserved}` : ""}.</p>}
     {free && !limited && !beta && <p>Продолжайте разбирать отношения, работу и свои сильные стороны. Больше вопросов для каждой истории.</p>}
-    <BetaPurchaseNote enabled={beta} />
+    <BetaPurchaseNote enabled={beta && !showOptions} />
     {showOptions ? <>
       <OfferOptions usage={usage} products={products} />
       <p className="payment-summary">{free ? <>Отменить продление Premium можно в разделе «Мои карты».{' '}</> : null}
