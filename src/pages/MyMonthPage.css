@@ -1,0 +1,8 @@
+.my-month-page > :not(.page-heading) { max-width: 860px; }
+.my-month-note { padding: var(--ln-space-24) 0; }
+.my-month-note h2 { margin: 0 0 var(--ln-space-8); }
+.my-month-note p { margin: 0 0 var(--ln-space-16); color: var(--ln-color-text-muted); }
+.my-month-note [role='alert'] { color: inherit; }
+.my-month-chart { display: block; margin: 0 0 var(--ln-space-16); font-size: var(--ln-text-14); }
+.my-month-chart select { display: block; width: 100%; max-width: 420px; min-height: 44px; margin-top: var(--ln-space-4); }
+@media (max-width: 700px) { .my-month-note .button, .my-month-note button { min-height: 44px; } }

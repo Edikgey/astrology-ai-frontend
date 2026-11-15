@@ -8,6 +8,9 @@ import { TextEncoder, TextDecoder } from "util";
 let mockAuth;
 const mockNavigate = jest.fn();
 jest.mock("../context/AuthContext", () => ({ useAuth: () => mockAuth }));
+const mockHandleLimitError = jest.fn(() => false);
+jest.mock("../context/UsageContext", () => ({ useUsage: () => ({ usage: null, usageLoading: false, usageError: null,
+  refreshUsage: async () => null, handleLimitError: error => mockHandleLimitError(error), openUpgrade: () => {}, noteOffer: () => {} }) }));
 jest.mock("react-router-dom", () => ({ useNavigate: () => mockNavigate }), { virtual: true });
 let root, container, originalFetch;
 beforeEach(() => {
@@ -17,6 +20,7 @@ beforeEach(() => {
   localStorage.setItem("session_token", "guest-token");
   mockAuth = { user: null, loading: false };
   mockNavigate.mockReset();
+  mockHandleLimitError.mockReset().mockReturnValue(false);
   originalFetch = global.fetch;
   global.fetch = jest.fn();
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -158,10 +162,10 @@ test("a denied follow-up keeps its draft without retry or duplicate message", as
   expect(container.querySelector('[role="alert"]')).not.toBeNull();
 });
 
-test("guest preview has static intro, five suggestions, no history, GPT requests or allowance", async () => {
+test("guest preview has static intro, four suggestions, no history, GPT requests or allowance", async () => {
   await render();
   expect(container.textContent).toContain(CHAT_INTRO);
-  expect(container.querySelectorAll(".predefined-questions button")).toHaveLength(5);
+  expect(container.querySelectorAll(".predefined-questions button")).toHaveLength(4);
   expect(container.querySelector("textarea")).not.toBeNull();
   expect(global.fetch).not.toHaveBeenCalled();
   expect(container.textContent).not.toMatch(/10|300|allowance/);
@@ -174,7 +178,7 @@ test('empty chat has starters until its first completed answer, including answer
   expect(container.querySelector('h2').textContent).toBe('Ваш персональный AI-астролог');
   expect(container.querySelector('.badge')).toBeNull();
   expect(container.querySelector('.chat-usage')).toBeNull();
-  expect(container.querySelectorAll('.chat-starters button')).toHaveLength(5);
+  expect(container.querySelectorAll('.chat-starters button')).toHaveLength(4);
   const stream = controlledStream();
   global.fetch.mockResolvedValueOnce(stream.response);
   await click(button('Спросить'));
@@ -657,7 +661,7 @@ test('after «Спросить об этом» a guest keeps focus in the input 
   expect(container.querySelector('dialog')).not.toBeNull();
 });
 
-// ---- MY-MONTH-fe, MF1-MF5 (DESIGN.md §7, §10): кнопка «Мой месяц» в чате карты ----
+// ---- MY-MONTH-fe, MF1-MF5 (DESIGN.md §7, §10): кнопка «Мой месяц» в чате карты; MY-MONTH-PAGE: MF1–MF3 переписаны (MM7), MF5 заменён на MM6 ----
 // Литералы из DESIGN §2.3 и §3.4: тесты сравнивают дословно, не через константу кода.
 const MONTH_TEXT = "Мой месяц: что меня ждёт в ближайшие 30 дней?";
 const MONTH_LEGACY_TEXT = "Обзор месяца строится по транзитам, а для этой карты они не считаются: она построена в старой версии Lunaria, где часовой пояс рождения не проверялся. Постройте карту заново, выбрав место рождения из подсказок, и спросите о своём месяце в её чате.";
@@ -666,37 +670,35 @@ const OLD_EXCHANGE = [{ role: 'user', content: 'Привет' }, { role: 'gpt', 
 const monthButton = () => container.querySelector('.chat-month button');
 const posts = () => global.fetch.mock.calls.filter(([, init]) => init?.method === 'POST');
 
-test('MF1: signed-in first screen — MONTH_QUESTION is the literal, «Мой месяц» is the first starter and only fills the input', async () => {
+// MY-MONTH-PAGE MM7 (DESIGN §3 «Чат карты», §5): «Мой месяц» уходит из стартовых подсказок и становится входом на страницу.
+test('MF1 (rewritten, MM7): signed-in first screen has 3 questions + «Задать свой вопрос»; «Мой месяц» is not a starter, MONTH_QUESTION stays the literal', async () => {
   authenticate();
   global.fetch.mockResolvedValueOnce(response([]));
   await render();
   expect(MONTH_QUESTION).toBe(MONTH_TEXT);
-  const first = container.querySelector('.chat-starters button');
-  expect(first.textContent).toBe('Мой месяц');
-  expect(first.classList).toContain('preset-btn');
-  expect(first.disabled).toBe(false);
-  await click(first);
-  expect(container.querySelector('textarea').value).toBe(MONTH_TEXT);
+  expect([...container.querySelectorAll('.chat-starters button')].map(el => el.textContent)).toEqual([
+    'Какие у меня сильные стороны?', 'Что у меня с отношениями?', 'Какая карьера мне подходит?', 'Задать свой вопрос']);
+  expect(container.textContent).not.toContain('Мой месяц');
+  expect(container.querySelector('.chat-month')).toBeNull();
   expect(posts()).toHaveLength(0);
-  expect(container.querySelector('dialog')).toBeNull();
 });
 
-test('MF2: guest — «Мой месяц» is the first suggestion, opens the sign-in window with the question in the field and in pendingQuestion', async () => {
+test('MF2 (rewritten, MM7): guest sees the same 4 suggestions without «Мой месяц»; the sign-in flow keeps the question the guest chose', async () => {
   await render();
-  const first = container.querySelector('.predefined-questions button');
-  expect(first.textContent).toBe('Мой месяц');
-  await click(first);
+  expect([...container.querySelectorAll('.predefined-questions button')].map(el => el.textContent)).toEqual([
+    'Какие у меня сильные стороны?', 'Что у меня с отношениями?', 'Какая карьера мне подходит?', 'Задать свой вопрос']);
+  expect(container.textContent).not.toContain('Мой месяц');
+  await click(button('Что у меня с отношениями?'));
   expect(container.querySelector('dialog[open]')).not.toBeNull();
-  expect(container.querySelector('textarea').value).toBe(MONTH_TEXT);
   await click(button('Продолжить бесплатно'));
   expect(mockNavigate).toHaveBeenCalledWith('/authorization', { state: {
     mode: 'register', returnTo: '/natal-chart-result/7',
-    guestChart: { chartId: 7, sessionToken: 'guest-token', pendingQuestion: MONTH_TEXT },
+    guestChart: { chartId: 7, sessionToken: 'guest-token', pendingQuestion: 'Что у меня с отношениями?' },
   } });
   expect(global.fetch).not.toHaveBeenCalled();
 });
 
-test('MF3: after a fresh answer «Мой месяц» sits in its own .chat-month group and sends one POST even on double click, without ai_followup_selected', async () => {
+test('MF3 (rewritten, MM7): after a fresh answer «Мой месяц» sits in its own .chat-month group and is an entry — navigate to /my-month?chart=7, no POST, no events', async () => {
   authenticate();
   const emit = jest.spyOn(productAnalytics, 'emit');
   try {
@@ -713,33 +715,28 @@ test('MF3: after a fresh answer «Мой месяц» sits in its own .chat-mont
     expect(container.querySelector('.chat-follow-ups').contains(group)).toBe(false);
     expect(monthButton().textContent).toBe('Мой месяц');
     emit.mockClear();
-    let finish;
-    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    const month = monthButton();
-    await act(async () => { month.click(); month.click(); });
-    expect(posts()).toHaveLength(2); // Original question and precisely one month request.
-    expect(JSON.parse(posts()[1][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
-    expect(posts()[1][1].headers.Authorization).toBe('Bearer jwt');
-    expect(container.querySelector('button[type="submit"]').disabled).toBe(true);
-    await act(async () => finish(response({ response: 'Обзор месяца' })));
-    expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).toContain(MONTH_TEXT);
-    expect(container.textContent).toContain('Обзор месяца');
+    const postsBefore = posts().length; // the original question only
+    await click(monthButton());
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/my-month?chart=7');
+    expect(posts()).toHaveLength(postsBefore); // the button sent nothing
     const names = emit.mock.calls.map(([name]) => name);
-    expect(names).toContain('ai_question_started');
     expect(names).not.toContain('ai_followup_selected');
+    expect(names).not.toContain('ai_question_started');
+    expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).not.toContain(MONTH_TEXT);
   } finally { emit.mockRestore(); }
 });
 
-test('MF3: «Мой месяц» is also under an answer loaded from history (no suggestions there) and sends the open chart id', async () => {
+test('MF3 (rewritten, MM7): «Мой месяц» is also under an answer loaded from history and leads to the page of the open chart id', async () => {
   authenticate();
   global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
   await render({ chartId: 55 });
   expect(container.querySelector('.chat-follow-ups')).toBeNull();
   expect(monthButton().textContent).toBe('Мой месяц');
-  global.fetch.mockResolvedValueOnce(response({ response: 'Обзор месяца' }));
   await click(monthButton());
-  expect(posts()).toHaveLength(1);
-  expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 55, question: MONTH_TEXT });
+  expect(mockNavigate).toHaveBeenCalledWith('/my-month?chart=55');
+  expect(posts()).toHaveLength(0);
+  expect(global.fetch).toHaveBeenCalledTimes(1); // only the history read
 });
 
 test('MF4 guard (green on base): no month group under an answer while it streams, after a month answer, in history with the question or on the first screen', async () => {
@@ -794,27 +791,298 @@ test('MF4 guard (green on base): the pair chat has no «Мой месяц» in s
   expect(container.querySelector('.chat-month')).toBeNull();
 });
 
-test.each([
-  ['422 JSON', MONTH_LEGACY_TEXT, 'json'],
-  ['SSE error 503', MONTH_UNAVAILABLE_TEXT, 'sse'],
-])('MF5: month refusal (%s) shows the server text as is, keeps MONTH_QUESTION in the field and never retries the POST', async (_name, text, kind) => {
-  authenticate();
-  global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
-  await render();
-  if (kind === 'json') {
-    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: text }) }).mockResolvedValueOnce(response(OLD_EXCHANGE));
-    await click(monthButton());
-  } else {
+// ---- MY-MONTH-PAGE-fe, MM4–MM6 (DESIGN §3 «Чатик view="month"», §4, §5): чатик «Мой месяц» над той же перепиской карты ----
+// Тексты и тексты отказов — литералы из DESIGN §3 / §4 (дословно). heading / subtitle / intro чату передаёт страница (props).
+const MONTH_HEADING = 'Обзор месяца';
+const MONTH_SUBTITLE = 'Строится по транзитам — тому, как планеты сейчас стоят относительно вашей карты. Обзор и ответы сохраняются в разговоре этой карты.';
+const MONTH_INTRO = 'Соберу обзор ваших ближайших 30 дней: любовь и отношения, работа и деньги, силы и самочувствие, на что обратить внимание. Потом можно спросить подробнее.';
+const monthChat = props => render({ view: 'month', heading: MONTH_HEADING, subtitle: MONTH_SUBTITLE, intro: MONTH_INTRO, ...props });
+const overviewButton = () => button('Собрать обзор месяца');
+const newOverviewButton = () => button('Собрать новый обзор');
+const messageTexts = kind => [...container.querySelectorAll(`.message.${kind}`)].map(el => el.textContent);
+const typeQuestion = async value => act(async () => Simulate.change(container.querySelector('textarea'), { target: { value } }));
+const typedSuggestions = semanticSuggestions(['Что усилит этот период?', 'Как мне это заметить?', 'Что с деньгами подробнее?']);
+// Переписка карты целиком: старый обзор, обычный обмен, свежий обзор (created_at — UTC без пояса, usage.py:215), уточнение.
+const MONTH_HISTORY = [
+  { role: 'user', content: MONTH_TEXT, created_at: '2026-10-01T09:00:00' }, { role: 'gpt', content: 'Прошлый обзор месяца' },
+  ...OLD_EXCHANGE,
+  { role: 'user', content: MONTH_TEXT, created_at: '2026-11-14T12:00:00.123456' }, { role: 'gpt', content: 'Обзор: любовь и работа' },
+  { role: 'user', content: 'Что с деньгами?' }, { role: 'gpt', content: 'Ответ про деньги' },
+];
+
+describe('MM4: view="month", в переписке нет вопроса MONTH_QUESTION', () => {
+  test('P3-4: пока грузится история — ни «Собрать обзор месяца», ни «Собрать новый обзор», ни поля, ни вёрстки пустого чата', async () => {
+    authenticate();
+    let finish;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await monthChat();
+    expect(container.textContent).toContain('Загрузка истории');
+    expect(overviewButton()).toBeUndefined();
+    expect(newOverviewButton()).toBeUndefined();
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.askgpt-container').classList).not.toContain('is-empty-chat');
+    await act(async () => finish(response(OLD_EXCHANGE)));
+    expect(overviewButton()).not.toBeUndefined();
+    expect(container.querySelector('.askgpt-container').classList).toContain('is-empty-chat');
+  });
+
+  test('старая переписка не видна; вступление и одна кнопка обзора; нет поля, стартовых, .chat-month; классы is-month-view is-empty-chat', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await monthChat();
+    expect(container.textContent).not.toContain('Привет');
+    expect(container.textContent).not.toContain('Старый ответ');
+    expect(messageTexts('user')).toEqual([]);
+    expect(container.querySelector('h2').textContent).toBe(MONTH_HEADING);
+    expect(container.querySelector('.chat-heading p').textContent).toBe(MONTH_SUBTITLE);
+    expect(messageTexts('gpt')).toEqual([MONTH_INTRO]);
+    expect(overviewButton()).not.toBeNull();
+    expect(overviewButton().classList).toContain('chat-send');
+    expect(overviewButton().disabled).toBe(false);
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.chat-starters')).toBeNull();
+    expect(container.querySelector('.chat-month')).toBeNull();
+    expect(container.querySelector('.chat-follow-ups')).toBeNull();
+    expect(newOverviewButton()).toBeUndefined();
+    const box = container.querySelector('.askgpt-container');
+    expect(box.classList).toContain('is-month-view');
+    expect(box.classList).toContain('is-empty-chat');
+    expect(posts()).toHaveLength(0);
+  });
+
+  test('пустая переписка выглядит так же: вступление и кнопка обзора', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await monthChat();
+    expect(messageTexts('gpt')).toEqual([MONTH_INTRO]);
+    expect(overviewButton()).not.toBeNull();
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('.chat-starters')).toBeNull();
+  });
+
+  test('двойной клик по «Собрать обзор месяца» — один POST {chart_id: 7, question: MONTH_QUESTION}; после done — поле и подсказки модели', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await monthChat();
+    expect(overviewButton()).not.toBeNull();
+    let finish;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await act(async () => { const start = overviewButton(); start.click(); start.click(); });
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+    expect(posts()[0][1].headers.Authorization).toBe('Bearer jwt');
+    expect(messageTexts('user')).toEqual([MONTH_TEXT]);
+    expect(overviewButton()?.disabled ?? true).toBe(true);
+    await act(async () => finish(response({ response: 'Обзор: любовь, работа, силы', follow_up_suggestions: typedSuggestions })));
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([MONTH_TEXT]);
+    expect(messageTexts('gpt').join('\n')).toContain('Обзор: любовь, работа, силы');
+    expect(container.querySelector('textarea')).not.toBeNull();
+    expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+    expect(container.querySelector('.chat-month')).toBeNull();
+    expect(container.querySelector('.chat-starters')).toBeNull();
+    expect(container.querySelector('.askgpt-container').classList).not.toContain('is-empty-chat');
+    expect(container.querySelector('.askgpt-container').classList).toContain('is-month-view');
+    expect(container.textContent).not.toContain('Обзор от'); // у только что отправленного вопроса даты нет — строки нет
+  });
+});
+
+describe('MM5: view="month", в переписке есть MONTH_QUESTION', () => {
+  test('лента — с ПОСЛЕДНЕГО такого вопроса; «Обзор от 14 ноября 2026», «Собрать новый обзор», поле, без стартовых', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    expect(messageTexts('user')).toEqual([MONTH_TEXT, 'Что с деньгами?']);
+    expect(messageTexts('gpt').join('\n')).toContain('Обзор: любовь и работа');
+    expect(messageTexts('gpt').join('\n')).toContain('Ответ про деньги');
+    for (const hidden of ['Прошлый обзор месяца', 'Привет', 'Старый ответ']) expect(container.textContent).not.toContain(hidden);
+    expect(container.textContent).toContain('Обзор от 14 ноября 2026');
+    expect(container.textContent).not.toContain('октября');
+    expect(newOverviewButton()).not.toBeUndefined();
+    expect(newOverviewButton().classList).toContain('button-secondary');
+    expect(overviewButton()).toBeUndefined();
+    expect(container.querySelector('textarea')).not.toBeNull();
+    expect(container.querySelector('.chat-starters')).toBeNull();
+    expect(container.querySelector('.chat-month')).toBeNull();
+    const box = container.querySelector('.askgpt-container');
+    expect(box.classList).toContain('is-month-view');
+    expect(box.classList).not.toContain('is-empty-chat');
+    expect(posts()).toHaveLength(0);
+  });
+
+  test.each([['нет created_at', undefined], ['created_at = null', null], ['дата не разобралась', 'не дата']])(
+    'дата — только подпись: %s — строки «Обзор от» нет, остальное на месте', async (_name, createdAt) => {
+      authenticate();
+      global.fetch.mockResolvedValueOnce(response([{ role: 'user', content: MONTH_TEXT, created_at: createdAt }, { role: 'gpt', content: 'Обзор без даты' }]));
+      await monthChat();
+      expect(container.textContent).toContain('Обзор без даты');
+      expect(newOverviewButton()).not.toBeUndefined();
+      expect(container.textContent).not.toContain('Обзор от');
+      expect(container.textContent).not.toContain('Invalid Date');
+    });
+
+  test('уточнение под обзором — один POST даже при двойной отправке; подсказки модели приходят после ответа', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    expect(messageTexts('user')).toEqual([MONTH_TEXT, 'Что с деньгами?']); // лента с обзора, а не вся переписка
+    await typeQuestion('А что с работой?');
+    let finish;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await act(async () => { const send = button('Спросить'); send.click(); send.click(); });
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: 'А что с работой?' });
+    await act(async () => finish(response({ response: 'Ответ про работу', follow_up_suggestions: typedSuggestions })));
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([MONTH_TEXT, 'Что с деньгами?', 'А что с работой?']);
+    expect(container.textContent).toContain('Ответ про работу');
+    expect(container.textContent).toContain('Обзор от 14 ноября 2026');
+    expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+  });
+
+  test('«Собрать новый обзор»: один POST при двойном клике, всё заблокировано до конца ответа, затем лента с НОВОГО вопроса', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    expect(newOverviewButton()).not.toBeUndefined();
     const stream = controlledStream();
-    global.fetch.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(response(OLD_EXCHANGE));
-    await click(monthButton());
-    await stream.event({ type: 'error', status: 503, detail: text });
-  }
-  expect(container.querySelector('[role="alert"]').textContent).toBe(text);
-  expect(container.querySelector('textarea').value).toBe(MONTH_TEXT);
-  expect(container.querySelector('textarea').disabled).toBe(false);
-  expect(posts()).toHaveLength(1);
-  expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
-  expect(container.textContent).toContain('Старый ответ');
-  expect([...container.querySelectorAll('.message.user')].map(el => el.textContent)).not.toContain(MONTH_TEXT);
+    global.fetch.mockResolvedValueOnce(stream.response);
+    await act(async () => { const again = newOverviewButton(); again.click(); again.click(); });
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+    // пока идёт ответ: поле, «Спросить» и «Собрать новый обзор» заблокированы
+    expect(container.querySelector('textarea').disabled).toBe(true);
+    expect(container.querySelector('button[type="submit"]').disabled).toBe(true);
+    expect(newOverviewButton()?.disabled ?? true).toBe(true);
+    await stream.event({ type: 'delta', text: 'Новый обзор: ' });
+    expect(newOverviewButton()?.disabled ?? true).toBe(true);
+    expect(container.querySelector('textarea').disabled).toBe(true);
+    await stream.event({ type: 'done', response: 'Новый обзор: силы и самочувствие', follow_up_suggestions: typedSuggestions });
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([MONTH_TEXT]); // с нового вопроса: старый обзор и уточнения ушли из ленты
+    expect(messageTexts('gpt').join('\n')).toContain('Новый обзор: силы и самочувствие');
+    for (const hidden of ['Обзор: любовь и работа', 'Ответ про деньги', 'Что с деньгами?', 'Прошлый обзор месяца']) {
+      expect(container.textContent).not.toContain(hidden);
+    }
+    expect(container.textContent).not.toContain('Обзор от 14 ноября'); // у нового вопроса даты пока нет
+    expect(container.querySelector('textarea').disabled).toBe(false);
+    expect(container.querySelector('button[type="submit"]').disabled).toBe(true); // поле пустое
+    expect(newOverviewButton().disabled).toBe(false);
+    expect(container.querySelectorAll('.chat-follow-ups button')).toHaveLength(3);
+  });
+});
+
+describe('P3-2: черновик под «Собрать новый обзор» (keepDraft)', () => {
+  test('успех: набранный черновик остаётся в поле и после ответа, вопрос обзора в поле не появляется', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    await typeQuestion('Мой черновик');
+    global.fetch.mockResolvedValueOnce(response({ response: 'Новый обзор', follow_up_suggestions: [] }));
+    await click(newOverviewButton());
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+    expect(container.textContent).toContain('Новый обзор');
+    expect(container.querySelector('textarea').value).toBe('Мой черновик');
+  });
+
+  test('отказ: черновик на месте, вопрос обзора в поле не появился', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    await typeQuestion('Мой черновик');
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: 'Отказ сервера' }) }).mockResolvedValueOnce(response(MONTH_HISTORY));
+    await click(newOverviewButton());
+    expect(container.querySelector('[role="alert"]').textContent).toBe('Отказ сервера');
+    expect(container.querySelector('textarea').value).toBe('Мой черновик');
+  });
+});
+
+describe('MM6: отказы в режиме месяца — текст сервера у кнопки, один POST, без повтора', () => {
+  const MONTH_LEGACY = 'Обзор месяца строится по транзитам, а для этой карты они не считаются: она построена в старой версии Lunaria, где часовой пояс рождения не проверялся. Постройте карту заново, выбрав место рождения из подсказок, и спросите о своём месяце в её чате.';
+  const MONTH_DOWN = 'Сейчас не получилось рассчитать транзиты для обзора месяца. Квота не списана — попробуйте ещё раз через несколько минут.';
+
+  // Порядок в документе: лента → [role=alert] → кнопка обзора; между alert и кнопкой нет других кнопок, полей и ленты.
+  const expectAlertRightBefore = (alert, target) => {
+    const all = [...container.querySelectorAll('*')];
+    const [log, from, to] = [container.querySelector('[role="log"]'), all.indexOf(alert), all.indexOf(target)];
+    expect(all.indexOf(log)).toBeLessThan(from); // не вверху чата (там ошибка других чатов)
+    expect(from).toBeLessThan(to);
+    expect(all.slice(from + 1, to).filter(el => el.matches('button, textarea, [role="log"], a, select'))).toEqual([]);
+  };
+
+  test.each([
+    ['422 JSON (старая карта)', MONTH_LEGACY, 'json'],
+    ['SSE error 503', MONTH_DOWN, 'sse'],
+  ])('%s: текст как есть в [role=alert] прямо перед кнопкой; один POST; лента пуста', async (_name, text, kind) => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await monthChat();
+    expect(overviewButton()).not.toBeNull();
+    if (kind === 'json') {
+      global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: text }) }).mockResolvedValueOnce(response(OLD_EXCHANGE));
+      await click(overviewButton());
+    } else {
+      const stream = controlledStream();
+      global.fetch.mockResolvedValueOnce(stream.response).mockResolvedValueOnce(response(OLD_EXCHANGE));
+      await click(overviewButton());
+      await stream.event({ type: 'error', status: 503, detail: text });
+    }
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toBe(text);
+    expect(overviewButton()).not.toBeNull();
+    expectAlertRightBefore(alerts[0], overviewButton());
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(posts()[0][1].body)).toEqual({ chart_id: 7, question: MONTH_TEXT });
+    expect(messageTexts('user')).toEqual([]); // лента пуста: вопрос не остался висеть
+    expect(container.textContent).not.toContain('Старый ответ');
+    expect(overviewButton().disabled).toBe(false); // повторить может только человек
+    expect(container.querySelector('textarea')).toBeNull();
+  });
+
+  test('отказ при «Собрать новый обзор» — ошибка прямо перед этой кнопкой, лента прежнего обзора на месте, один POST', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(MONTH_HISTORY));
+    await monthChat();
+    expect(newOverviewButton()).not.toBeUndefined();
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: MONTH_LEGACY }) }).mockResolvedValueOnce(response(MONTH_HISTORY));
+    await click(newOverviewButton());
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toBe(MONTH_LEGACY);
+    expectAlertRightBefore(alerts[0], newOverviewButton());
+    expect(posts()).toHaveLength(1);
+    expect(container.textContent).toContain('Обзор: любовь и работа');
+    expect(messageTexts('user')).toEqual([MONTH_TEXT, 'Что с деньгами?']);
+  });
+
+  test('лимит вопросов — handleLimitError (окно тарифов), без текста ошибки и без повтора', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await monthChat();
+    expect(overviewButton()).not.toBeNull();
+    mockHandleLimitError.mockReturnValueOnce(true);
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ detail: { code: 'gpt_limit_reached', plan: 'free' } }) });
+    await click(overviewButton());
+    expect(mockHandleLimitError).toHaveBeenCalledTimes(1);
+    expect(mockHandleLimitError.mock.calls[0][0].code).toBe('gpt_limit_reached');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(posts()).toHaveLength(1);
+    expect(messageTexts('user')).toEqual([]);
+    expect(overviewButton()).not.toBeNull();
+  });
+
+  test('401: «Сессия истекла. Войдите снова.» у кнопки, один POST', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response([]));
+    await monthChat();
+    expect(overviewButton()).not.toBeNull();
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ detail: 'Not authenticated' }) }).mockResolvedValueOnce(response([]));
+    await click(overviewButton());
+    const alert = container.querySelector('[role="alert"]');
+    expect(alert.textContent).toBe('Сессия истекла. Войдите снова.');
+    expectAlertRightBefore(alert, overviewButton());
+    expect(posts()).toHaveLength(1);
+  });
 });

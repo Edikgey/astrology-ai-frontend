@@ -38,7 +38,7 @@ const AskGptForm = (props) => {
 };
 
 const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoading, token, unsaved = false,
-  initialQuestion = "", suggestedQuestion, onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions }) => {
+  initialQuestion = "", suggestedQuestion, onQuestionConsumed, guestSessionToken, heading, subtitle, intro, starterQuestions, view }) => {
   const { usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade, noteOffer } = useUsage();
   const [question, setQuestion] = useState(initialQuestion);
   const [messages, setMessages] = useState([]);
@@ -114,7 +114,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
           });
           if (!response.ok) throw new Error(requestError(response.status, subjectType));
           const data = await response.json();
-          if (!controller.signal.aborted) setMessages(data.map(msg => ({ user: msg.role === "user" ? "Вы" : "GPT", text: msg.content })));
+          if (!controller.signal.aborted) setMessages(data.map(msg => ({ user: msg.role === "user" ? "Вы" : "GPT", text: msg.content, createdAt: msg.created_at })));
         } catch (err) {
           if (!controller.signal.aborted) setHistoryError(errorText(err));
         } finally {
@@ -132,7 +132,8 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       guestChart: { chartId: Number(chartId), sessionToken: guestSessionToken || localStorage.getItem("session_token"), pendingQuestion: question },
     } });
   };
-  const sendQuestion = async (suggestion) => {
+  // keepDraft: the month buttons send a fixed question and leave what the person typed alone.
+  const sendQuestion = async (suggestion, keepDraft = false) => {
     if (authLoading || unsaved) return;
     if (!authenticated) { openGate(); return; }
     const text = (suggestion ?? question).trim();
@@ -146,7 +147,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     followBottom.current = true;
     setLoading(true);
     setError("");
-    if (suggestion) setQuestion(text);
+    if (suggestion && !keepDraft) setQuestion(text);
     setMessages(previous => [...previous, { user: "Вы", text }, { user: "GPT", text: "", streaming: true }]);
     try {
       const askPath = subjectType === "relationship" ? `/relationships/${subjectId}/ask` : "/ask-gpt";
@@ -172,7 +173,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
         user: "GPT", text: data.response || "GPT не дал ответа.",
         suggestions,
       } : msg));
-      setQuestion("");
+      if (!keepDraft) setQuestion("");
       onQuestionConsumed?.();
     } catch (err) {
       if (!controller.signal.aborted) {
@@ -188,10 +189,18 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       if (!controller.signal.aborted) { setLoading(false); sending.current = null; }
     }
   };
+  // «Мой месяц» page (MY-MONTH-PAGE DESIGN §3): the same chart conversation, shown from the last month question on.
+  const monthView = view === "month" && subjectType === "natal";
+  const monthStart = monthView ? messages.map(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION).lastIndexOf(true) : 0;
+  // While the history loads nobody knows yet whether an overview exists: no button, no empty-chat layout.
+  const monthWait = monthView && canChat && historyLoading;
+  const noOverview = monthView && !monthWait && monthStart < 0;
+  const shown = !monthView ? messages : noOverview ? [] : messages.slice(monthStart);
+  const overviewDate = monthView && shown[0]?.createdAt ? new Date(`${shown[0].createdAt}Z`) : null;
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
-  const latestSuggestions = !loading && messages[messages.length - 1]?.user === "GPT" ? messages[messages.length - 1].suggestions || [] : [];
-  const showStarters = !authenticated || (canChat && !historyLoading && !historyError &&
-    !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim()));
+  const latestSuggestions = !loading && shown[shown.length - 1]?.user === "GPT" ? shown[shown.length - 1].suggestions || [] : [];
+  const showStarters = !monthView && (!authenticated || (canChat && !historyLoading && !historyError &&
+    !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim())));
   // Offers by moment: only for a free account outside the beta, only if the server sells something, never while a pack is left.
   const freeOffer = authenticated && usage?.free_beta_enabled !== true && usage?.plan === "free" && hasNewOffers(usage) && packBalance(usage) === 0;
   const lastFree = freeOffer && usage.gpt_messages_available === 1;
@@ -209,25 +218,24 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   // The month overview is a chart-chat hint, not a right: the server refuses old charts and pairs (DESIGN §3).
   const monthChat = subjectType !== "relationship";
   const last = messages[messages.length - 1];
-  const showMonth = monthChat && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
+  const showMonth = monthChat && !monthView && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
     && !messages.some(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION);
   const starters = <div className="predefined-questions">
-    {monthChat && <button type="button" className="preset-btn" disabled={blocked}
-      onClick={() => authenticated ? setQuestion(MONTH_QUESTION) : openGate(MONTH_QUESTION)}>{MONTH_LABEL}</button>}
     {questions.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
       onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
     <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
   </div>;
-  return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}${subjectType === "relationship" ? " is-relationship-chat" : ""}${subjectType === "relationship" && showStarters ? " is-empty-chat" : ""}`}>
+  return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}${subjectType === "relationship" ? " is-relationship-chat" : ""}${subjectType === "relationship" && showStarters ? " is-empty-chat" : ""}${monthView ? " is-month-view" : ""}${noOverview ? " is-empty-chat" : ""}`}>
     <div className="chat-heading"><h2>{heading || <>Ваш персональный <span>AI-астролог</span></>}</h2><p>{subtitle || "Поговорим о вас и о том, что показывает ваша карта."}</p></div>
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
-    {error && <p role="alert">{error}</p>}
+    {error && !monthView && <p role="alert">{error}</p>}
+    {overviewDate && !Number.isNaN(overviewDate.getTime()) && <p className="chat-month-date">Обзор от {overviewDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions"
       onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
-      {(!authenticated || (canChat && !historyLoading && !historyError && messages.length === 0)) && <div className="message gpt"><div>{intro || CHAT_INTRO}</div></div>}
-      {canChat && messages.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
+      {(!authenticated || (canChat && !historyLoading && !historyError && shown.length === 0)) && <div className="message gpt"><div>{intro || CHAT_INTRO}</div></div>}
+      {canChat && shown.map((msg, index) => <div key={index} className={`message ${msg.user === "Вы" ? "user" : "gpt"}`}>
         {msg.user !== "Вы" && msg.text ? <ChatMarkdown text={msg.text} /> :
           <div>{msg.text || (msg.streaming ? "Обдумываю вашу карту и вопрос..." : "")}</div>}
         {msg.streaming && <span className="stream-indicator" role="status" aria-label="Lunaria отвечает">···</span>}
@@ -242,7 +250,12 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     </div>}
     {/* Outside .chat-follow-ups and without ai_followup_selected: this is not a model suggestion. */}
     {showMonth && <div className="chat-month" role="group" aria-label="Обзор месяца">
-      <button type="button" className="preset-btn" disabled={blocked} onClick={() => sendQuestion(MONTH_QUESTION)}>{MONTH_LABEL}</button>
+      <button type="button" className="preset-btn" disabled={blocked} onClick={() => navigate(`/my-month?chart=${chartId}`)}>{MONTH_LABEL}</button>
+    </div>}
+    {monthView && !monthWait && <div className="chat-month-actions">
+      {error && <p role="alert">{error}</p>}
+      <button type="button" className={noOverview ? "chat-send" : "button-secondary"} disabled={blocked}
+        onClick={() => sendQuestion(MONTH_QUESTION, true)}>{noOverview ? "Собрать обзор месяца" : "Собрать новый обзор"}</button>
     </div>}
     {lastFree && <p className="chat-offer-line">Остался 1 бесплатный вопрос. Потом — Premium{canBuy(usage, "question_pack") ? " или пакет вопросов" : ""}.{" "}
       <button type="button" className="chat-offer-link" onClick={() => openUpgrade("last_free_question")}>Посмотреть варианты</button></p>}
@@ -253,13 +266,13 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     </section>}
     {unsaved && <p>Карта не сохранена в аккаунт. Для AI-чата откройте сохранённую карту в разделе «Мои карты».</p>}
     {showStarters && <div className="chat-starters"><p>С чего начать</p>{starters}</div>}
-    <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
+    {!noOverview && !monthWait && <form className="chat-composer" onSubmit={event => { event.preventDefault(); sendQuestion(); }}>
       <textarea ref={input} aria-label="Ваш вопрос" rows={1} maxLength={4000} className="chat-input" value={question} disabled={blocked}
         onFocus={() => { if (!authenticated && !authLoading && !gate && !returningFocus.current) openGate(); }}
         onClick={() => { if (!authenticated && !authLoading && !gate) openGate(); }}
         onChange={event => authenticated ? setQuestion(event.target.value) : openGate(event.target.value)} placeholder="Ваш вопрос…" />
       <button type="submit" className="chat-send" disabled={blocked || (authenticated && !question.trim())}>{loading ? "Отправка..." : "Спросить"}</button>
-    </form>
+    </form>}
     {authenticated && allowance && <p className="chat-allowance" role="status" aria-busy={usageLoading}>{allowance}</p>}
 
     {gate && <dialog ref={dialog} className="chart-auth-gate" role="dialog" aria-modal="true" aria-labelledby="chart-auth-title" onCancel={() => setGate(false)}>
