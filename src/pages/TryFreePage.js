@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
-import { apiError } from "../api/apiError";
+import { apiError, apiFetch, readJson } from "../api/apiError";
 import UsageSummary from "../components/UsageSummary";
 import { LANDING_RELATIONSHIP_INTENT, isLandingRelationshipIntent, normalizeLandingIntent } from "./landingIntent";
 import "./TryFreePage.css";
@@ -88,13 +88,13 @@ export const calculateNatalChart = async (formData) => {
     }
 
 
-    const response = await fetch(`${API_URL}/natal-chart`, {
+    const response = await apiFetch(`${API_URL}/natal-chart`, {
       method: "POST",
       headers,
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const data = await readJson(response);
 
     if (!response.ok) throw apiError(response.status, data, "Произошла ошибка при расчёте натальной карты");
 

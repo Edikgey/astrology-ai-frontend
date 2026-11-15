@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import TryFreePage, { calculateNatalChart } from './TryFreePage';
 import { LANDING_RELATIONSHIP_INTENT } from './landingIntent';
+import { NETWORK_ERROR_TEXT, UNEXPECTED_RESPONSE_TEXT } from '../api/apiError';
 
 const mockNavigate = jest.fn();
 let mockLocation, mockUser;
@@ -53,6 +54,26 @@ test('FE-LOCAL-DATA F3: a rejected chart request leaves no birth data in the bro
   expect(localStorage.getItem('tempUserData')).toBeNull();
   expect(localStorage.getItem('natalChart')).toBeNull();
   expect(localStorage.getItem('chart_id')).toBeNull();
+});
+
+test('FE-TRYFREE-JSON: a non-JSON server answer shows the unexpected-response text, not a SyntaxError', async () => {
+  await selectCity();
+  global.fetch.mockResolvedValueOnce({ ok: false, status: 502, json: async () => { throw new SyntaxError('Unexpected token <'); } });
+  const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try { await submit(); } finally { log.mockRestore(); }
+  expect(container.querySelector('[role="alert"]').textContent).toContain(UNEXPECTED_RESPONSE_TEXT);
+  expect(localStorage.getItem('chart_id')).toBeNull();
+  expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test('FE-TRYFREE-JSON: a lost connection shows the network text, not "Failed to fetch"', async () => {
+  await selectCity();
+  global.fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try { await submit(); } finally { log.mockRestore(); }
+  expect(container.querySelector('[role="alert"]').textContent).toContain(NETWORK_ERROR_TEXT);
+  expect(localStorage.getItem('chart_id')).toBeNull();
+  expect(mockNavigate).not.toHaveBeenCalled();
 });
 
 test('selected HH:MM and IANA zone reach API; zero coordinates survive; no browser Julian date', async () => {
