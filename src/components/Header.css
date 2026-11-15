@@ -4,11 +4,13 @@
 .brand span { color: var(--ln-color-primary); margin-left: -9px; }
 .brand .orbit-mark { width: 36px; height: 36px; }
 .nav-links { display: flex; align-items: center; gap: 28px; }
-.nav-links > a { color: var(--ln-color-text); text-decoration: none; font-size: var(--ln-text-13); font-weight: 600; }
+.nav-links > a { color: var(--ln-color-text); text-decoration: none; font-size: var(--ln-text-13); font-weight: 600; white-space: nowrap; }
 .nav-links > a:hover { color: var(--ln-color-primary); text-decoration: underline; }
 .nav-account { display: flex; align-items: center; gap: var(--ln-space-16); padding-left: var(--ln-space-24); border-left: 1px solid var(--ln-color-border); }
 .nav-account a { text-decoration: none; }
 .nav-toggle { display: none; }
+/* LUNAR-1: one more menu item; the narrowest desktop width keeps the menu on one line. */
+@media (min-width: 1001px) and (max-width: 1200px) { .navbar { gap: 20px; } .nav-links { gap: 18px; } }
 @media (max-width: 1000px) {
   .navbar { min-height: 72px; }
   .nav-toggle { display: inline-flex; min-height: 42px; padding: var(--ln-space-8) var(--ln-space-12); font-size: var(--ln-text-12); }
