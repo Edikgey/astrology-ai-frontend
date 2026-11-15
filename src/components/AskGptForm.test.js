@@ -1057,6 +1057,28 @@ describe('MM6: отказы в режиме месяца — текст серв
     expect(messageTexts('user')).toEqual([MONTH_TEXT, 'Что с деньгами?']);
   });
 
+  test('MR1: после отказа фокус не уходит на <body> — он на отказе, отказ с кнопкой прокручен в видимую область; ни одного второго POST', async () => {
+    authenticate();
+    global.fetch.mockResolvedValueOnce(response(OLD_EXCHANGE));
+    await monthChat();
+    const scrolled = jest.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrolled;
+    try {
+      global.fetch.mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ detail: MONTH_LEGACY }) }).mockResolvedValueOnce(response(OLD_EXCHANGE));
+      overviewButton().focus();
+      await click(overviewButton());
+      const alert = container.querySelector('[role="alert"]');
+      expect(alert.textContent).toBe(MONTH_LEGACY);
+      expect(document.activeElement).not.toBe(document.body);
+      expect(document.activeElement).toBe(alert); // не на <body>: после перечитывания истории блок перестроен
+      expect(scrolled).toHaveBeenCalledWith({ block: 'nearest' });
+      expect(scrolled.mock.instances.some(el => el.classList.contains('chat-month-actions'))).toBe(true); // прокручивается блок «отказ + кнопка»
+      expect(posts()).toHaveLength(1);
+    } finally {
+      delete window.HTMLElement.prototype.scrollIntoView;
+    }
+  });
+
   test('лимит вопросов — handleLimitError (окно тарифов), без текста ошибки и без повтора', async () => {
     authenticate();
     global.fetch.mockResolvedValueOnce(response([]));
