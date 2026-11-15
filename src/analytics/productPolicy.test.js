@@ -29,6 +29,12 @@ test.each(['/my-month', '/my-month?chart=7', '/my-month/', '/my-month#CANARY'])(
   expect(safeRouteKey(path)).toBeNull();
 });
 
+// LUNAR-1 LD8 (DESIGN §6 «Аналитика», §7): страница «Луна сегодня» не получает ключа маршрута — как «Мой месяц» (MM8).
+// Охрана зелёная на базе (так задумано: ключа у /moon нет) и должна такой остаться, когда появится страница.
+test.each(['/moon', '/moon?chart=7', '/moon/', '/moon#CANARY', '/moon?tz=Europe%2FKyiv'])('LD8: %s has no analytics route key', path => {
+  expect(safeRouteKey(path)).toBeNull();
+});
+
 test('serialized client envelope contains no account, URL, form or billing data', () => {
   const record = event({routeKey: safeRouteKey('/relationships/87654')});
   expect(record).toEqual({event_id: eventId, session_id: sessionId, name: 'page_viewed',

@@ -54,11 +54,14 @@ test('signed-in navigation exposes owned charts, relationship analysis and logou
   mockAuth.user = { id: 1 };
   await act(async () => root.render(<Header />));
   const charts = container.querySelector('a[href="/my-charts"]');
-  // MY-MONTH-PAGE MM1: «Мой месяц» стоит сразу после «Мои карты», дальше — «Разбор отношений».
+  // MY-MONTH-PAGE MM1: «Мой месяц» стоит сразу после «Мои карты». LUNAR-1 LD8: «Луна сегодня» — сразу после «Мой месяц»,
+  // дальше — «Разбор отношений» (порядок обновлён: прежнее «отношения сразу после месяца» больше не верно).
   expect(charts.nextElementSibling.textContent).toBe('Мой месяц');
   expect(charts.nextElementSibling.getAttribute('href')).toBe('/my-month');
-  expect(charts.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(charts.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
+  expect(charts.nextElementSibling.nextElementSibling.textContent).toBe('Луна сегодня');
+  expect(charts.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/moon');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
   expect(container.querySelector('a[href="/settings"]')).toBeNull();
   await act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
   expect(mockAuth.logout).toHaveBeenCalledTimes(1);
