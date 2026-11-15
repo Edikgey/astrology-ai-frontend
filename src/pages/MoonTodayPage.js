@@ -12,7 +12,8 @@ import "./MoonTodayPage.css";
 // the server decides access and the day; the page only turns codes into words.
 const DESCRIPTION = "Фаза и знак Луны на сегодня и то, как она касается вашей карты.";
 const WAXING = new Set(["new_moon", "waxing_crescent", "first_quarter", "waxing_gibbous"]);
-// Main aspect of the day: the point of the smallest group wins, then the earlier time (ai_chart_context.py POINT_GROUPS).
+// Main aspect of the day: the point of the smallest group wins (ai_chart_context.py POINT_GROUPS), then the earlier one —
+// the server already sends aspects in time order; "HH:MM" strings are not compared (a 25-hour day has "01:30" twice).
 const POINT_GROUP = { "☉": 0, "☽": 0, AS: 0, MC: 0, "☿": 1, "♀": 1, "♂": 1, "♃": 2, "♄": 2, "♅": 3, "♆": 3, "♇": 3 };
 const percent = value => `${value} %`;
 
@@ -24,7 +25,7 @@ function SignInSection() {
   const navigate = useNavigate();
   return <section className="moon-note">
     <h2>Войдите, чтобы увидеть свою Луну</h2>
-    <p>Лунный день считается по натальной карте, сохранённой в аккаунте. Аккаунт бесплатный.</p>
+    <p>Луна на сегодня считается по натальной карте, сохранённой в аккаунте. Аккаунт бесплатный.</p>
     <div className="button-row">
       <button type="button" onClick={() => navigate("/authorization", { state: { returnTo: "/moon" } })}>Войти</button>
       <Link className="button button-secondary" to="/try-free">Создать карту</Link>
@@ -48,11 +49,7 @@ function MoonPicture({ code, illumination, label }) {
 }
 
 function mainAspect(aspects) {
-  return aspects.reduce((best, item) => {
-    if (!best) return item;
-    const [group, bestGroup] = [POINT_GROUP[item.point] ?? 9, POINT_GROUP[best.point] ?? 9];
-    return group < bestGroup || (group === bestGroup && item.at < best.at) ? item : best;
-  }, null);
+  return aspects.reduce((best, item) => !best || (POINT_GROUP[item.point] ?? 9) < (POINT_GROUP[best.point] ?? 9) ? item : best, null);
 }
 
 function DayView({ day, sentZone }) {
@@ -142,7 +139,7 @@ function MoonCharts({ user }) {
   const charts = [...result.charts].sort((a, b) => a.chart_id - b.chart_id);
   if (charts.length === 0) return <section className="moon-note">
     <h2>Сначала создайте карту</h2>
-    <p>Лунный день считается по вашей натальной карте — это займёт минуту.</p>
+    <p>Луна на сегодня считается по вашей натальной карте — это займёт минуту.</p>
     <Link className="button" to="/try-free">Создать карту</Link>
   </section>;
   // Only an id from the person's own list reaches the server.
