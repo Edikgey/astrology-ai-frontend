@@ -60,11 +60,13 @@ test('signed-in navigation exposes owned charts, relationship analysis and logou
   expect(charts.nextElementSibling.getAttribute('href')).toBe('/my-month');
   expect(charts.nextElementSibling.nextElementSibling.textContent).toBe('Луна сегодня');
   expect(charts.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/moon');
-  // TOPICS-1 TF3: «Разборы по темам» — сразу после «Луна сегодня», дальше — «Разбор отношений» (порядок обновлён).
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/topics');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
+  // SOLAR-1 SR8: «Мой год» — сразу после «Луна сегодня»; TOPICS-1 TF3: «Разборы по темам» — после «Мой год», дальше — «Разбор отношений» (порядок обновлён).
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Мой год');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/my-year');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/topics');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
   expect(container.querySelector('a[href="/settings"]')).toBeNull();
   await act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
   expect(mockAuth.logout).toHaveBeenCalledTimes(1);
@@ -105,12 +107,12 @@ test.each([['guest', null], ['signed-in', { id: 1 }]])('MM1: %s — tapping «М
 });
 
 // ---- TOPICS-1-fe, TF3 (tasks/TOPICS-1/DESIGN.md §3.3, §5): пункт «Разборы по темам» в верхнем меню, его видят все ----
-test('TF3: guest menu — «Разборы по темам» → /topics right after «Луна сегодня», before «Разбор отношений»', () => {
+test('TF3: guest menu — «Разборы по темам» → /topics right after «Мой год», before «Разбор отношений»', () => {
   const topics = navLink('Разборы по темам');
   expect(topics).toBeDefined();
   expect(topics.getAttribute('href')).toBe('/topics');
   expect(topics.dataset.state).toBeUndefined(); // обычная ссылка, без намерения и состояния
-  expect(topics.previousElementSibling.textContent).toBe('Луна сегодня');
+  expect(topics.previousElementSibling.textContent).toBe('Мой год'); // SOLAR-1 SR8: между «Луна сегодня» и «Разборы по темам»
   expect(topics.nextElementSibling.textContent).toBe('Разбор отношений');
   expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
 });
@@ -120,7 +122,7 @@ test('TF3: signed-in menu — the same place; the link is there exactly once', a
   await act(async () => root.render(<Header />));
   const topics = navLink('Разборы по темам');
   expect(topics.getAttribute('href')).toBe('/topics');
-  expect(topics.previousElementSibling.textContent).toBe('Луна сегодня');
+  expect(topics.previousElementSibling.textContent).toBe('Мой год'); // SOLAR-1 SR8: между «Луна сегодня» и «Разборы по темам»
   expect(topics.nextElementSibling.textContent).toBe('Разбор отношений');
   expect(container.querySelectorAll('a[href="/topics"]')).toHaveLength(1);
 });

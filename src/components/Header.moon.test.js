@@ -24,15 +24,15 @@ afterEach(async () => { await act(async () => root.unmount()); container.remove(
 
 const navLink = text => [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === text);
 
-// TOPICS-1 TF3: после «Луна сегодня» теперь «Разборы по темам», затем «Разбор отношений» (порядок обновлён: прежнее
-// «отношения сразу после Луны» больше не верно). Сама «Луна сегодня» — сразу после «Мой месяц», как раньше.
-test('LD8: guest menu — «Луна сегодня» → /moon right after «Мой месяц», before «Разборы по темам»', () => {
+// TOPICS-1 TF3: после «Луна сегодня» теперь «Разборы по темам», затем «Разбор отношений»; SOLAR-1 SR8: между «Луна сегодня» и
+// «Разборы по темам» встаёт «Мой год» (порядок обновлён). Сама «Луна сегодня» — сразу после «Мой месяц», как раньше.
+test('LD8: guest menu — «Луна сегодня» → /moon right after «Мой месяц», before «Мой год»', () => {
   const month = navLink('Мой месяц');
   expect(month.nextElementSibling.textContent).toBe('Луна сегодня');
   expect(month.nextElementSibling.getAttribute('href')).toBe('/moon');
   expect(month.nextElementSibling.dataset.state).toBeUndefined();
-  expect(month.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(month.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(month.nextElementSibling.nextElementSibling.textContent).toBe('Мой год');
+  expect(month.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
   expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
 });
 
@@ -43,8 +43,8 @@ test('LD8: signed-in menu — the same place, after «Мой месяц»', asyn
   expect(month.previousElementSibling.getAttribute('href')).toBe('/my-charts');
   expect(month.nextElementSibling.textContent).toBe('Луна сегодня');
   expect(month.nextElementSibling.getAttribute('href')).toBe('/moon');
-  expect(month.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(month.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(month.nextElementSibling.nextElementSibling.textContent).toBe('Мой год');
+  expect(month.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
   expect(container.querySelectorAll('a[href="/moon"]')).toHaveLength(1);
 });
 
