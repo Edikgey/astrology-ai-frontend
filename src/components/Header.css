@@ -1,17 +1,22 @@
 .site-header { position: relative; z-index: var(--ln-z-dropdown); background: var(--ln-color-navbar); backdrop-filter: blur(12px); box-shadow: var(--ln-shadow-small); border-bottom: 1px solid var(--ln-color-border); }
-.navbar { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.navbar { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ln-color-text); font-size: var(--ln-text-21); font-weight: 800; letter-spacing: -.8px; text-decoration: none; white-space: nowrap; }
 .brand span { color: var(--ln-color-primary); margin-left: -9px; }
-.brand .orbit-mark { width: 36px; height: 36px; }
-.nav-links { display: flex; align-items: center; gap: 28px; }
+.brand .orbit-mark { width: 36px; height: 36px; flex-shrink: 0; }
+.nav-links { display: flex; align-items: center; gap: 18px; }
 .nav-links > a { color: var(--ln-color-text); text-decoration: none; font-size: var(--ln-text-13); font-weight: 600; white-space: nowrap; }
 .nav-links > a:hover { color: var(--ln-color-primary); text-decoration: underline; }
 .nav-account { display: flex; align-items: center; gap: var(--ln-space-16); padding-left: var(--ln-space-24); border-left: 1px solid var(--ln-color-border); }
 .nav-account a { text-decoration: none; }
 .nav-toggle { display: none; }
-/* LUNAR-1, TOPICS-1: the narrowest desktop width keeps the menu on one line. TOPICS-1 measured the signed-in menu
-   at 1037px of content (shell = 100% - 64px, so it fits from 1101px); the burger stays up to 1120px for font differences. */
-@media (min-width: 1121px) and (max-width: 1200px) { .navbar { gap: 20px; } .nav-links { gap: 18px; } }
+/* LUNAR-1, TOPICS-1, SOLAR-1: the signed-in menu stays on one line from 1121px (below it the burger). SOLAR-1 measured it with
+   «Мой год» in Chrome with a 16px scrollbar (shell = viewport - 80px, at most 1200px): 118 brand + 859 items at 13px + 9 gaps.
+   The old 28px gaps need 1229px — more than the widest shell; 18/20px need 1141 (fits from 1221); the dense rule below needs 1019
+   (fits at 1121 with 22px to spare for font differences). */
+@media (min-width: 1121px) and (max-width: 1240px) {
+  .navbar { gap: 16px; } .nav-links { gap: 12px; } .nav-links > a { font-size: var(--ln-text-12); }
+  .nav-account { gap: var(--ln-space-8); padding-left: var(--ln-space-12); }
+}
 @media (max-width: 1120px) {
   .navbar { min-height: 72px; }
   .nav-toggle { display: inline-flex; min-height: 42px; padding: var(--ln-space-8) var(--ln-space-12); font-size: var(--ln-text-12); }

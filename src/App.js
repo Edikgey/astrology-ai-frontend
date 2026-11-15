@@ -29,6 +29,7 @@ import PricingPage from "./pages/PricingPage";
 import MyCharts from "./pages/MyCharts";
 import MyMonthPage from "./pages/MyMonthPage";
 import MoonTodayPage from "./pages/MoonTodayPage";
+import MyYearPage from "./pages/MyYearPage";
 import TopicsPage from "./pages/TopicsPage";
 import NatalChartResultPage from "./pages/NatalChartResultPage";
 import RelationshipNewPage from "./pages/RelationshipNewPage";
@@ -103,6 +104,7 @@ function AppContent() {
         <Route path="/my-charts" element={<MyCharts />} />
         <Route path="/my-month" element={<MyMonthPage />} />
         <Route path="/moon" element={<MoonTodayPage />} />
+        <Route path="/my-year" element={<MyYearPage />} />
         <Route path="/topics" element={<TopicsPage />} />
         <Route path="/relationships/new" element={<ProtectedRoute><RelationshipNewPage /></ProtectedRoute>} />
         <Route path="/relationships/:relationshipId" element={<ProtectedRoute><RelationshipResultPage /></ProtectedRoute>} />

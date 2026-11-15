@@ -1,0 +1,44 @@
+.year-page > :not(.page-heading) { max-width: 860px; }
+.year-note { padding: var(--ln-space-24) 0; }
+.year-note h2 { margin: 0 0 var(--ln-space-8); }
+.year-note p { margin: 0 0 var(--ln-space-16); color: var(--ln-color-text-muted); }
+.year-note [role='alert'] { color: inherit; }
+.year-chart { display: block; margin: 0 0 var(--ln-space-24); font-size: var(--ln-text-14); }
+.year-chart select { display: block; width: 100%; max-width: 420px; min-height: 44px; margin-top: var(--ln-space-4); }
+
+/* The year span is the one bold element: the Sun's full circle back to the birth point, and the two dates it opens and closes.
+   Everything below stays quiet, as on «Луна сегодня». */
+.year-span { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--ln-space-32);
+  padding: var(--ln-space-32); border-radius: var(--ln-radius-lg); background: var(--ln-gradient-cosmic); color: var(--ln-color-text-inverse); }
+.year-orbit { display: block; width: 168px; height: 168px; overflow: visible; }
+.year-orbit-track { fill: none; stroke: var(--ln-color-inverse-border); stroke-width: 1; }
+.year-orbit-path, .year-orbit-head { fill: none; stroke: #F4C76B; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+.year-orbit-sun { fill: #F4C76B; filter: drop-shadow(0 0 10px rgba(244, 199, 107, .7)); }
+.year-orbit-birth { fill: var(--ln-color-text-inverse); }
+.year-orbit-ray { stroke: var(--ln-color-inverse-border); stroke-width: 1; stroke-dasharray: 3 4; }
+.year-span-text { margin: 0; }
+.year-span-start { display: block; font-family: var(--ln-font-display); font-size: var(--ln-text-30); font-weight: 600; line-height: 1.2; }
+.year-span-next { display: block; margin-top: var(--ln-space-16); padding-top: var(--ln-space-16); border-top: 1px solid var(--ln-color-inverse-border);
+  font-size: var(--ln-text-17); color: var(--ln-color-text-inverse-muted); }
+.year-span time { white-space: nowrap; }
+.year-span-next time { color: var(--ln-color-text-inverse); font-weight: 600; }
+
+.year-themes, .year-overview { margin-top: var(--ln-space-32); }
+.year-themes h2, .year-overview h2 { margin: 0 0 var(--ln-space-12); font-size: var(--ln-text-21); }
+.year-themes h3 { margin: var(--ln-space-24) 0 var(--ln-space-8); font-size: var(--ln-text-17); }
+.year-theme-list, .year-aspects { margin: 0; padding: 0; list-style: none; }
+.year-theme-list li, .year-aspects li { padding: var(--ln-space-12) 0; border-bottom: 1px solid var(--ln-color-border-subtle); font-size: var(--ln-text-16); line-height: 1.5; }
+.year-theme-list li:first-child, .year-aspects li:first-child { border-top: 1px solid var(--ln-color-border-subtle); }
+.year-theme-list b { font-weight: 700; }
+.year-theme-list span { display: block; margin-top: var(--ln-space-4); color: var(--ln-color-text-muted); }
+.year-quiet { margin: 0; color: var(--ln-color-text-muted); }
+.year-overview p { max-width: 68ch; margin: 0; font-family: var(--ln-font-display); font-size: var(--ln-text-18); line-height: 1.65; }
+.year-footnotes { margin-top: var(--ln-space-32); font-size: var(--ln-text-13); color: var(--ln-color-text-muted); }
+.year-footnotes p { margin: 0 0 var(--ln-space-4); }
+
+@media (max-width: 700px) {
+  .year-note .button, .year-note button { min-height: 44px; }
+  .year-span { grid-template-columns: 1fr; gap: var(--ln-space-24); padding: var(--ln-space-24); }
+  .year-orbit { width: 112px; height: 112px; }
+  .year-span-start { font-size: var(--ln-text-24); }
+}
