@@ -62,6 +62,7 @@ const FOOT_BIRTH = "Время — по часовому поясу места �
 const FOOT_PLACE = "Карта года построена для места рождения.";
 const FOOT_ANGLES = "Асцендент, дома и аспекты к Асценденту и Середине неба зависят от точного времени рождения.";
 const FOOT_SUN = "Год начинается, когда Солнце возвращается туда, где было при вашем рождении, — на день раньше или позже дня рождения это нормально.";
+const SAME_SPHERE = "та же сфера, что у Солнца года: она в центре этого года.";
 const NO_ASPECTS = "В этом году тесных аспектов нет.";
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 const GENITIVES = { "☉": "Солнца", "☽": "Луны", "☿": "Меркурия", "♀": "Венеры", "♂": "Марса", "♃": "Юпитера", "♄": "Сатурна", "♅": "Урана", "♆": "Нептуна", "♇": "Плутона", AS: "Асцендента", MC: "Середины неба" };
@@ -366,7 +367,8 @@ describe("SR7: год — что видит человек (ответ DESIGN §
     expect(themes).toContain("Солнце года — в 10-м доме");
     expect(themes).toContain(`Солнце года — в 10-м доме: ${m.HOUSE_SPHERES[9]}`);
     expect(themes).toContain("Луна года — в Овне, в 10-м доме");
-    expect(themes).toContain(`Луна года — в Овне, в 10-м доме: ${m.HOUSE_SPHERES[9]}`);
+    expect(themes).toContain(`Луна года — в Овне, в 10-м доме: ${SAME_SPHERE}`); // дом Луны тот же, что у Солнца (S1)
+    expect(themes).not.toContain(`Луна года — в Овне, в 10-м доме: ${m.HOUSE_SPHERES[9]}`);
     expect(text()).toContain("Сильные аспекты");
     const positions = SHOWN.map(line => { expect(text()).toContain(line); return text().indexOf(line); });
     expect([...positions].sort((a, b) => a - b)).toEqual(positions); // порядок ответа сервера
@@ -488,9 +490,20 @@ describe("SR7: «Главные темы» и «Обзор года» собир
     const { HOUSE_SPHERES } = meanings();
     for (let sign = 0; sign < 12; sign += 1) {
       const house = sign + 1;
-      await view({ moon_sign: sign, moon_house: house, sun_house: 1 });
+      await view({ moon_sign: sign, moon_house: house, sun_house: house === 1 ? 2 : 1 });
       expect(blockText(themesBlock())).toContain(`Луна года — в ${SIGNS_IN[sign]}, в ${house}-м доме: ${HOUSE_SPHERES[house - 1]}`);
     }
+  });
+
+  test("Луна в том же доме, что Солнце: вместо повтора сферы — «та же сфера, что у Солнца года»; в другом доме — сфера дома", async () => {
+    const { HOUSE_SPHERES } = meanings();
+    await view({ sun_house: 4, moon_house: 4 });
+    const same = blockText(themesBlock());
+    expect(same).toContain(`Луна года — в Овне, в 4-м доме: ${SAME_SPHERE}`);
+    expect(same.split(HOUSE_SPHERES[3]).length - 1).toBe(1); // сфера названа один раз — у Солнца
+    await view({ sun_house: 4, moon_house: 5 });
+    expect(blockText(themesBlock())).toContain(`Луна года — в Овне, в 5-м доме: ${HOUSE_SPHERES[4]}`);
+    expect(blockText(themesBlock())).not.toContain(SAME_SPHERE);
   });
 
   test("аспекты: все 12 точек в родительном падеже и все 5 мажорных аспектов — «Оппозиция Меркурия и Марса» … «Трин Асцендента и Середины неба»", async () => {

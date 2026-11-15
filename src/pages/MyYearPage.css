@@ -12,8 +12,8 @@
   padding: var(--ln-space-32); border-radius: var(--ln-radius-lg); background: var(--ln-gradient-cosmic); color: var(--ln-color-text-inverse); }
 .year-orbit { display: block; width: 168px; height: 168px; overflow: visible; }
 .year-orbit-track { fill: none; stroke: var(--ln-color-inverse-border); stroke-width: 1; }
-.year-orbit-path, .year-orbit-head { fill: none; stroke: #F4C76B; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
-.year-orbit-sun { fill: #F4C76B; filter: drop-shadow(0 0 10px rgba(244, 199, 107, .7)); }
+.year-orbit-path, .year-orbit-head { fill: none; stroke: var(--ln-color-sun); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+.year-orbit-sun { fill: var(--ln-color-sun); filter: drop-shadow(0 0 10px var(--ln-color-sun-glow)); }
 .year-orbit-birth { fill: var(--ln-color-text-inverse); }
 .year-orbit-ray { stroke: var(--ln-color-inverse-border); stroke-width: 1; stroke-dasharray: 3 4; }
 .year-span-text { margin: 0; }
