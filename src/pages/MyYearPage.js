@@ -1,41 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { chartRequest } from "../api/chartsApi";
-import { chartLabels } from "../api/chartPresentation";
-import { LoadingState, PageHeading } from "../components/UI";
+import React from "react";
+import ChartReadingPage from "../components/ChartReadingPage";
 import { ASPECT_TYPES, SIGNS, SIGNS_IN } from "../components/natal/model";
 import {
   ASCENDANT_TONES, ASPECT_TONES, HOUSE_SPHERES, MOON_SIGN_PHRASES, POINT_GENITIVES, SUN_HOUSE_PHRASES,
 } from "../components/solar/meanings";
 import "./MyYearPage.css";
 
-// SOLAR-1 DESIGN §6: the frame (sign-in, chart list, ?chart=) is a copy of MoonTodayPage; the year itself is a read-only
-// GET without AI or quota (§3). The server decides access and the year; the page only turns codes into words.
-// shortcut: third copy of the «sign-in + chart list» block (MyMonthPage, MoonTodayPage) — a shared component is its own R1 task.
+// SOLAR-1 DESIGN §6: sign-in and chart choice live in ChartReadingPage; the year itself is a read-only GET without AI or
+// quota (§3). The server decides access and the year; the page only turns codes into words.
 const DESCRIPTION = "Карта года от вашего дня рождения: когда начался год и какие темы в нём главные.";
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-
-function deviceZone() {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
-}
 
 // "2027-03-10" + "11:30" → «10 марта 2027 в 11:30». Built from the string: new Date("…") would shift the day by the browser zone.
 function moment({ date, time }) {
   const [year, month, day] = date.split("-").map(Number);
   return `${day} ${MONTHS[month - 1]} ${year} в ${time}`;
-}
-
-function SignInSection() {
-  const navigate = useNavigate();
-  return <section className="year-note">
-    <h2>Войдите, чтобы увидеть свой год</h2>
-    <p>Карта года строится по натальной карте, сохранённой в аккаунте. Аккаунт бесплатный.</p>
-    <div className="button-row">
-      <button type="button" onClick={() => navigate("/authorization", { state: { returnTo: "/my-year" } })}>Войти</button>
-      <Link className="button button-secondary" to="/try-free">Создать карту</Link>
-    </div>
-  </section>;
 }
 
 // The Sun goes the whole circle and comes back to the point where it stood at birth: that return opens the year.
@@ -50,9 +29,10 @@ function SunReturn() {
   </svg>;
 }
 
+const SAME_SPHERE = "та же сфера, что у Солнца года: она в центре этого года.";
 const aspectLine = item => `${ASPECT_TYPES[item.aspect].name} ${POINT_GENITIVES[item.a]} и ${POINT_GENITIVES[item.b]}`;
 
-function YearView({ year, sentZone }) {
+function YearView({ data: year, sentZone }) {
   const first = year.aspects[0];
   const overview = [
     ASCENDANT_TONES[year.ascendant_sign],
@@ -73,7 +53,7 @@ function YearView({ year, sentZone }) {
       <ul className="year-theme-list">
         <li><b>Асцендент года — {SIGNS[year.ascendant_sign]}</b> <span>{ASCENDANT_TONES[year.ascendant_sign]}</span></li>
         <li><b>Солнце года — в {year.sun_house}-м доме:</b> {HOUSE_SPHERES[year.sun_house - 1]}</li>
-        <li><b>Луна года — в {SIGNS_IN[year.moon_sign]}, в {year.moon_house}-м доме:</b> {HOUSE_SPHERES[year.moon_house - 1]}</li>
+        <li><b>Луна года — в {SIGNS_IN[year.moon_sign]}, в {year.moon_house}-м доме:</b> {year.moon_house === year.sun_house ? SAME_SPHERE : HOUSE_SPHERES[year.moon_house - 1]}</li>
       </ul>
       <h3>Сильные аспекты</h3>
       {year.aspects.length ? <ol className="year-aspects">
@@ -93,82 +73,14 @@ function YearView({ year, sentZone }) {
   </div>;
 }
 
-function SolarYear({ chartId }) {
-  const [result, setResult] = useState(null);
-  const [reload, setReload] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    const zone = deviceZone();
-    const query = zone ? `?tz=${encodeURIComponent(zone)}` : "";
-    setResult(null);
-    chartRequest(`/natal-chart/${chartId}/solar-return${query}`, { authenticated: true, signal: controller.signal })
-      .then(year => { if (!controller.signal.aborted) setResult({ year, zone }); })
-      .catch(error => { if (!controller.signal.aborted) setResult({ error }); });
-    return () => controller.abort();
-  }, [chartId, reload]);
-
-  if (!result) return <LoadingState text="Строим карту года..." />;
-  if (result.error?.status === 401) return <SignInSection />;
-  if (result.error) {
-    // A retry helps only when the calculation or the network failed; 403/404/422 need another action (the text says which).
-    const retry = !result.error.status || result.error.status === 503;
-    return <div className="year-note">
-      <p role="alert">{result.error.message}</p>
-      {retry && <button type="button" className="button-secondary" onClick={() => setReload(value => value + 1)}>Повторить</button>}
-    </div>;
-  }
-  return <YearView year={result.year} sentZone={result.zone} />;
-}
-
-function YearCharts({ user }) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [result, setResult] = useState(null);
-  const [reload, setReload] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setResult(null);
-    chartRequest("/natal-charts", { authenticated: true, signal: controller.signal })
-      .then(data => { if (!controller.signal.aborted) setResult({ charts: data?.charts || [] }); })
-      .catch(error => { if (!controller.signal.aborted) setResult({ error }); });
-    return () => controller.abort();
-  }, [user.id, reload]);
-
-  if (!result) return <LoadingState text="Загрузка карт..." />;
-  if (result.error?.status === 401) return <SignInSection />;
-  if (result.error) return <div className="year-note">
-    <p role="alert">Не удалось загрузить карты. Попробуйте ещё раз.</p>
-    <button type="button" className="button-secondary" onClick={() => setReload(value => value + 1)}>Повторить загрузку</button>
-  </div>;
-  // The server lists new charts first; the page shows them in creation order, the oldest is the default.
-  const charts = [...result.charts].sort((a, b) => a.chart_id - b.chart_id);
-  if (charts.length === 0) return <section className="year-note">
-    <h2>Сначала создайте карту</h2>
-    <p>Карта года строится по вашей натальной карте — это займёт минуту.</p>
-    <Link className="button" to="/try-free">Создать карту</Link>
-  </section>;
-  // Only an id from the person's own list reaches the server.
-  const wanted = /^\d+$/.test(searchParams.get("chart") || "") ? Number(searchParams.get("chart")) : null;
-  const chart = charts.find(item => item.chart_id === wanted) || charts[0];
-  const labels = chartLabels(charts);
-  return <>
-    {charts.length === 1 ? <p className="year-chart">Карта: {labels[chart.chart_id]}</p> :
-      <label className="year-chart">Карта{" "}
-        <select value={chart.chart_id} onChange={event => setSearchParams({ chart: event.target.value }, { replace: true })}>
-          {charts.map(item => <option key={item.chart_id} value={item.chart_id}>{labels[item.chart_id]}</option>)}
-        </select>
-      </label>}
-    <SolarYear key={chart.chart_id} chartId={chart.chart_id} />
-  </>;
-}
+const TEXTS = {
+  signInHeading: "Войдите, чтобы увидеть свой год",
+  signInText: "Карта года строится по натальной карте, сохранённой в аккаунте. Аккаунт бесплатный.",
+  emptyText: "Карта года строится по вашей натальной карте — это займёт минуту.",
+  loadingReading: "Строим карту года...",
+};
 
 export default function MyYearPage() {
-  const { user, loading, authError } = useAuth();
-  let body;
-  if (authError) body = null; // AuthNotice explains
-  else if (loading) body = <LoadingState text="Проверка аккаунта..." />;
-  else body = user ? <YearCharts user={user} /> : <SignInSection />;
-  return <div className="page year-page">
-    <PageHeading title="Мой год"><p>{DESCRIPTION}</p></PageHeading>
-    {body}
-  </div>;
+  return <ChartReadingPage prefix="year" returnTo="/my-year" endpoint="solar-return" View={YearView} texts={TEXTS}
+    title="Мой год" description={DESCRIPTION} />;
 }

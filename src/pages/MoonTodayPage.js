@@ -1,14 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { chartRequest } from "../api/chartsApi";
-import { chartLabels } from "../api/chartPresentation";
-import { LoadingState, PageHeading } from "../components/UI";
+import React from "react";
+import ChartReadingPage from "../components/ChartReadingPage";
 import { ASPECT_TYPES, SIGNS_IN } from "../components/natal/model";
 import { PHASE_TEXTS, POINT_MEANINGS, SIGN_ADVICE, TONE_ADVICE } from "../components/moon/meanings";
 import "./MoonTodayPage.css";
 
-// LUNAR-1 DESIGN §6: chart choice as on MyMonthPage; the day itself is a read-only GET without AI (§3),
+// LUNAR-1 DESIGN §6: sign-in and chart choice live in ChartReadingPage; the day itself is a read-only GET without AI (§3),
 // the server decides access and the day; the page only turns codes into words.
 const DESCRIPTION = "Фаза и знак Луны на сегодня и то, как она касается вашей карты.";
 const WAXING = new Set(["new_moon", "waxing_crescent", "first_quarter", "waxing_gibbous"]);
@@ -16,22 +12,6 @@ const WAXING = new Set(["new_moon", "waxing_crescent", "first_quarter", "waxing_
 // the server already sends aspects in time order; "HH:MM" strings are not compared (a 25-hour day has "01:30" twice).
 const POINT_GROUP = { "☉": 0, "☽": 0, AS: 0, MC: 0, "☿": 1, "♀": 1, "♂": 1, "♃": 2, "♄": 2, "♅": 3, "♆": 3, "♇": 3 };
 const percent = value => `${value} %`;
-
-function deviceZone() {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
-}
-
-function SignInSection() {
-  const navigate = useNavigate();
-  return <section className="moon-note">
-    <h2>Войдите, чтобы увидеть свою Луну</h2>
-    <p>Луна на сегодня считается по натальной карте, сохранённой в аккаунте. Аккаунт бесплатный.</p>
-    <div className="button-row">
-      <button type="button" onClick={() => navigate("/authorization", { state: { returnTo: "/moon" } })}>Войти</button>
-      <Link className="button button-secondary" to="/try-free">Создать карту</Link>
-    </div>
-  </section>;
-}
 
 // Lit part of the disc as seen from the Northern hemisphere: a waxing Moon is lit on the right.
 function MoonPicture({ code, illumination, label }) {
@@ -52,7 +32,7 @@ function mainAspect(aspects) {
   return aspects.reduce((best, item) => !best || (POINT_GROUP[item.point] ?? 9) < (POINT_GROUP[best.point] ?? 9) ? item : best, null);
 }
 
-function DayView({ day, sentZone }) {
+function DayView({ data: day, sentZone }) {
   const phase = PHASE_TEXTS[day.phase.code];
   const { index, ingress } = day.sign;
   // Advice follows the sign at local noon: a change before 12:00 already counts.
@@ -89,82 +69,14 @@ function DayView({ day, sentZone }) {
   </div>;
 }
 
-function MoonDay({ chartId }) {
-  const [result, setResult] = useState(null);
-  const [reload, setReload] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    const zone = deviceZone();
-    const query = zone ? `?tz=${encodeURIComponent(zone)}` : "";
-    setResult(null);
-    chartRequest(`/natal-chart/${chartId}/moon-day${query}`, { authenticated: true, signal: controller.signal })
-      .then(day => { if (!controller.signal.aborted) setResult({ day, zone }); })
-      .catch(error => { if (!controller.signal.aborted) setResult({ error }); });
-    return () => controller.abort();
-  }, [chartId, reload]);
-
-  if (!result) return <LoadingState text="Считаем Луну..." />;
-  if (result.error?.status === 401) return <SignInSection />;
-  if (result.error) {
-    // A retry helps only when the calculation or the network failed; 403/404/422 need another action (the text says which).
-    const retry = !result.error.status || result.error.status === 503;
-    return <div className="moon-note">
-      <p role="alert">{result.error.message}</p>
-      {retry && <button type="button" className="button-secondary" onClick={() => setReload(value => value + 1)}>Повторить</button>}
-    </div>;
-  }
-  return <DayView day={result.day} sentZone={result.zone} />;
-}
-
-function MoonCharts({ user }) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [result, setResult] = useState(null);
-  const [reload, setReload] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setResult(null);
-    chartRequest("/natal-charts", { authenticated: true, signal: controller.signal })
-      .then(data => { if (!controller.signal.aborted) setResult({ charts: data?.charts || [] }); })
-      .catch(error => { if (!controller.signal.aborted) setResult({ error }); });
-    return () => controller.abort();
-  }, [user.id, reload]);
-
-  if (!result) return <LoadingState text="Загрузка карт..." />;
-  if (result.error?.status === 401) return <SignInSection />;
-  if (result.error) return <div className="moon-note">
-    <p role="alert">Не удалось загрузить карты. Попробуйте ещё раз.</p>
-    <button type="button" className="button-secondary" onClick={() => setReload(value => value + 1)}>Повторить загрузку</button>
-  </div>;
-  // The server lists new charts first; the page shows them in creation order, the oldest is the default.
-  const charts = [...result.charts].sort((a, b) => a.chart_id - b.chart_id);
-  if (charts.length === 0) return <section className="moon-note">
-    <h2>Сначала создайте карту</h2>
-    <p>Луна на сегодня считается по вашей натальной карте — это займёт минуту.</p>
-    <Link className="button" to="/try-free">Создать карту</Link>
-  </section>;
-  // Only an id from the person's own list reaches the server.
-  const wanted = /^\d+$/.test(searchParams.get("chart") || "") ? Number(searchParams.get("chart")) : null;
-  const chart = charts.find(item => item.chart_id === wanted) || charts[0];
-  const labels = chartLabels(charts);
-  return <>
-    {charts.length === 1 ? <p className="moon-chart">Карта: {labels[chart.chart_id]}</p> :
-      <label className="moon-chart">Карта{" "}
-        <select value={chart.chart_id} onChange={event => setSearchParams({ chart: event.target.value }, { replace: true })}>
-          {charts.map(item => <option key={item.chart_id} value={item.chart_id}>{labels[item.chart_id]}</option>)}
-        </select>
-      </label>}
-    <MoonDay key={chart.chart_id} chartId={chart.chart_id} />
-  </>;
-}
+const TEXTS = {
+  signInHeading: "Войдите, чтобы увидеть свою Луну",
+  signInText: "Луна на сегодня считается по натальной карте, сохранённой в аккаунте. Аккаунт бесплатный.",
+  emptyText: "Луна на сегодня считается по вашей натальной карте — это займёт минуту.",
+  loadingReading: "Считаем Луну...",
+};
 
 export default function MoonTodayPage() {
-  const { user, loading, authError } = useAuth();
-  let body;
-  if (authError) body = null; // AuthNotice explains
-  else if (loading) body = <LoadingState text="Проверка аккаунта..." />;
-  else body = user ? <MoonCharts user={user} /> : <SignInSection />;
-  return <div className="page moon-page">
-    <PageHeading title="Луна сегодня"><p>{DESCRIPTION}</p></PageHeading>
-    {body}
-  </div>;
+  return <ChartReadingPage prefix="moon" returnTo="/moon" endpoint="moon-day" View={DayView} texts={TEXTS}
+    title="Луна сегодня" description={DESCRIPTION} />;
 }

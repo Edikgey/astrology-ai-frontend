@@ -29,6 +29,8 @@
   --ln-color-error-soft: #FFF0EF;
   --ln-color-error-border: #E9BCB8;
   --ln-color-transparent: transparent;
+  --ln-color-sun: #F4C76B;
+  --ln-color-sun-glow: rgba(244, 199, 107, .7);
   --ln-color-navbar: rgba(255,255,255,.9);
   --ln-color-inverse-glass: rgba(255,255,255,.06);
   --ln-color-inverse-border: rgba(216,208,227,.22);
