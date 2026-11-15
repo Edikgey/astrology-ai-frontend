@@ -104,3 +104,11 @@
 .chat-month-actions { margin-top: var(--ln-space-16); scroll-margin-bottom: var(--ln-space-16); }
 .chat-month-actions [role='alert'] { margin: 0 0 var(--ln-space-12); }
 .chat-month-actions button { min-height: 44px; }
+/* «Разборы по темам»: one reading, read like a page — the card grows with it, no inner scroll.
+   The new-reading button and the chat link share a row; on a phone they stack. */
+.askgpt-container.is-topic-view { height: auto; }
+.is-topic-view .chat-messages { max-height: none; overflow-y: visible; }
+.is-topic-view .chat-month-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ln-space-12) var(--ln-space-24); }
+.is-topic-view .chat-month-actions [role='alert'] { flex-basis: 100%; margin: 0; }
+.chat-topic-link { font-size: var(--ln-text-14); font-weight: 600; }
+@media (max-width: 700px) { .is-topic-view .chat-month-actions { flex-direction: column; align-items: stretch; } .is-topic-view .chat-month-actions button { width: 100%; } .chat-topic-link { padding: var(--ln-space-8) 0; } }

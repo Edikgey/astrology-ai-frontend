@@ -35,6 +35,7 @@ export default function Header() {
       {user && <Link to="/my-charts" onClick={close}>Мои карты</Link>}
       <Link to="/my-month" onClick={close}>Мой месяц</Link>
       <Link to="/moon" onClick={close}>Луна сегодня</Link>
+      <Link to="/topics" onClick={close}>Разборы по темам</Link>
       <Link to={user ? '/relationships/new' : '/try-free'}
         state={user ? undefined : { landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT }}
         onClick={close}>Разбор отношений</Link>
