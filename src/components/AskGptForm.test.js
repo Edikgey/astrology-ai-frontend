@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import AskGptForm, { CHAT_INTRO, MONTH_QUESTION } from "./AskGptForm";
+import AskGptForm, { CHAT_INTRO, MONTH_QUESTION, monthSlice } from "./AskGptForm";
 import { productAnalytics } from "../analytics/productAnalytics";
 import { TextEncoder, TextDecoder } from "util";
 
@@ -1106,5 +1106,30 @@ describe('MM6: отказы в режиме месяца — текст серв
     expect(alert.textContent).toBe('Сессия истекла. Войдите снова.');
     expectAlertRightBefore(alert, overviewButton());
     expect(posts()).toHaveLength(1);
+  });
+});
+
+describe('monthSlice: срез переписки для страницы «Мой месяц»', () => {
+  const user = (text, createdAt) => ({ user: "Вы", text, createdAt });
+  const gpt = text => ({ user: "GPT", text });
+
+  test('нет вопроса месяца: пусто, обзора нет, даты нет', () => {
+    expect(monthSlice([user('Привет', '2026-11-01T10:00:00'), gpt('Ответ')])).toEqual({ shown: [], hasOverview: false, overviewDate: null });
+    expect(monthSlice([])).toEqual({ shown: [], hasOverview: false, overviewDate: null });
+  });
+
+  test('берётся последний вопрос месяца и всё после него; дата — по его created_at (с микросекундами, как отдаёт сервер)', () => {
+    const messages = [user(MONTH_QUESTION, '2026-10-01T09:00:00.000001'), gpt('Старый обзор'),
+      user('Вопрос', '2026-11-02T10:00:00'), gpt('Ответ'), user(MONTH_QUESTION, '2026-11-14T12:00:00.123456'), gpt('Новый обзор')];
+    const slice = monthSlice(messages);
+    expect(slice.shown).toEqual(messages.slice(4));
+    expect(slice.hasOverview).toBe(true);
+    expect(slice.overviewDate.toISOString()).toBe('2026-11-14T12:00:00.123Z');
+  });
+
+  test('сообщение GPT с текстом вопроса месяца не считается; неразборная дата даёт null', () => {
+    expect(monthSlice([gpt(MONTH_QUESTION)]).hasOverview).toBe(false);
+    expect(monthSlice([user(MONTH_QUESTION, 'не дата'), gpt('Обзор')])).toMatchObject({ hasOverview: true, overviewDate: null });
+    expect(monthSlice([user(MONTH_QUESTION), gpt('Обзор')]).overviewDate).toBeNull();
   });
 });

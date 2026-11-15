@@ -101,6 +101,6 @@
 
 /* «Мой месяц»: дата обзора и кнопка обзора в одном потоке с лентой. */
 .chat-month-date { margin: 0 0 var(--ln-space-8); color: var(--ln-color-text-muted); font-size: var(--ln-text-12); }
-.chat-month-actions { margin-top: var(--ln-space-16); }
+.chat-month-actions { margin-top: var(--ln-space-16); scroll-margin-bottom: var(--ln-space-16); }
 .chat-month-actions [role='alert'] { margin: 0 0 var(--ln-space-12); }
 .chat-month-actions button { min-height: 44px; }

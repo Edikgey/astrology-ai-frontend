@@ -32,6 +32,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
   const products = !newOffers || periodInvalid ? [] : free ? (charts ? ["premium_month", "premium_year"] : ["premium_month", "premium_year", "question_pack"]) :
     (gptLimit || !limited) ? ["question_pack"] : [];
   const showOptions = products.some(product => canBuy(usage, product));
+  const betaPlainWindow = beta && !showOptions;
   const freeQuestionsOver = free && !beta && gptLimit;
   const packOffered = canBuy(usage, "question_pack");
   const resetDate = formatPeriodDate(usage?.gpt_messages_reset_at);
@@ -55,7 +56,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
     <DialogClose onClose={onClose} />
     <h2 id="usage-modal-title">{limited ? (periodInvalid ? "Расчётный период Premium недоступен" :
       charts ? "Достигнут лимит сохранённых карт" : freeQuestionsOver ? "Бесплатные вопросы закончились" : "Достигнут лимит AI-вопросов") :
-      beta && !showOptions ? "Подписка Premium" : !free ? "Пакет вопросов" : "Больше возможностей с Premium"}</h2>
+      betaPlainWindow ? "Подписка Premium" : !free ? "Пакет вопросов" : "Больше возможностей с Premium"}</h2>
     {limited && <p>{charts ? (newOffers && free ? "Бесплатно можно сохранить 3 карты. Удалите ненужную в «Мои карты» или перейдите на Premium — до 10 карт." :
         "Удалите ненужную карту в разделе «Мои карты», чтобы освободить место.") :
       periodInvalid ? "Ваш план — Premium. Для продолжения разговора нужен действующий расчётный период." :
@@ -66,7 +67,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
     {!limited && !free && showOptions && <p>Пакет добавляет вопросы к вашему лимиту и не меняет подписку.</p>}
     {limited && Number.isFinite(state.used) && Number.isFinite(state.limit) && <p>Использовано: {state.used} / {state.limit}{state.reserved > 0 ? `; в обработке: ${state.reserved}` : ""}.</p>}
     {free && !limited && !beta && <p>Продолжайте разбирать отношения, работу и свои сильные стороны. Больше вопросов для каждой истории.</p>}
-    <BetaPurchaseNote enabled={beta && !showOptions} />
+    <BetaPurchaseNote enabled={betaPlainWindow} />
     {showOptions ? <>
       <OfferOptions usage={usage} products={products} />
       <p className="payment-summary">{free ? <>Отменить продление Premium можно в разделе «Мои карты».{' '}</> : null}
