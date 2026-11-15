@@ -198,6 +198,15 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   const shown = !monthView ? messages : noOverview ? [] : messages.slice(monthStart);
   const overviewDate = monthView && shown[0]?.createdAt ? new Date(`${shown[0].createdAt}Z`) : null;
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
+  // A refusal in the month view: the history is re read, the actions are rebuilt and the focus would fall to <body>.
+  // Put it on the refusal and bring the refusal with its button into view (nothing is sent again).
+  const monthActions = useRef(null);
+  const monthAlert = useRef(null);
+  useEffect(() => {
+    if (!monthView || monthWait || !error) return;
+    monthAlert.current?.focus({ preventScroll: true });
+    monthActions.current?.scrollIntoView?.({ block: "nearest" });
+  }, [monthView, monthWait, error]);
   const latestSuggestions = !loading && shown[shown.length - 1]?.user === "GPT" ? shown[shown.length - 1].suggestions || [] : [];
   const showStarters = !monthView && (!authenticated || (canChat && !historyLoading && !historyError &&
     !messages.some(msg => msg.user === "GPT" && !msg.streaming && msg.text.trim())));
@@ -252,8 +261,8 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     {showMonth && <div className="chat-month" role="group" aria-label="Обзор месяца">
       <button type="button" className="preset-btn" disabled={blocked} onClick={() => navigate(`/my-month?chart=${chartId}`)}>{MONTH_LABEL}</button>
     </div>}
-    {monthView && !monthWait && <div className="chat-month-actions">
-      {error && <p role="alert">{error}</p>}
+    {monthView && !monthWait && <div className="chat-month-actions" ref={monthActions}>
+      {error && <p role="alert" tabIndex={-1} ref={monthAlert}>{error}</p>}
       <button type="button" className={noOverview ? "chat-send" : "button-secondary"} disabled={blocked}
         onClick={() => sendQuestion(MONTH_QUESTION, true)}>{noOverview ? "Собрать обзор месяца" : "Собрать новый обзор"}</button>
     </div>}
