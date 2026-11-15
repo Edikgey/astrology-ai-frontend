@@ -18,6 +18,13 @@ const NATAL_QUESTIONS = ["Какие у меня сильные стороны?"
 // «Мой месяц» (MY-MONTH DESIGN §2.3, §7): the server recognises the question by its words; the button only suggests it.
 export const MONTH_LABEL = "Мой месяц";
 export const MONTH_QUESTION = "Мой месяц: что меня ждёт в ближайшие 30 дней?";
+// The month page shows the chart chat from the last month question on (MY-MONTH-PAGE DESIGN §3).
+export const monthSlice = messages => {
+  const start = messages.map(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION).lastIndexOf(true);
+  const shown = start < 0 ? [] : messages.slice(start);
+  const date = shown[0]?.createdAt ? new Date(`${shown[0].createdAt}Z`) : null;
+  return { shown, hasOverview: start >= 0, overviewDate: date && !Number.isNaN(date.getTime()) ? date : null };
+};
 export const RELATIONSHIP_QUESTIONS =["В чём наша главная сила как пары?", "Почему мы можем конфликтовать?", "Как мы проявляем чувства по-разному?", "Что нам важно понимать друг о друге?"];
 const requestError = (status, subjectType) => status === 401 ? "Сессия истекла. Войдите снова." :
   status === 403 || status === 404 ? `Чат ${subjectType === "relationship" ? "этого разбора" : "этой карты"} недоступен для вашего аккаунта.` :
@@ -191,14 +198,12 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
   };
   // «Мой месяц» page (MY-MONTH-PAGE DESIGN §3): the same chart conversation, shown from the last month question on.
   const monthView = view === "month" && subjectType === "natal";
-  const monthStart = monthView ? messages.map(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION).lastIndexOf(true) : 0;
+  const { shown, hasOverview, overviewDate } = monthView ? monthSlice(messages) : { shown: messages };
   // While the history loads nobody knows yet whether an overview exists: no button, no empty-chat layout.
   const monthWait = monthView && canChat && historyLoading;
-  const noOverview = monthView && !monthWait && monthStart < 0;
-  const shown = !monthView ? messages : noOverview ? [] : messages.slice(monthStart);
-  const overviewDate = monthView && shown[0]?.createdAt ? new Date(`${shown[0].createdAt}Z`) : null;
+  const noOverview = monthView && !monthWait && !hasOverview;
   const blocked = Boolean(authLoading || unsaved || (canChat && (loading || historyLoading || historyError)));
-  // A refusal in the month view: the history is re read, the actions are rebuilt and the focus would fall to <body>.
+  // A refusal in the month view: the history is re-read, the actions are rebuilt and the focus would fall to <body>.
   // Put it on the refusal and bring the refusal with its button into view (nothing is sent again).
   const monthActions = useRef(null);
   const monthAlert = useRef(null);
@@ -225,22 +230,22 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
     usageLoading ? "Загрузка лимитов…" : null;
   const questions = starterQuestions || (subjectType === "relationship" ? RELATIONSHIP_QUESTIONS : NATAL_QUESTIONS);
   // The month overview is a chart-chat hint, not a right: the server refuses old charts and pairs (DESIGN §3).
-  const monthChat = subjectType !== "relationship";
   const last = messages[messages.length - 1];
-  const showMonth = monthChat && !monthView && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
+  const showMonthEntry = subjectType !== "relationship" && !monthView && canChat && !loading && last?.user === "GPT" && !last.streaming && Boolean(last.text.trim())
     && !messages.some(msg => msg.user === "Вы" && msg.text === MONTH_QUESTION);
   const starters = <div className="predefined-questions">
     {questions.map(preset => <button key={preset} type="button" className="preset-btn" disabled={blocked}
       onClick={() => authenticated ? setQuestion(preset) : openGate(preset)}>{preset}</button>)}
     <button type="button" className="preset-btn" disabled={blocked} onClick={() => authenticated ? input.current?.focus() : openGate()}>Задать свой вопрос</button>
   </div>;
-  return <div className={`askgpt-container${canChat ? " is-chat-active" : ""}${subjectType === "relationship" ? " is-relationship-chat" : ""}${subjectType === "relationship" && showStarters ? " is-empty-chat" : ""}${monthView ? " is-month-view" : ""}${noOverview ? " is-empty-chat" : ""}`}>
+  return <div className={["askgpt-container", canChat && "is-chat-active", subjectType === "relationship" && "is-relationship-chat",
+    (noOverview || (subjectType === "relationship" && showStarters)) && "is-empty-chat", monthView && "is-month-view"].filter(Boolean).join(" ")}>
     <div className="chat-heading"><h2>{heading || <>Ваш персональный <span>AI-астролог</span></>}</h2><p>{subtitle || "Поговорим о вас и о том, что показывает ваша карта."}</p></div>
     {authLoading && <p role="status">Проверка авторизации...</p>}
     {canChat && historyLoading && <p role="status">Загрузка истории...</p>}
     {historyError && <p role="alert">{historyError} <button onClick={() => setReload(value => value + 1)}>Повторить загрузку</button></p>}
     {error && !monthView && <p role="alert">{error}</p>}
-    {overviewDate && !Number.isNaN(overviewDate.getTime()) && <p className="chat-month-date">Обзор от {overviewDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>}
+    {overviewDate && <p className="chat-month-date">Обзор от {overviewDate.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>}
     <div ref={history} className="chat-messages" role="log" tabIndex={0} aria-label="История разговора" aria-live="polite" aria-relevant="additions"
       onScroll={event => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64; }}>
       {(!authenticated || (canChat && !historyLoading && !historyError && shown.length === 0)) && <div className="message gpt"><div>{intro || CHAT_INTRO}</div></div>}
@@ -258,7 +263,7 @@ const ChatSession = ({ chartId, subjectType, subjectId, authenticated, authLoadi
       </button>)}
     </div>}
     {/* Outside .chat-follow-ups and without ai_followup_selected: this is not a model suggestion. */}
-    {showMonth && <div className="chat-month" role="group" aria-label="Обзор месяца">
+    {showMonthEntry && <div className="chat-month" role="group" aria-label="Обзор месяца">
       <button type="button" className="preset-btn" disabled={blocked} onClick={() => navigate(`/my-month?chart=${chartId}`)}>{MONTH_LABEL}</button>
     </div>}
     {monthView && !monthWait && <div className="chat-month-actions" ref={monthActions}>
