@@ -1,6 +1,6 @@
 // TOPICS-1-fe, TF3 «маршрут» (tasks/TOPICS-1/DESIGN.md §3.3, §5): настоящий App и настоящий роутер, страницы — заглушки.
 // /topics (с ?chart= и ?topic=) показывает страницу TopicsPage; соседние маршруты и неизвестный путь не задеты.
-// Страницы TopicsPage на базе нет: заглушка объявлена virtual, поэтому тест красный по одной причине — в App нет маршрута /topics.
+// Заглушка ./pages/TopicsPage — обычная (не virtual): файл страницы есть, и её id должен совпадать с id настоящего модуля в кэше jest-resolve, иначе результат зависит от порядка файлов в воркере.
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
@@ -41,7 +41,7 @@ jest.mock('./pages/RelationshipResultPage', () => ({ __esModule: true, default: 
 jest.mock('./pages/NotFoundPage', () => ({ __esModule: true, default: () => <section data-testid="not-found" /> }));
 jest.mock('./pages/PasswordResetPage', () => ({ __esModule: true, default: () => null }));
 jest.mock('./pages/LegalPages', () => ({ TermsPage: () => null, PrivacyPage: () => null, RefundPage: () => null, SupportPage: () => null }));
-jest.mock('./pages/TopicsPage', () => ({ __esModule: true, default: () => <section data-testid="topics" /> }), { virtual: true });
+jest.mock('./pages/TopicsPage', () => ({ __esModule: true, default: () => <section data-testid="topics" /> }));
 
 let root, container;
 beforeEach(() => { global.IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
