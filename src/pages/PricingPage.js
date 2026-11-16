@@ -2,7 +2,7 @@ import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { useUsage } from "../context/UsageContext";
 import { useNavigate } from "react-router-dom";
-import { PLANS, PRICES, OFFER_TITLES } from "../config/plans";
+import { PLANS, PRICES, OFFER_TITLES, PACK_SPENDING, RENEWAL, YEAR_SAME, yearSaving } from "../config/plans";
 import { PageHeading } from "../components/UI";
 import UsageSummary from "../components/UsageSummary";
 import { PolicyLinks } from '../components/ServiceDisclosures';
@@ -10,7 +10,6 @@ import "./PricingPage.css";
 import { useServiceConfig } from "../context/ServiceConfigContext";
 import BetaPurchaseNote from "../components/BetaPurchaseNote";
 import { canBuy } from "../utils/offers";
-import { PACK_SPENDING, RENEWAL, YEAR_SAME, yearSaving } from "../components/OfferOptions";
 
 const FREE_PRICE = { usd: "$0", rub: "0 ₽" };
 

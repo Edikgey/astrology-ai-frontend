@@ -81,7 +81,7 @@ test("Free upgrade preserves comparison modal and disables checkout when env is 
   expect(modal.textContent).toContain("10 карт"); expect(modal.textContent).toContain("300 AI-вопросов в месяц");
   const upgrade = [...modal.querySelectorAll("button")].find(el => el.textContent === "Оплатить через Stripe");
   expect(upgrade.disabled).toBe(true); await click(upgrade);
-  expect(modal.textContent).toContain("Оплата пока не настроена."); expect(global.fetch).toHaveBeenCalledTimes(1);
+  expect(modal.textContent).toContain("Оплата картой любой страны пока не настроена."); expect(global.fetch).toHaveBeenCalledTimes(1);
   await click(button("Закрыть")); expect(container.querySelector("dialog")).toBeNull();
 });
 
@@ -160,7 +160,7 @@ test.each(["GPT_LIMIT_REACHED", "GPT_PERIOD_INVALID"])("Premium %s never present
   await click(button("Спросить"));
   const modal = container.querySelector("dialog[open]");
   expect(modal.textContent).toContain("Premium"); expect(modal.textContent).not.toContain("Free");
-  expect(modal.textContent).not.toContain("Оплата пока не настроена."); expect(button("Перейти на Premium")).toBeUndefined();
+  expect(modal.textContent).not.toContain("Оплата картой любой страны пока не настроена."); expect(button("Перейти на Premium")).toBeUndefined();
 });
 
 test.each(["free", "premium"])("chart limit response for %s preserves the form and shows the appropriate limit state", async plan => {
@@ -170,7 +170,7 @@ test.each(["free", "premium"])("chart limit response for %s preserves the form a
   global.fetch.mockResolvedValueOnce(fail(409, { code: "CHART_LIMIT_REACHED", plan, used: serverUsage.saved_charts_limit, limit: serverUsage.saved_charts_limit }));
   await act(async () => Simulate.submit(container.querySelector("form")));
   const modal = container.querySelector("dialog[open]"); expect(modal.textContent).toContain("Достигнут лимит сохранённых карт");
-  expect(modal.textContent.includes("Оплата пока не настроена.")).toBe(plan === "free");
+  expect(modal.textContent.includes("Оплата картой любой страны пока не настроена.")).toBe(plan === "free");
   expect(container.querySelector('[name="birthPlace"]').value).toBe("AB"); expect(mockNavigate).not.toHaveBeenCalled();
   expect(localStorage.getItem("chart_id")).toBeNull();
 });

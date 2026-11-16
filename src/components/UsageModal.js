@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { OFFER_TITLES, PACK_SIZE, PLANS, PRICES } from "../config/plans";
 import { canBuy, hasNewOffers } from "../utils/offers";
 import OfferOptions, { OfferDetails, PaymentMethods } from "./OfferOptions";
+import { STRIPE_UNCONFIGURED_TEXT } from "../api/apiError";
 import { useBilling } from "../context/BillingContext";
 import { DialogClose } from "./UI";
 import { SUPPORT_EMAIL } from "./ServiceDisclosures";
@@ -59,7 +60,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
   const packOffered = canBuy(usage, "question_pack");
   const resetDate = formatPeriodDate(usage?.gpt_messages_reset_at);
   const feedback = provider => <div className="payment-feedback" aria-live="polite">
-    {provider === "stripe" && !billing.configured && <p role="status">Оплата пока не настроена.</p>}
+    {provider === "stripe" && !billing.configured && <p role="status">{STRIPE_UNCONFIGURED_TEXT}</p>}
     {billing.feedbackProvider === provider && <>
       {billing.busy && <p role="status">Проверяем оплату…</p>}
       {billing.message && <p role="status">{billing.message}</p>}
