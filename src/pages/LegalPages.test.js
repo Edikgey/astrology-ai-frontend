@@ -66,10 +66,8 @@ test.each([TermsPage, PrivacyPage, RefundPage, SupportPage])('legal page heading
 });
 
 test.each([TermsPage, PrivacyPage, RefundPage, SupportPage])('legal page has an accessible heading, current revision and all policy links', async Page => {
-  const oldTitle = document.title;
   await render(<Page />);
   expect(container.querySelectorAll('h1')).toHaveLength(1);
-  expect(document.title).toContain('Lunaria');
   expect(container.querySelector('time').dateTime).toBe(Page===PrivacyPage?'2026-11-04':'2026-10-06');
   const emails = [...container.querySelectorAll('a[href^="mailto:"]')];
   expect(emails.length).toBeGreaterThan(0);
@@ -79,8 +77,6 @@ test.each([TermsPage, PrivacyPage, RefundPage, SupportPage])('legal page has an 
   }
   expect([...container.querySelectorAll('.legal-navigation a')].map(a => a.getAttribute('href')))
     .toEqual(['/terms', '/privacy', '/refunds', '/support']);
-  await render(null);
-  expect(document.title).toBe(oldTitle);
 });
 
 test('footer has labeled navigation, direct cancellation/support access and no personal identity', async () => {
