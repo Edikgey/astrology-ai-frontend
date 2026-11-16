@@ -21,6 +21,12 @@ beforeEach(async () => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.clearAllMocks(); });
 
+const navLink = text => [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === text);
+const menuOf = id => container.querySelector(`#nav-menu-${id}`);
+const trigger = id => container.querySelector(`[aria-controls="nav-menu-${id}"]`);
+const pairs = links => [...links].map(a => [a.textContent, a.getAttribute('href')]);
+const signIn = async () => { mockAuth.user = { id: 1 }; await act(async () => root.render(<Header />)); };
+
 test('mobile menu exposes its state and Escape closes it and restores toggle focus', async () => {
   const toggle = container.querySelector('[aria-controls="main-navigation"]');
   expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -42,7 +48,7 @@ test('mobile menu closes on outside interaction', async () => {
 test('relationship link starts guest onboarding and closes the mobile menu', async () => {
   const toggle = container.querySelector('[aria-controls="main-navigation"]');
   await act(async () => toggle.click());
-  const link = [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === 'Разбор отношений');
+  const link = navLink('Отношения'); // FE-NAV-GROUPS: was «Разбор отношений»; now under the group «Разборы»
   expect(link.getAttribute('href')).toBe('/try-free');
   expect(JSON.parse(link.dataset.state)).toEqual({ landingRelationshipIntent: LANDING_RELATIONSHIP_INTENT });
   link.addEventListener('click', event => event.preventDefault(), { once: true });
@@ -50,92 +56,139 @@ test('relationship link starts guest onboarding and closes the mobile menu', asy
   expect(toggle.getAttribute('aria-expanded')).toBe('false');
 });
 
-test('signed-in navigation exposes owned charts, relationship analysis and logout', async () => {
-  mockAuth.user = { id: 1 };
-  await act(async () => root.render(<Header />));
-  const charts = container.querySelector('a[href="/my-charts"]');
-  // MY-MONTH-PAGE MM1: «Мой месяц» стоит сразу после «Мои карты». LUNAR-1 LD8: «Луна сегодня» — сразу после «Мой месяц»,
-  // дальше — «Разбор отношений» (порядок обновлён: прежнее «отношения сразу после месяца» больше не верно).
-  expect(charts.nextElementSibling.textContent).toBe('Мой месяц');
-  expect(charts.nextElementSibling.getAttribute('href')).toBe('/my-month');
-  expect(charts.nextElementSibling.nextElementSibling.textContent).toBe('Луна сегодня');
-  expect(charts.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/moon');
-  // SOLAR-1 SR8: «Мой год» — сразу после «Луна сегодня»; TOPICS-1 TF3: «Разборы по темам» — после «Мой год», дальше — «Разбор отношений» (порядок обновлён).
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Мой год');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/my-year');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/topics');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(charts.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.getAttribute('href')).toBe('/relationships/new');
+// ---- FE-NAV-GROUPS (№50): the menu is grouped. Left: «Прогнозы» (Мой месяц, Луна сегодня, Мой год), «Разборы» (По темам, Отношения),
+// «Тарифы». Right: «Мои карты» (signed-in only), «Создать карту», the account menu or «Войти». These replace the flat-order tests. ----
+test('guest menu: two groups, «Тарифы», «Создать карту» and «Войти»; no «Мои карты», no account menu', () => {
+  expect(pairs(menuOf('forecasts').querySelectorAll('a'))).toEqual([['Мой месяц', '/my-month'], ['Луна сегодня', '/moon'], ['Мой год', '/my-year']]);
+  expect(pairs(menuOf('readings').querySelectorAll('a'))).toEqual([['По темам', '/topics'], ['Отношения', '/try-free']]);
+  expect(pairs(container.querySelectorAll('.nav-main > a'))).toEqual([['Тарифы', '/pricing']]);
+  expect(pairs(container.querySelectorAll('.nav-side > a'))).toEqual([['Создать карту', '/try-free']]);
+  expect(container.querySelector('.login-btn').textContent).toBe('Войти');
+  expect(container.querySelector('a[href="/my-charts"]')).toBeNull();
+  expect(trigger('account')).toBeNull();
+});
+
+test('signed-in menu: «Мои карты» before «Создать карту», relationship link without state, account menu with «Подписка» and «Выйти»', async () => {
+  await signIn();
+  expect(pairs(menuOf('readings').querySelectorAll('a'))).toEqual([['По темам', '/topics'], ['Отношения', '/relationships/new']]);
+  expect(navLink('Отношения').dataset.state).toBeUndefined();
+  expect(pairs(container.querySelectorAll('.nav-side > a'))).toEqual([['Мои карты', '/my-charts'], ['Создать карту', '/try-free']]);
+  expect(container.querySelector('.login-btn')).toBeNull();
+  expect(pairs(menuOf('account').querySelectorAll('a'))).toEqual([['Подписка', '/pricing']]);
   expect(container.querySelector('a[href="/settings"]')).toBeNull();
-  await act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
+  await act(async () => [...menuOf('account').querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
   expect(mockAuth.logout).toHaveBeenCalledTimes(1);
   expect(mockNavigate).toHaveBeenCalledWith('/');
 });
 
-test('the plan page is called «Тарифы» and the plan badge has no English label', async () => {
-  const links = [...container.querySelectorAll('#main-navigation a')].map(item => item.textContent);
-  expect(links).toContain('Тарифы');
+test('forecast and topic links are in the menu exactly once for guest and signed-in', async () => {
+  for (const signedIn of [false, true]) {
+    if (signedIn) await signIn();
+    for (const href of ['/my-month', '/moon', '/my-year', '/topics']) expect(container.querySelectorAll(`a[href="${href}"]`)).toHaveLength(1);
+  }
+});
+
+test('analytics attributes stay on «Создать карту», «Тарифы» and «Войти»', () => {
+  expect(navLink('Создать карту').dataset.analytics).toBe('landing_cta_chart');
+  expect(navLink('Тарифы').dataset.analytics).toBe('landing_cta_pricing');
+  expect(container.querySelector('.login-btn').dataset.analytics).toBe('landing_cta_login');
+});
+
+test('the plan page is called «Тарифы» and the plan label on the account button has no English text', async () => {
+  expect(navLink('Тарифы')).toBeDefined();
   expect(container.textContent).not.toContain('Free & Premium');
-  mockAuth = { user: { id: 1 }, logout: jest.fn(), loading: false };
-  await act(async () => root.render(<Header />));
-  expect(container.querySelector('.nav-account .badge').textContent).toBe('Бесплатно');
+  await signIn();
+  expect(trigger('account').textContent).toContain('Бесплатно');
 });
 
-// ---- MY-MONTH-PAGE-fe, MM1 (DESIGN §3 «Меню», §5): пункт «Мой месяц» в верхнем меню, его видят все ----
-const navLink = text => [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === text);
-
-test('MM1: guest menu has «Мой месяц» → /my-month right after «Создать карту»', async () => {
-  const create = navLink('Создать карту');
-  expect(create.nextElementSibling.textContent).toBe('Мой месяц');
-  expect(create.nextElementSibling.getAttribute('href')).toBe('/my-month');
-  expect(create.nextElementSibling.dataset.state).toBeUndefined(); // обычная ссылка, без намерения «разбор отношений»
-  expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
+// ---- the drop-downs: closed at first; a click opens one (only one at a time); Escape, a click outside, tabbing out and a link close it ----
+test('drop-downs are closed at first and a click toggles one', async () => {
+  for (const id of ['forecasts', 'readings']) { expect(trigger(id).getAttribute('aria-expanded')).toBe('false'); expect(menuOf(id).hidden).toBe(true); }
+  await act(async () => trigger('forecasts').click());
+  expect(trigger('forecasts').getAttribute('aria-expanded')).toBe('true');
+  expect(menuOf('forecasts').hidden).toBe(false);
+  await act(async () => trigger('forecasts').click());
+  expect(trigger('forecasts').getAttribute('aria-expanded')).toBe('false');
+  expect(menuOf('forecasts').hidden).toBe(true);
 });
 
-test.each([['guest', null], ['signed-in', { id: 1 }]])('MM1: %s — tapping «Мой месяц» closes the mobile menu', async (_who, user) => {
-  mockAuth.user = user;
-  await act(async () => root.render(<Header />));
-  const toggle = container.querySelector('[aria-controls="main-navigation"]');
-  await act(async () => toggle.click());
-  expect(toggle.getAttribute('aria-expanded')).toBe('true');
-  const link = navLink('Мой месяц');
-  expect(link.getAttribute('href')).toBe('/my-month');
+test('only one drop-down is open at a time', async () => {
+  await act(async () => trigger('forecasts').click());
+  await act(async () => trigger('readings').click());
+  expect(menuOf('forecasts').hidden).toBe(true);
+  expect(trigger('forecasts').getAttribute('aria-expanded')).toBe('false');
+  expect(menuOf('readings').hidden).toBe(false);
+});
+
+test('Escape closes the open drop-down and returns focus to its button', async () => {
+  await act(async () => trigger('readings').click());
+  const link = menuOf('readings').querySelector('a'); link.focus();
+  await act(async () => link.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  expect(menuOf('readings').hidden).toBe(true);
+  expect(trigger('readings').getAttribute('aria-expanded')).toBe('false');
+  expect(document.activeElement).toBe(trigger('readings'));
+});
+
+test('a click outside closes the open drop-down; a press inside the menu does not', async () => {
+  await act(async () => trigger('forecasts').click());
+  await act(async () => menuOf('forecasts').dispatchEvent(new Event('pointerdown', { bubbles: true })));
+  expect(menuOf('forecasts').hidden).toBe(false);
+  await act(async () => document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+  expect(menuOf('forecasts').hidden).toBe(true);
+});
+
+test('moving focus out of the menu closes the open drop-down, moving it inside does not', async () => {
+  await act(async () => trigger('forecasts').click());
+  const inside = menuOf('forecasts').querySelector('a');
+  await act(async () => trigger('forecasts').dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: inside })));
+  expect(menuOf('forecasts').hidden).toBe(false);
+  const outside = document.createElement('button'); document.body.appendChild(outside);
+  await act(async () => trigger('forecasts').dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: outside })));
+  expect(menuOf('forecasts').hidden).toBe(true);
+  outside.remove();
+});
+
+test('following a link closes the drop-down', async () => {
+  await act(async () => trigger('forecasts').click());
+  const link = navLink('Мой год');
   link.addEventListener('click', event => event.preventDefault(), { once: true });
   await act(async () => link.click());
-  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  expect(menuOf('forecasts').hidden).toBe(true);
 });
 
-// ---- TOPICS-1-fe, TF3 (tasks/TOPICS-1/DESIGN.md §3.3, §5): пункт «Разборы по темам» в верхнем меню, его видят все ----
-test('TF3: guest menu — «Разборы по темам» → /topics right after «Мой год», before «Разбор отношений»', () => {
-  const topics = navLink('Разборы по темам');
-  expect(topics).toBeDefined();
-  expect(topics.getAttribute('href')).toBe('/topics');
-  expect(topics.dataset.state).toBeUndefined(); // обычная ссылка, без намерения и состояния
-  expect(topics.previousElementSibling.textContent).toBe('Мой год'); // SOLAR-1 SR8: между «Луна сегодня» и «Разборы по темам»
-  expect(topics.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
+test('the account menu opens the same way and «Выйти» closes it', async () => {
+  await signIn();
+  expect(menuOf('account').hidden).toBe(true);
+  await act(async () => trigger('account').click());
+  expect(menuOf('account').hidden).toBe(false);
+  await act(async () => [...menuOf('account').querySelectorAll('button')].find(b => b.textContent === 'Выйти').click());
+  expect(menuOf('account').hidden).toBe(true);
 });
 
-test('TF3: signed-in menu — the same place; the link is there exactly once', async () => {
-  mockAuth.user = { id: 1 };
-  await act(async () => root.render(<Header />));
-  const topics = navLink('Разборы по темам');
-  expect(topics.getAttribute('href')).toBe('/topics');
-  expect(topics.previousElementSibling.textContent).toBe('Мой год'); // SOLAR-1 SR8: между «Луна сегодня» и «Разборы по темам»
-  expect(topics.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(container.querySelectorAll('a[href="/topics"]')).toHaveLength(1);
+test('on a phone the groups are plain headings with their items, not drop-downs', async () => {
+  window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+  try {
+    await act(async () => root.render(<Header key="phone" />));
+    expect(trigger('forecasts')).toBeNull();
+    expect([...container.querySelectorAll('.nav-group-title')].map(h => h.textContent)).toEqual(['Прогнозы', 'Разборы']);
+    expect(container.querySelectorAll('a[href="/moon"]')).toHaveLength(1);
+  } finally { delete window.matchMedia; }
 });
 
-test.each([['guest', null], ['signed-in', { id: 1 }]])('TF3: %s — tapping «Разборы по темам» closes the mobile menu', async (_who, user) => {
-  mockAuth.user = user;
-  await act(async () => root.render(<Header />));
-  const toggle = container.querySelector('[aria-controls="main-navigation"]');
-  await act(async () => toggle.click());
-  expect(toggle.getAttribute('aria-expanded')).toBe('true');
-  const link = navLink('Разборы по темам');
-  expect(link.getAttribute('href')).toBe('/topics');
-  link.addEventListener('click', event => event.preventDefault(), { once: true });
-  await act(async () => link.click());
-  expect(toggle.getAttribute('aria-expanded')).toBe('false');
-});
+// ---- MY-MONTH-PAGE-fe MM1 / LUNAR-1 LD8 / SOLAR-1 SR8 / TOPICS-1 TF3: «Мой месяц» and «По темам» are plain links (no state)
+// for everyone, and tapping one closes the mobile menu («Луна сегодня» and «Мой год» — in Header.moon/year.test.js). Their order is set by the groups (tests above). ----
+test.each([['Мой месяц', '/my-month'], ['По темам', '/topics']])(
+  'plain link «%s» for guest and signed-in; tapping it closes the mobile menu', async (text, href) => {
+    for (const signedIn of [false, true]) {
+      if (signedIn) await signIn();
+      const toggle = container.querySelector('[aria-controls="main-navigation"]');
+      await act(async () => toggle.click());
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      const link = navLink(text);
+      expect(link.getAttribute('href')).toBe(href);
+      expect(link.dataset.state).toBeUndefined();
+      link.addEventListener('click', event => event.preventDefault(), { once: true });
+      await act(async () => link.click());
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    }
+  });

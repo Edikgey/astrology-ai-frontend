@@ -24,28 +24,19 @@ afterEach(async () => { await act(async () => root.unmount()); container.remove(
 
 const navLink = text => [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === text);
 
-// TOPICS-1 TF3: после «Луна сегодня» теперь «Разборы по темам», затем «Разбор отношений»; SOLAR-1 SR8: между «Луна сегодня» и
-// «Разборы по темам» встаёт «Мой год» (порядок обновлён). Сама «Луна сегодня» — сразу после «Мой месяц», как раньше.
-test('LD8: guest menu — «Луна сегодня» → /moon right after «Мой месяц», before «Мой год»', () => {
-  const month = navLink('Мой месяц');
-  expect(month.nextElementSibling.textContent).toBe('Луна сегодня');
-  expect(month.nextElementSibling.getAttribute('href')).toBe('/moon');
-  expect(month.nextElementSibling.dataset.state).toBeUndefined();
-  expect(month.nextElementSibling.nextElementSibling.textContent).toBe('Мой год');
-  expect(month.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
-});
-
-test('LD8: signed-in menu — the same place, after «Мой месяц»', async () => {
-  mockAuth.user = { id: 1 };
+// FE-NAV-GROUPS (№50): «Луна сегодня» → /moon стоит в группе «Прогнозы» между «Мой месяц» и «Мой год»; гостю тоже. Обычная ссылка, без состояния.
+// Прежние проверки «сразу после соседа в плоском ряду» заменены порядком внутри группы.
+test.each([['guest', null], ['signed-in', { id: 1 }]])('LD8: %s — «Луна сегодня» → /moon in the group «Прогнозы», between «Мой месяц» and «Мой год»', async (_who, user) => {
+  mockAuth.user = user;
   await act(async () => root.render(<Header />));
-  const month = navLink('Мой месяц');
-  expect(month.previousElementSibling.getAttribute('href')).toBe('/my-charts');
-  expect(month.nextElementSibling.textContent).toBe('Луна сегодня');
-  expect(month.nextElementSibling.getAttribute('href')).toBe('/moon');
-  expect(month.nextElementSibling.nextElementSibling.textContent).toBe('Мой год');
-  expect(month.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
+  const moon = navLink('Луна сегодня');
+  expect(moon.getAttribute('href')).toBe('/moon');
+  expect(moon.dataset.state).toBeUndefined();
+  expect(moon.closest('.nav-menu').id).toBe('nav-menu-forecasts');
+  expect(moon.previousElementSibling.textContent).toBe('Мой месяц');
+  expect(moon.nextElementSibling.textContent).toBe('Мой год');
   expect(container.querySelectorAll('a[href="/moon"]')).toHaveLength(1);
+  expect(!!container.querySelector('a[href="/my-charts"]')).toBe(!!user); // «Мои карты» — только вошедшему
 });
 
 test.each([['guest', null], ['signed-in', { id: 1 }]])('LD8: %s — tapping «Луна сегодня» closes the mobile menu', async (_who, user) => {

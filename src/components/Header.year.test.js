@@ -25,29 +25,18 @@ afterEach(async () => { await act(async () => root.unmount()); container.remove(
 
 const navLink = text => [...container.querySelectorAll('#main-navigation a')].find(item => item.textContent === text);
 
-test('SR8: guest menu — «Мой год» → /my-year right after «Луна сегодня», before «Разборы по темам»', () => {
-  const moon = navLink('Луна сегодня');
-  expect(moon.nextElementSibling.textContent).toBe('Мой год');
-  expect(moon.nextElementSibling.getAttribute('href')).toBe('/my-year');
-  expect(moon.nextElementSibling.dataset.state).toBeUndefined(); // обычная ссылка, без намерения и состояния
-  expect(moon.nextElementSibling.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(moon.nextElementSibling.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
-  expect(navLink('Мой месяц').nextElementSibling).toBe(moon); // «Мой месяц» → «Луна сегодня» без вставок
-  expect(container.querySelector('a[href="/my-charts"]')).toBeNull(); // «Мои карты» гостю по-прежнему нет
-});
-
-test('SR8: signed-in menu — the same place; the link is there exactly once', async () => {
-  mockAuth.user = { id: 1 };
+// FE-NAV-GROUPS (№50): «Мой год» → /my-year — последний пункт группы «Прогнозы» (после «Луна сегодня»); гостю тоже. Обычная ссылка, без состояния.
+// Прежние проверки соседей в плоском ряду и всего порядка заменены порядком внутри группы.
+test.each([['guest', null], ['signed-in', { id: 1 }]])('SR8: %s — «Мой год» → /my-year is the last item of «Прогнозы», after «Луна сегодня»; the link is there exactly once', async (_who, user) => {
+  mockAuth.user = user;
   await act(async () => root.render(<Header />));
   const year = navLink('Мой год');
   expect(year.getAttribute('href')).toBe('/my-year');
+  expect(year.dataset.state).toBeUndefined();
+  expect(year.closest('.nav-menu').id).toBe('nav-menu-forecasts');
   expect(year.previousElementSibling.textContent).toBe('Луна сегодня');
-  expect(year.nextElementSibling.textContent).toBe('Разборы по темам');
-  expect(year.nextElementSibling.nextElementSibling.textContent).toBe('Разбор отношений');
+  expect(year.nextElementSibling).toBeNull();
   expect(container.querySelectorAll('a[href="/my-year"]')).toHaveLength(1);
-  // весь порядок целиком: Создать карту, Мои карты, Мой месяц, Луна сегодня, Мой год, Разборы по темам, Разбор отношений, Тарифы
-  const order = [...container.querySelectorAll('#main-navigation > a')].map(item => item.textContent);
-  expect(order.slice(0, 8)).toEqual(['Создать карту', 'Мои карты', 'Мой месяц', 'Луна сегодня', 'Мой год', 'Разборы по темам', 'Разбор отношений', 'Тарифы']);
 });
 
 test.each([['guest', null], ['signed-in', { id: 1 }]])('SR8: %s — tapping «Мой год» closes the mobile menu', async (_who, user) => {
