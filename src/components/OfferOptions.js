@@ -1,16 +1,10 @@
 import React from "react";
-import { OFFER_TITLES, PREMIUM_CHART_LIMIT, PREMIUM_GPT_LIMIT, PRICES } from "../config/plans";
+import { OFFER_TITLES, PACK_SPENDING, PREMIUM_CHART_LIMIT, PREMIUM_GPT_LIMIT, PRICES, RENEWAL, yearSaving } from "../config/plans";
 import { STRIPE_UNCONFIGURED_TEXT } from "../api/apiError";
 import { providersFor } from "../utils/offers";
 import { useBilling } from "../context/BillingContext";
 import BetaPurchaseNote from "./BetaPurchaseNote";
 import "./Usage.css";
-
-// The words of the offers, one source for the pricing page and the payment windows.
-export const yearSaving = (perMonth, saving) => `${perMonth} в месяц, выгоднее на ${saving}%`;
-export const RENEWAL = { premium_month: "Продление каждый месяц, отмена в любой момент", premium_year: "Продление раз в год, отмена в любой момент" };
-export const YEAR_SAME = `Те же ${PREMIUM_GPT_LIMIT} вопросов каждый месяц`;
-export const PACK_SPENDING = "Вопросы не сгорают и тратятся, когда закончатся бесплатные или месячные.";
 
 const price = (product, currency) => {
   const value = PRICES[product];

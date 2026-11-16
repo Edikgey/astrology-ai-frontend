@@ -24,3 +24,9 @@ export const PROVIDER_FLAGS = {
   premium_year: { stripe: "stripe_annual_checkout_available", lava: "lava_annual_checkout_available" },
   question_pack: { stripe: "stripe_pack_checkout_available", lava: "lava_pack_checkout_available" },
 };
+
+// The words of the offers, one source for the pricing page and the payment windows.
+export const yearSaving = (perMonth, saving) => `${perMonth} в месяц, выгоднее на ${saving}%`;
+export const RENEWAL = { premium_month: "Продление каждый месяц, отмена в любой момент", premium_year: "Продление раз в год, отмена в любой момент" };
+export const YEAR_SAME = `Те же ${PREMIUM_GPT_LIMIT} вопросов каждый месяц`;
+export const PACK_SPENDING = "Вопросы не сгорают и тратятся, когда закончатся бесплатные или месячные.";
