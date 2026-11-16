@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { UsageProvider, useUsage } from '../context/UsageContext';
 import UsageSummary from './UsageSummary';
 import { loadStripe } from '@stripe/stripe-js';
+import { methodButton, STRIPE_METHOD } from '../pages/payChoiceTestKit';
 
 let mockAuth, mockOptions, limit;
 jest.mock('../context/AuthContext', () => ({ useAuth: () => mockAuth }));
@@ -174,7 +175,7 @@ describe('FE-4: Lava by product', () => {
 
   test('a refusal of the server is shown in plain Russian on that option; the tab is closed and nothing is granted', async () => {
     await openOffers();
-    const text = 'В Lava уже открыта оплата другого тарифа Premium. Завершите её во вкладке Lava или напишите в поддержку: lunariaai.support@gmail.com. Не оплачивайте оба.';
+    const text = 'Проверяем оплату. Не оплачивайте повторно — обновите страницу через минуту. Если сообщение повторится, напишите в поддержку: lunariaai.support@gmail.com.';
     checkoutReply = () => fail(409, text);
     await click(need(container.querySelector('dialog[open]'), YEAR, LAVA));
     expect(flat(container.querySelector('dialog[open]'))).toContain(text);
@@ -254,16 +255,16 @@ describe('FE-4: what the modal offers follows the server flags and the beta', ()
       expect(container.querySelector('textarea').value).toBe('Pending question');
     });
 
+  // FE-PAY-CHOICE (decision 50): the pack button opens the window of the pack only, with two payment methods.
   test('during the beta a Premium buyer who presses «Купить пакет» gets the pack window with the pack note and one Stripe call', async () => {
     serverUsage = { ...PREMIUM, ...BETA };
     await render();
-    await act(async () => upgrade('pack'));
+    await act(async () => upgrade('question_pack'));
     const dialog = container.querySelector('dialog[open]');
-    expect(dialog.querySelector('#usage-modal-title').textContent).toBe('Пакет вопросов');
-    expect([...dialog.querySelectorAll('.offer-option')].map(el => el.getAttribute('aria-label'))).toEqual(['+50 вопросов']);
+    expect([...dialog.querySelectorAll('h2,h3')].map(el => flat(el))).toContain(PACK);
     expect(count(flat(dialog), PACK_NOTE)).toBe(1);
     expect(flat(dialog)).not.toContain(YEAR);
-    await click(need(dialog, PACK, STRIPE));
+    await click(methodButton(dialog, STRIPE_METHOD));
     expect(posts('/payments/stripe/checkout')).toHaveLength(1);
     expect(posts('/payments/stripe/checkout')[0][1].body).toBe(JSON.stringify({ product: 'question_pack' }));
   });
