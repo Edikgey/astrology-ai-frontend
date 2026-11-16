@@ -11,7 +11,6 @@
 .usage-plan-grid p { font-size: var(--ln-text-12); margin: var(--ln-space-8) 0; }
 .usage-modal > .usage-button { display: flex; width: 100%; }
 .usage-close { margin-top: 10px; }
-.usage-modal .premium-price { font-size: var(--ln-text-13); }
 .payment-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: var(--ln-space-24) 0; }
 .payment-option { display: grid; grid-template-rows: 1fr auto auto; align-content: start; min-width: 0; padding: 18px; border: 1px solid var(--ln-color-border-control); border-radius: var(--ln-radius-control); background: var(--ln-color-surface-tinted); }
 @supports (grid-template-rows: subgrid) { .payment-option { grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; } }
@@ -47,3 +46,13 @@
 .offer-buttons { display: grid; gap: var(--ln-space-8); margin-top: auto; }
 .offer-buttons .usage-button { width: 100%; min-height: 44px; margin: 0; padding: var(--ln-space-8); font-size: var(--ln-text-13); }
 .usage-modal:not(.stripe-checkout-modal) .offer-options { margin: 16px 0; }
+
+/* One product, two ways to pay (decision 50): blocks of one kind, prices of one size, neither highlighted; a column on a phone. */
+.pay-methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+.pay-method { display: flex; flex-direction: column; min-width: 0; padding: 18px; border: 1px solid var(--ln-color-border-control); border-radius: var(--ln-radius-control); background: var(--ln-color-surface-tinted); }
+.pay-method:only-child { grid-column: 1 / -1; }
+.pay-method h3.pay-method-name { margin: 0 0 var(--ln-space-8); font-size: var(--ln-text-19); color: var(--ln-color-primary); }
+.pay-method p.pay-method-price { margin: 0; font-size: var(--ln-text-16); font-weight: 700; line-height: 1.4; color: var(--ln-color-text); overflow-wrap: anywhere; }
+.pay-method p.pay-method-cards { margin: var(--ln-space-8) 0 var(--ln-space-16); font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
+.pay-method .usage-button { width: 100%; min-height: 48px; margin: auto 0 0; padding: var(--ln-space-8); font-size: var(--ln-text-13); }
+@media (max-width: 560px) { .pay-methods { grid-template-columns: minmax(0, 1fr); } }

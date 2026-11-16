@@ -4,6 +4,7 @@ import { useAuth } from "./AuthContext";
 import { API_URL } from "../config/api";
 import { apiError } from "../api/apiError";
 import UsageModal from "../components/UsageModal";
+import { PRODUCT_IDS } from "../config/plans";
 import {clarityAnalytics} from '../analytics/clarity';
 import {productAnalytics} from '../analytics/productAnalytics';
 
@@ -94,10 +95,12 @@ export function UsageProvider({ children }) {
     refreshUsage();
     return true;
   }, [token, key, authenticated, refreshUsage]);
-  // The argument is a moment name or "pack"; anything else (a click event) opens the plain offer.
+  // The argument is a product id (the window of that one product, decision 50) or a moment name; anything else (a click
+  // event) opens the plain offer. Premium gets a window only for the pack. The product lives only in the window state.
   const openUpgrade = arg => {
-    if (usage?.plan === "free") setModal({ key, plan: "free", moment: arg === "last_free_question" ? arg : undefined });
-    else if (usage?.plan === "premium" && arg === "pack") setModal({ key, plan: "premium" });
+    const product = PRODUCT_IDS.includes(arg) ? arg : undefined;
+    if (usage?.plan === "free") setModal({ key, plan: "free", product, moment: arg === "last_free_question" ? arg : undefined });
+    else if (usage?.plan === "premium" && product === "question_pack") setModal({ key, plan: "premium", product });
   };
 
   return <UsageContext.Provider value={{ usage, usageLoading, usageError, refreshUsage, handleLimitError, openUpgrade, noteOffer }}>
