@@ -3,25 +3,38 @@
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ln-color-text); font-size: var(--ln-text-21); font-weight: 800; letter-spacing: -.8px; text-decoration: none; white-space: nowrap; }
 .brand span { color: var(--ln-color-primary); margin-left: -9px; }
 .brand .orbit-mark { width: 36px; height: 36px; flex-shrink: 0; }
-.nav-links { display: flex; align-items: center; gap: 18px; }
-.nav-links > a { color: var(--ln-color-text); text-decoration: none; font-size: var(--ln-text-13); font-weight: 600; white-space: nowrap; }
-.nav-links > a:hover { color: var(--ln-color-primary); text-decoration: underline; }
-.nav-account { display: flex; align-items: center; gap: var(--ln-space-16); padding-left: var(--ln-space-24); border-left: 1px solid var(--ln-color-border); }
-.nav-account a { text-decoration: none; }
 .nav-toggle { display: none; }
-/* LUNAR-1, TOPICS-1, SOLAR-1: the signed-in menu stays on one line from 1121px (below it the burger). SOLAR-1 measured it with
-   «Мой год» in Chrome with a 16px scrollbar (shell = viewport - 80px, at most 1200px): 118 brand + 859 items at 13px + 9 gaps.
-   The old 28px gaps need 1229px — more than the widest shell; 18/20px need 1141 (fits from 1221); the dense rule below needs 1019
-   (fits at 1121 with 22px to spare for font differences). */
-@media (min-width: 1121px) and (max-width: 1240px) {
-  .navbar { gap: 16px; } .nav-links { gap: 12px; } .nav-links > a { font-size: var(--ln-text-12); }
-  .nav-account { gap: var(--ln-space-8); padding-left: var(--ln-space-12); }
-}
-@media (max-width: 1120px) {
+
+/* FE-NAV-GROUPS (№50): left — «Прогнозы», «Разборы», «Тарифы»; right — «Мои карты», «Создать карту», account or «Войти».
+   Specificity: the global `button:hover:where(...)` is 0,1,1, so every button state here is set under `.navbar`. */
+.nav-links { flex: 1; display: flex; align-items: center; gap: 20px; }
+.nav-main, .nav-side { display: flex; align-items: center; gap: var(--ln-space-4); }
+.nav-main { margin-right: auto; }
+.nav-side { gap: var(--ln-space-12); }
+.nav-group { position: relative; }
+.navbar .nav-link, .navbar .nav-trigger { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 12px; border: 0; border-radius: var(--ln-radius-sm); background: transparent; color: var(--ln-color-text); font: inherit; font-size: var(--ln-text-14); font-weight: 600; line-height: 1.3; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.navbar .nav-link:hover, .navbar .nav-link:active, .navbar .nav-trigger:hover, .navbar .nav-trigger:active, .navbar .nav-trigger[aria-expanded='true'] { background: var(--ln-color-surface-tinted); color: var(--ln-color-primary); }
+.nav-caret { font-size: var(--ln-text-11); transition: transform var(--ln-motion-fast) var(--ln-ease-standard); }
+.nav-trigger[aria-expanded='true'] .nav-caret { transform: rotate(180deg); }
+.nav-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: var(--ln-z-local); min-width: 210px; padding: var(--ln-space-8); background: var(--ln-color-surface-raised); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-md); box-shadow: var(--ln-shadow-medium); }
+.nav-menu .nav-link { display: flex; width: 100%; }
+.nav-account .nav-menu { left: auto; right: 0; min-width: 180px; }
+.navbar .nav-account .nav-trigger { border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-pill); background: var(--ln-color-accent-soft); color: var(--ln-color-primary); font-size: var(--ln-text-13); }
+.navbar .nav-account .nav-trigger:hover, .navbar .nav-account .nav-trigger[aria-expanded='true'] { background: var(--ln-color-surface-tinted); border-color: var(--ln-color-primary); }
+.nav-cta { min-height: 42px; padding: 8px 18px; font-size: var(--ln-text-14); white-space: nowrap; }
+.nav-side .login-btn { min-height: 42px; padding: 8px 18px; font-size: var(--ln-text-14); }
+
+@media (max-width: 960px) {
   .navbar { min-height: 72px; }
   .nav-toggle { display: inline-flex; min-height: 42px; padding: var(--ln-space-8) var(--ln-space-12); font-size: var(--ln-text-12); }
-  .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--ln-color-surface-raised); padding: 20px var(--ln-space-24) var(--ln-space-24); border-bottom: 1px solid var(--ln-color-border); box-shadow: var(--ln-shadow-medium); }
-  .nav-links.is-open { display: flex; align-items: stretch; flex-direction: column; gap: var(--ln-space-8); }
-  .nav-links > a { padding: var(--ln-space-12) 0; font-size: var(--ln-text-15); }
-  .nav-account { padding: var(--ln-space-16) 0 0; border-left: 0; border-top: 1px solid var(--ln-color-border); justify-content: space-between; }
+  .nav-links { display: none; flex: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--ln-color-surface-raised); padding: var(--ln-space-16) var(--ln-space-24) var(--ln-space-24); border-bottom: 1px solid var(--ln-color-border); box-shadow: var(--ln-shadow-medium); }
+  .nav-links.is-open { display: flex; align-items: stretch; flex-direction: column; gap: var(--ln-space-16); max-height: calc(100svh - 72px); overflow-y: auto; }
+  .nav-main, .nav-side { flex-direction: column; align-items: stretch; gap: 0; margin: 0; }
+  .nav-side { gap: var(--ln-space-12); padding-top: var(--ln-space-16); border-top: 1px solid var(--ln-color-border); }
+  .nav-group { display: flex; flex-direction: column; }
+  .nav-group-title { margin: var(--ln-space-8) 0 var(--ln-space-4); color: var(--ln-color-text-muted); font-size: var(--ln-text-12); font-weight: 700; }
+  .navbar .nav-link { min-height: 46px; padding: var(--ln-space-12) var(--ln-space-8); font-size: var(--ln-text-15); }
+  .nav-group .nav-link { padding-left: var(--ln-space-16); }
+  .navbar .nav-side .nav-link-top { padding-left: var(--ln-space-8); }
+  .nav-cta, .nav-side .login-btn { width: 100%; min-height: 46px; }
 }
