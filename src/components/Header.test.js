@@ -192,3 +192,57 @@ test.each([['Мой месяц', '/my-month'], ['По темам', '/topics']])(
       expect(toggle.getAttribute('aria-expanded')).toBe('false');
     }
   });
+
+// ---- FE-NAV-TIDY: Escape works from anywhere on the page (P3-3); the listener lives only while a list is open; the phone layout closes on a link (P3-8) ----
+const escapeKey = () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+test('Escape pressed outside the nav (focus on the page body) closes the open drop-down and focuses its button', async () => {
+  await act(async () => trigger('forecasts').click());
+  document.activeElement?.blur?.();
+  await act(async () => escapeKey());
+  expect(menuOf('forecasts').hidden).toBe(true);
+  expect(document.activeElement).toBe(trigger('forecasts'));
+});
+
+test('Escape that another handler already used (defaultPrevented) leaves the drop-down open', async () => {
+  await act(async () => trigger('forecasts').click());
+  const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+  event.preventDefault();
+  await act(async () => document.body.dispatchEvent(event));
+  expect(menuOf('forecasts').hidden).toBe(false);
+});
+
+test('the keydown listener on document exists only while a list or the mobile menu is open', async () => {
+  const add = jest.spyOn(document, 'addEventListener'), remove = jest.spyOn(document, 'removeEventListener');
+  const keydown = spy => spy.mock.calls.filter(([type]) => type === 'keydown').length;
+  try {
+    expect(keydown(add)).toBe(0);
+    await act(async () => trigger('forecasts').click());
+    expect(keydown(add)).toBe(1);
+    await act(async () => trigger('forecasts').click());
+    expect(keydown(remove)).toBe(1);
+    const toggle = container.querySelector('[aria-controls="main-navigation"]');
+    await act(async () => toggle.click());
+    expect(keydown(add)).toBe(2);
+    await act(async () => escapeKey());
+    expect(keydown(remove)).toBe(2);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(toggle);
+  } finally { add.mockRestore(); remove.mockRestore(); }
+});
+
+test('phone layout (matchMedia): open the menu, follow a group link — the menu closes', async () => {
+  window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+  try {
+    await act(async () => root.render(<Header key="phone" />));
+    const toggle = container.querySelector('[aria-controls="main-navigation"]');
+    await act(async () => toggle.click());
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelector('#main-navigation').classList.contains('is-open')).toBe(true);
+    const link = navLink('Мой год');
+    link.addEventListener('click', event => event.preventDefault(), { once: true });
+    await act(async () => link.click());
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(container.querySelector('#main-navigation').classList.contains('is-open')).toBe(false);
+  } finally { delete window.matchMedia; }
+});
