@@ -14,6 +14,7 @@ import CookiePreferences from './components/CookiePreferences';
 import AnalyticsRouteGuard from './components/AnalyticsRouteGuard';
 import PublicBehavior from './components/PublicBehavior';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useRouteMeta } from './seo/pageMeta';
 
 import Header from "./components/Header";
 import FreeBetaNotice from "./components/FreeBetaNotice";
@@ -71,6 +72,7 @@ function AuthNotice() {
 // 🔸 Основное содержимое приложения
 function AppContent() {
   const { pathname, hash } = useLocation();
+  useRouteMeta();
   useEffect(() => {
     if (hash && document.getElementById(hash.slice(1))) {
       document.getElementById(hash.slice(1)).scrollIntoView();

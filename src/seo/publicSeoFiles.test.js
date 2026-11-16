@@ -44,7 +44,7 @@ describe("public/sitemap.xml", () => {
   test("содержит только публичные страницы на основном домене", () => {
     const urls = locs();
     expect(urls.sort()).toEqual(
-      ["/", "/try-free", "/pricing", "/terms", "/privacy", "/refunds", "/support"].map((p) => `${ORIGIN}${p}`).sort()
+      ["/", "/try-free", "/pricing", "/moon", "/my-year", "/my-month", "/topics", "/terms", "/privacy", "/refunds", "/support"].map((p) => `${ORIGIN}${p}`).sort()
     );
   });
 

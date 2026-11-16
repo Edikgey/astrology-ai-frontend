@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeading } from '../components/UI';
 import { SupportEmail, SupplierDisclosure } from '../components/ServiceDisclosures';
@@ -8,11 +8,6 @@ import AnalyticsExclusion from '../components/AnalyticsExclusion';
 
 
 function LegalPage({ title, intro, children, updated=['2026-10-06','6 октября 2026'] }) {
-  useEffect(() => {
-    const previous = document.title;
-    document.title = `${title} — Lunaria`;
-    return () => { document.title = previous; };
-  }, [title]);
   return <article className="legal-page page">
     <PageHeading title={title}><p>{intro}</p></PageHeading>
     <p className="legal-updated">Обновлено: <time dateTime={updated[0]}>{updated[1]}</time></p>
