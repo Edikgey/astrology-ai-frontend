@@ -13,9 +13,9 @@
 .pricing-card.popular .plan-tag { color: var(--ln-color-primary); }
 .pricing-card h3 { margin: 0 0 16px; font-size: var(--ln-text-20); }
 
-.plan-prices { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--ln-color-border); }
+/* The last row's margin counts toward the 16px under the prices (8 + 8), so one rule serves every width. */
+.plan-prices { padding-bottom: var(--ln-space-8); margin-bottom: 16px; border-bottom: 1px solid var(--ln-color-border); }
 .plan-price { margin: 0 0 var(--ln-space-8); line-height: 1.25; }
-.plan-prices .plan-price:last-child { margin-bottom: 0; }
 .plan-price-value { font-family: var(--ln-font-display); font-size: var(--ln-text-28); font-weight: 500; color: var(--ln-color-text); overflow-wrap: anywhere; }
 .plan-price-unit { font-size: var(--ln-text-12); white-space: nowrap; color: var(--ln-color-text-muted); }
 .plan-price-sub { display: block; margin-top: 2px; font-size: var(--ln-text-13); color: var(--ln-color-text-muted); }
@@ -35,12 +35,13 @@
 .pricing-terms { max-width: 720px; margin: 32px auto var(--ln-space-24); background: var(--ln-color-surface); border-color: var(--ln-color-border); border-radius: var(--ln-radius-control); }
 .pricing-terms summary { padding: 14px 20px; font-size: var(--ln-text-14); }
 .pricing-terms-body { padding: 4px 20px 8px; font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
+.pricing-terms-body .beta-purchase-note { font-size: inherit; }
+.pricing-terms-group h3 { margin: 0 0 var(--ln-space-8); font-size: var(--ln-text-13); color: var(--ln-color-text); }
 
 @media (max-width: 1099px) { .pricing-card { flex-basis: calc((100% - var(--gap)) / 2); } }
 @media (max-width: 650px) {
   .pricing-card { flex-basis: 100%; padding: 22px 20px 20px; }
   .pricing-section .page-heading { text-align: left; }
   .plan-prices { display: flex; flex-wrap: wrap; gap: 0 24px; padding-bottom: 12px; margin-bottom: 14px; }
-  .plan-prices .plan-price:last-child, .plan-price { margin-bottom: var(--ln-space-8); }
   .plan-list { margin-bottom: 18px; }
 }

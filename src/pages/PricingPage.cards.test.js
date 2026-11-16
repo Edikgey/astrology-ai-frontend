@@ -3,19 +3,19 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import PricingPage from './PricingPage';
 
-let mockUser, mockUsage, mockOffers;
+let mockUser, mockUsage, mockOffers, mockBeta;
 const mockNavigate = jest.fn();
 const mockOpenUpgrade = jest.fn();
 jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
 jest.mock('../context/UsageContext', () => ({ useUsage: () => ({ usage: mockUsage, openUpgrade: mockOpenUpgrade }) }));
-jest.mock('../context/ServiceConfigContext', () => ({ useServiceConfig: () => ({ freeBetaEnabled: true, offers: mockOffers }) }));
+jest.mock('../context/ServiceConfigContext', () => ({ useServiceConfig: () => ({ freeBetaEnabled: mockBeta !== false, offers: mockOffers }) }));
 jest.mock('../context/BillingContext', () => ({ useBilling: () => ({}) }));
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate, Link: ({ to, children, ...p }) => <a href={to} {...p}>{children}</a> }), { virtual: true });
 
 let root, container;
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
-  mockUser = null; mockUsage = null; mockOffers = { premium_year: true, question_pack: true };
+  mockUser = null; mockUsage = null; mockBeta = true; mockOffers = { premium_year: true, question_pack: true };
   container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.clearAllMocks(); });
@@ -77,4 +77,45 @@ test('without the year and the pack the page shows two cards', async () => {
   await render();
   expect(cards().map(c => c.querySelector('h3').textContent)).toEqual(['Бесплатно', 'Premium']);
   expect(cards()[1].classList.contains('popular')).toBe(true);
+});
+
+// FE-PRICING-TIDY: the review leftovers of the cards.
+const RENEWAL_LINE = 'Продление каждый месяц, отмена в любой момент';
+const items = list => [...list.querySelectorAll('li')].map(li => li.textContent);
+
+test('in the beta the list under «Обычные лимиты Premium…» holds only limits; the renewal stands apart', async () => {
+  await render();
+  const month = cards()[1];
+  const lead = month.querySelector('.plan-lead');
+  expect(lead.textContent).toBe('Обычные лимиты Premium вне бета-теста:');
+  const limits = lead.nextElementSibling;
+  expect(limits.tagName).toBe('UL');
+  expect(items(limits)).toEqual(['10 сохранённых карт', '300 AI-вопросов за расчётный месяц']);
+  expect(limits.textContent).not.toContain('Продление');
+  const renewal = limits.nextElementSibling;
+  expect(items(renewal)).toEqual([RENEWAL_LINE]);
+});
+
+test('outside the beta the renewal stays in the one list of the month card, no lead line', async () => {
+  mockBeta = false;
+  await render();
+  const month = cards()[1];
+  expect(month.querySelector('.plan-lead')).toBeNull();
+  expect(month.querySelectorAll('ul.plan-list')).toHaveLength(1);
+  expect(items(month.querySelector('ul.plan-list')).at(-1)).toBe(RENEWAL_LINE);
+});
+
+test('the Stripe lines of the conditions stand in a group titled «Premium на месяц», words unchanged', async () => {
+  await render();
+  const group = container.querySelector('details.pricing-terms .pricing-terms-group');
+  expect(group.getAttribute('aria-labelledby')).toBe(group.querySelector('h3').id);
+  expect(group.querySelector('h3').textContent).toBe('Premium на месяц');
+  expect(group.querySelector('p').textContent).toBe('Stripe · автоматическое продление каждый месяц до отмены. Итоговая сумма и применимые налоги — перед подтверждением оплаты. Без пробного периода.');
+});
+
+test('every list of a card is announced as a list', async () => {
+  await render();
+  const lists = container.querySelectorAll('.pricing-grid ul.plan-list');
+  expect(lists.length).toBeGreaterThan(0);
+  for (const list of lists) expect(list.getAttribute('role')).toBe('list');
 });
