@@ -43,6 +43,7 @@ export default function Header() {
   const triggers = useRef({});
   const navigate = useNavigate();
   const narrow = useNarrow();
+  useEffect(() => setOpenId(null), [narrow]); // a drop-down left open must not survive the switch to the phone layout
   useEffect(() => {
     const outside = event => { if (!nav.current?.contains(event.target)) { setOpen(false); setOpenId(null); } };
     document.addEventListener('pointerdown', outside);
