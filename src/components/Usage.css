@@ -55,4 +55,5 @@
 .pay-method p.pay-method-price { margin: 0; font-size: var(--ln-text-16); font-weight: 700; line-height: 1.4; color: var(--ln-color-text); overflow-wrap: anywhere; }
 .pay-method p.pay-method-cards { margin: var(--ln-space-8) 0 var(--ln-space-16); font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
 .pay-method .usage-button { width: 100%; min-height: 48px; margin: auto 0 0; padding: var(--ln-space-8); font-size: var(--ln-text-13); }
+.pay-method p.pay-method-notice { margin: 0 0 var(--ln-space-16); font-size: var(--ln-text-13); color: var(--ln-color-text-muted); }
 @media (max-width: 560px) { .pay-methods { grid-template-columns: minmax(0, 1fr); } }

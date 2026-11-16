@@ -66,9 +66,9 @@ export function PaymentMethods({ usage, product }) {
         <h3 className="pay-method-name">{name}</h3>
         <p className="pay-method-price">{price(product, currency)}</p>
         <p className="pay-method-cards">{cards}</p>
+        {provider === "stripe" && !billing.stripeConfigured && <p role="status" className="pay-method-notice">{STRIPE_UNCONFIGURED_TEXT}</p>}
         <button type="button" className="usage-button" disabled={blocked(provider)}
           onClick={() => start(provider)}>{`Оплатить ${PRICES[product][currency]}`}</button>
-        {provider === "stripe" && !billing.stripeConfigured && <p role="status">{STRIPE_UNCONFIGURED_TEXT}</p>}
       </section>)}
     </div>
     <PaymentFeedback />
