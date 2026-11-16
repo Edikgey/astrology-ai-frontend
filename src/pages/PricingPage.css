@@ -33,6 +33,7 @@
 .pricing-card .plan-tag-badge { align-self: flex-start; margin: -4px 0 var(--ln-space-8) -2px; padding: 3px 12px; border-radius: var(--ln-radius-pill); background: var(--ln-color-accent-soft); color: var(--ln-color-primary); font-weight: 700; }
 
 .pricing-terms { max-width: 720px; margin: 32px auto var(--ln-space-24); background: var(--ln-color-surface); border-color: var(--ln-color-border); border-radius: var(--ln-radius-control); }
+.pricing-section .policy-links { justify-content: center; margin: 0 auto var(--ln-space-24); text-align: center; }
 .pricing-terms summary { padding: 14px 20px; font-size: var(--ln-text-14); }
 .pricing-terms-body { padding: 4px 20px 8px; font-size: var(--ln-text-12); color: var(--ln-color-text-muted); }
 .pricing-terms-body .beta-purchase-note { font-size: inherit; }
