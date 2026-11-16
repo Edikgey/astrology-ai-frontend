@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { OFFER_TITLES, PACK_SIZE, PLANS } from "../config/plans";
+import { OFFER_TITLES, PACK_SIZE, PLANS, PRICES } from "../config/plans";
 import { canBuy, hasNewOffers } from "../utils/offers";
 import OfferOptions, { OfferDetails, PaymentMethods } from "./OfferOptions";
 import { useBilling } from "../context/BillingContext";
@@ -105,7 +105,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
           <section className="payment-option" aria-label="Оплата — Stripe">
             <div className="payment-option-content">
               <h3>Оплата</h3><p className="payment-option-description">Stripe</p>
-              <p className="payment-option-price">$9.99 USD / месяц</p>
+              <p className="payment-option-price">{PRICES.premium_month.usd} USD / месяц</p>
               <p className="payment-option-note">Автоматическое продление каждый месяц. Отмена в любое время.</p>
             </div>
             <button type="button" className="usage-button" disabled={!billing.configured || billing.busy} onClick={() => billing.startCheckout()}>Оплатить через Stripe</button>
@@ -114,7 +114,7 @@ export default function UsageModal({ state, usage, onClose, noteOffer = () => {}
           {billing.lavaConfigured && <section className="payment-option" aria-label="Оплата в рублях — Lava.top">
             <div className="payment-option-content">
               <h3>Оплата в рублях</h3><p className="payment-option-description">Lava.top</p>
-              <p className="payment-option-price">799 ₽ / месяц</p>
+              <p className="payment-option-price">{PRICES.premium_month.rub} / месяц</p>
               <p className="payment-option-note">Автоматическое продление каждый месяц. Отмена в любое время.</p>
             </div>
             <button type="button" className="usage-button" disabled={billing.busy} onClick={() => billing.startLavaCheckout()}>Оплатить в RUB</button>

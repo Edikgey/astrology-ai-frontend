@@ -226,8 +226,9 @@ describe('8. guard (green on the base too): the guest and the account that is st
 });
 
 describe('9. FE-PAY-POLISH: the start of a payment fails in the window of a product', () => {
-  const NETWORK = 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
-  const UNEXPECTED = 'Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.';
+  const NETWORK = 'Нет связи с сервером. Не оплачивайте повторно — обновите страницу через минуту.';
+  const NO_DETAIL = 'Не удалось выполнить запрос. Попробуйте ещё раз.';
+  const SESSION_OVER = 'Сессия истекла. Войдите снова.';
   const PENDING = 'Предыдущая оплата ещё проверяется. Подождите пару минут и обновите страницу.';
   const html502 = () => ({ ok: false, status: 502, json: async () => { throw new SyntaxError('Unexpected token < in JSON'); } });
   const pending409 = () => ({ ok: false, status: 409, json: async () => ({ detail: { code: 'CHECKOUT_PENDING', message: PENDING } }) });
@@ -243,14 +244,26 @@ describe('9. FE-PAY-POLISH: the start of a payment fails in the window of a prod
     expect(methodButton(dialog, LAVA_METHOD).disabled).toBe(false);
   });
 
-  test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: the server answers with HTML (502) — the unexpected-answer alert, one request', async method => {
+  test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: the server answers with HTML (502) — the text of an error without detail, one request', async method => {
     const dialog = await openProduct('premium_year');
     checkoutReply = html502;
     await click(methodButton(dialog, method));
-    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(UNEXPECTED);
+    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(NO_DETAIL);
     expect(posted(method)()).toHaveLength(1);
     expect(methodButton(dialog, STRIPE_METHOD).disabled).toBe(false);
     expect(methodButton(dialog, LAVA_METHOD).disabled).toBe(false);
+  });
+
+  test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: 401 with HTML — the same text as 401 with JSON, about the session', async method => {
+    const dialog = await openProduct('premium_year');
+    checkoutReply = () => ({ ok: false, status: 401, json: async () => { throw new SyntaxError('Unexpected token < in JSON'); } });
+    await click(methodButton(dialog, method));
+    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(SESSION_OVER);
+    expect(posted(method)()).toHaveLength(1);
+    checkoutReply = () => ({ ok: false, status: 401, json: async () => ({ detail: 'Not authenticated' }) });
+    await click(methodButton(dialog, method));
+    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(SESSION_OVER);
+    expect(posted(method)()).toHaveLength(2);
   });
 
   test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: 409 CHECKOUT_PENDING in the year window — the server text, the buttons work again', async method => {

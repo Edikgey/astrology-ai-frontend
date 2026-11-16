@@ -1,5 +1,6 @@
 import React from "react";
 import { OFFER_TITLES, PREMIUM_CHART_LIMIT, PREMIUM_GPT_LIMIT, PRICES } from "../config/plans";
+import { STRIPE_UNCONFIGURED_TEXT } from "../api/apiError";
 import { providersFor } from "../utils/offers";
 import { useBilling } from "../context/BillingContext";
 import BetaPurchaseNote from "./BetaPurchaseNote";
@@ -19,11 +20,8 @@ const price = (product, currency) => {
   const saving = currency === "usd" ? value.usdSaving : value.rubSaving;
   return `${value[currency]} в год — это ${yearSaving(perMonth, saving)}`;
 };
-const BLURB = {
-  premium_month: `${PREMIUM_GPT_LIMIT} AI-вопросов в месяц и до ${PREMIUM_CHART_LIMIT} сохранённых карт. ${RENEWAL.premium_month}.`,
-  premium_year: `${PREMIUM_GPT_LIMIT} AI-вопросов в месяц и до ${PREMIUM_CHART_LIMIT} сохранённых карт. ${RENEWAL.premium_year}.`,
-  question_pack: PACK_SPENDING,
-};
+const premiumBlurb = product => `${PREMIUM_GPT_LIMIT} AI-вопросов в месяц и до ${PREMIUM_CHART_LIMIT} сохранённых карт. ${RENEWAL[product]}.`;
+const BLURB = { premium_month: premiumBlurb("premium_month"), premium_year: premiumBlurb("premium_year"), question_pack: PACK_SPENDING };
 
 // Prices and what the buyer gets; shared by the pricing page and the payment options. Providers say whose price is shown;
 // in the beta the product's own beta note follows.
@@ -40,7 +38,7 @@ export function OfferDetails({ product, stripe = true, lava = true, beta = false
 function PaymentFeedback({ stripeMissing }) {
   const billing = useBilling();
   return <div className="payment-feedback" aria-live="polite">
-    {stripeMissing && <p role="status">Оплата пока не настроена.</p>}
+    {stripeMissing && <p role="status">{STRIPE_UNCONFIGURED_TEXT}</p>}
     {billing.feedbackProvider && <>
       {billing.busy && <p role="status">Проверяем оплату…</p>}
       {billing.message && <p role="status">{billing.message}</p>}
@@ -68,11 +66,12 @@ export function PaymentMethods({ usage, product }) {
         <h3 className="pay-method-name">{name}</h3>
         <p className="pay-method-price">{price(product, currency)}</p>
         <p className="pay-method-cards">{cards}</p>
+        {provider === "stripe" && !billing.stripeConfigured && <p role="status" className="pay-method-notice">{STRIPE_UNCONFIGURED_TEXT}</p>}
         <button type="button" className="usage-button" disabled={blocked(provider)}
           onClick={() => start(provider)}>{`Оплатить ${PRICES[product][currency]}`}</button>
       </section>)}
     </div>
-    <PaymentFeedback stripeMissing={sold.stripe && !billing.stripeConfigured} />
+    <PaymentFeedback />
   </>;
 }
 
