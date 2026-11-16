@@ -43,7 +43,7 @@ export default function Header() {
   const triggers = useRef({});
   const navigate = useNavigate();
   const narrow = useNarrow();
-  useEffect(() => setOpenId(null), [narrow]); // a drop-down left open must not survive the switch to the phone layout
+  useEffect(() => { setOpenId(null); setOpen(false); }, [narrow]); // neither a drop-down nor the phone menu survives a switch of layout
   useEffect(() => {
     const outside = event => { if (!nav.current?.contains(event.target)) { setOpen(false); setOpenId(null); } };
     document.addEventListener('pointerdown', outside);
@@ -55,9 +55,12 @@ export default function Header() {
   useEffect(() => {
     if (!anyOpen) return undefined;
     const escape = event => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return; // a dialog or field that already used Escape keeps it
-      if (openId) { triggers.current[openId]?.focus(); setOpenId(null); }
-      else { setOpen(false); toggle.current?.focus(); }
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return; // a dialog or field that already used Escape, or an IME composition, keeps it
+      // Focus goes back to the button only from inside the nav or from nowhere (body); a field or link elsewhere on the page keeps it.
+      const target = event.target;
+      const elsewhere = target instanceof Element && target !== document.body && target !== document.documentElement && !nav.current?.contains(target);
+      if (openId) { if (!elsewhere) triggers.current[openId]?.focus(); setOpenId(null); }
+      else { setOpen(false); if (!elsewhere) toggle.current?.focus(); }
     };
     document.addEventListener('keydown', escape);
     return () => document.removeEventListener('keydown', escape);

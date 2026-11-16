@@ -246,3 +246,58 @@ test('phone layout (matchMedia): open the menu, follow a group link — the menu
     expect(container.querySelector('#main-navigation').classList.contains('is-open')).toBe(false);
   } finally { delete window.matchMedia; }
 });
+
+// ---- FE-NAV-TIDY-2 (P3-2…P3-4 of the FE-NAV-TIDY review): Escape in a page field keeps the focus there; IME composition is left alone;
+// the menu closes when the layout turns wide; the listener goes away with the header ----
+const fieldOutsideNav = () => { const field = document.createElement('input'); document.body.appendChild(field); field.focus(); return field; };
+const pressEscape = (target, init = {}) => act(async () => { target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, ...init })); });
+
+test('Escape in a page field outside the nav closes the mobile menu and keeps the focus in the field', async () => {
+  const toggle = container.querySelector('[aria-controls="main-navigation"]');
+  await act(async () => toggle.click());
+  const field = fieldOutsideNav();
+  try {
+    await pressEscape(field);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(field);
+  } finally { field.remove(); }
+});
+
+test('Escape during IME composition does not close the menu or the drop-down', async () => {
+  const toggle = container.querySelector('[aria-controls="main-navigation"]');
+  await act(async () => toggle.click());
+  await pressEscape(document.body, { isComposing: true });
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  await act(async () => toggle.click());
+  await act(async () => trigger('forecasts').click());
+  await pressEscape(document.body, { isComposing: true });
+  expect(menuOf('forecasts').hidden).toBe(false);
+});
+
+test('the open mobile menu closes when the layout turns from narrow to wide', async () => {
+  let matches = true, notify;
+  window.matchMedia = () => ({ get matches() { return matches; }, addEventListener: (_, listener) => { notify = listener; }, removeEventListener() {} });
+  try {
+    await act(async () => root.render(<Header key="phone" />));
+    const toggle = container.querySelector('[aria-controls="main-navigation"]');
+    await act(async () => toggle.click());
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    matches = false;
+    await act(async () => notify());
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(container.querySelector('#main-navigation').classList.contains('is-open')).toBe(false);
+  } finally { delete window.matchMedia; }
+});
+
+test('unmounting the header while the menu is open removes the keydown listener', async () => {
+  const add = jest.spyOn(document, 'addEventListener'), remove = jest.spyOn(document, 'removeEventListener');
+  const keydown = spy => spy.mock.calls.filter(([type]) => type === 'keydown').map(([, listener]) => listener);
+  try {
+    await act(async () => container.querySelector('[aria-controls="main-navigation"]').click());
+    const [listener] = keydown(add);
+    expect(listener).toBeInstanceOf(Function);
+    expect(keydown(remove)).not.toContain(listener);
+    await act(async () => root.unmount());
+    expect(keydown(remove)).toContain(listener);
+  } finally { add.mockRestore(); remove.mockRestore(); }
+});
