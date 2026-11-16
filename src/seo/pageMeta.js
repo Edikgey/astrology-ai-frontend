@@ -10,7 +10,7 @@ export const PAGES = [
   { path: '/try-free', open: true, title: 'Натальная карта онлайн — Lunaria',
     description: 'Введите дату, время и место рождения — Lunaria построит вашу натальную карту и объяснит её простыми словами.' },
   { path: '/pricing', open: true, title: 'Тарифы — Lunaria',
-    description: 'Free и Premium: сколько карт можно сохранить и сколько вопросов задать AI-астрологу. Подписка и разовый пакет вопросов.' },
+    description: 'Бесплатный план и Premium: сколько карт и вопросов AI-астрологу входит в каждый.' },
   { path: '/moon', open: true, title: 'Луна сегодня — Lunaria',
     description: 'Фаза и знак Луны на сегодня и то, как она касается вашей карты.' },
   { path: '/my-year', open: true, title: 'Мой год — Lunaria',
@@ -51,7 +51,10 @@ export function useRouteMeta() {
     if (tag && description) tag.setAttribute('content', description);
     return () => {
       document.title = previousTitle;
-      if (tag && description) tag.setAttribute('content', previousDescription);
+      if (tag && description) {
+        if (previousDescription === null) tag.removeAttribute('content');
+        else tag.setAttribute('content', previousDescription);
+      }
     };
   }, [title, description]);
 }

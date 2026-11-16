@@ -78,10 +78,27 @@ test('moving between pages inside the app switches the title', async () => {
   expect(descriptionTag().content).toBe(PAGES.find(p => p.path === '/support').description);
 });
 
-test('an unknown address keeps the 404 title and noindex', async () => {
+test('an unknown address keeps the 404 title', async () => {
   await openApp('/abc');
   expect(document.title).toBe('Страница не найдена — Lunaria');
   expect(descriptionTag().content).toBe(BASE_DESCRIPTION);
+});
+
+test('every route path of App.js is in the table (or is an allowed exception)', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../App.js'), 'utf8');
+  const routes = [...source.matchAll(/path="([^"]+)"/g)].map(match => match[1]);
+  expect(routes.length).toBeGreaterThan(10);
+  const known = [...PAGES.map(page => page.path), '/dashboard', '*'];
+  routes.forEach(route => expect(known).toContain(route));
+});
+
+test('a description tag without content is left without content after leaving a page', async () => {
+  descriptionTag().removeAttribute('content');
+  await openApp('/terms');
+  expect(descriptionTag().content).toBe(PAGES.find(p => p.path === '/terms').description);
+  await act(async () => root.unmount());
+  expect(descriptionTag().hasAttribute('content')).toBe(false);
+  root = createRoot(container);
 });
 
 test('public/sitemap.xml lists exactly the open pages of the table', () => {
