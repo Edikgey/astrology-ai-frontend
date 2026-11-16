@@ -50,21 +50,28 @@ export default function Header() {
     return () => document.removeEventListener('pointerdown', outside);
   }, []);
   const close = () => { setOpen(false); setOpenId(null); };
+  // Escape on `document`, only while something is open: Safari/Firefox on macOS do not focus a button on a mouse click, so the key may not reach `nav`.
+  const anyOpen = !!openId || open;
+  useEffect(() => {
+    if (!anyOpen) return undefined;
+    const escape = event => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return; // a dialog or field that already used Escape keeps it
+      if (openId) { triggers.current[openId]?.focus(); setOpenId(null); }
+      else { setOpen(false); toggle.current?.focus(); }
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [anyOpen, openId]);
   const login = () => {
     close();
     navigate('/authorization', activeGuestChart ? { state: {
       guestChart: activeGuestChart, returnTo: `/natal-chart-result/${activeGuestChart.chartId}`,
     } } : undefined);
   };
-  const escape = event => {
-    if (event.key !== 'Escape') return;
-    if (openId) { triggers.current[openId]?.focus(); setOpenId(null); }
-    else if (open) { setOpen(false); toggle.current?.focus(); }
-  };
   const group = { narrow, openId, setOpenId, triggers };
   const plan = usage?.plan === 'premium' ? 'Premium' : usage?.plan === 'free' ? 'Бесплатно' : 'Аккаунт';
   return <header className="site-header"><nav className="navbar shell" aria-label="Основная навигация" ref={nav}
-    onKeyDown={escape} onBlur={event => { if (event.relatedTarget && !nav.current?.contains(event.relatedTarget)) setOpenId(null); }}>
+    onBlur={event => { if (event.relatedTarget && !nav.current?.contains(event.relatedTarget)) setOpenId(null); }}>
     <Link className="brand" to="/" onClick={close} aria-label="Lunaria — главная"><OrbitMark />Lunaria</Link>
     <button ref={toggle} className="nav-toggle button-secondary" aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
       aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(value => !value)}>{open ? 'Закрыть' : 'Меню'} <span aria-hidden="true">{open ? '×' : '☰'}</span></button>
