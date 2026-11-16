@@ -10,6 +10,7 @@ import "./PricingPage.css";
 import { useServiceConfig } from "../context/ServiceConfigContext";
 import BetaPurchaseNote from "../components/BetaPurchaseNote";
 import { canBuy } from "../utils/offers";
+import { PACK_SPENDING, RENEWAL, YEAR_SAME, yearSaving } from "../components/OfferOptions";
 
 const FREE_PRICE = { usd: "$0", rub: "0 ₽" };
 
@@ -19,7 +20,7 @@ function PlanPrice({ price, unit }) {
     {[["usd", price.usd, price.usdPerMonth, price.usdSaving], ["rub", price.rub, price.rubPerMonth, price.rubSaving]]
       .map(([currency, value, perMonth, saving]) => <p key={currency} className="plan-price">
         <span className="plan-price-value">{value}</span>{unit && <> <span className="plan-price-unit">{unit}</span></>}
-        {perMonth && <span className="plan-price-sub">{perMonth} в месяц, выгоднее на {saving}%</span>}
+        {perMonth && <span className="plan-price-sub">{yearSaving(perMonth, saving)}</span>}
       </p>)}
   </div>;
 }
@@ -49,17 +50,17 @@ export default function PricingPage() {
       </div>
       <div className={`pricing-card${showYear ? "" : " popular"}`}><p className="plan-tag">Для глубокого разговора</p><h3>{showYear || showPack ? OFFER_TITLES.premium_month : "Premium"}</h3><PlanPrice price={PRICES.premium_month} unit="в месяц" />
         {beta && <p className="plan-lead">Обычные лимиты Premium вне бета-теста:</p>}
-        <Checks items={[chartsText, `${PLANS.premium.gptLimit} AI-вопросов за расчётный месяц`, "Продление каждый месяц, отмена в любой момент"]} />
+        <Checks items={[chartsText, `${PLANS.premium.gptLimit} AI-вопросов за расчётный месяц`, RENEWAL.premium_month]} />
         {upgradeWaiting && <p id="premium-unavailable" className="premium-hint">Кнопка станет доступна, когда загрузятся данные аккаунта. Если этого не происходит, обновите страницу.</p>}
-        {usage?.plan !== "premium" && <button className="filled-button" onClick={() => upgrade()} disabled={upgradeWaiting} aria-describedby={upgradeWaiting ? "premium-unavailable" : undefined}>Перейти на Premium</button>}
+        {usage?.plan !== "premium" && <button className="filled-button" onClick={() => upgrade("premium_month")} disabled={upgradeWaiting} aria-describedby={upgradeWaiting ? "premium-unavailable" : undefined}>Перейти на Premium</button>}
       </div>
       {showYear && <div className="pricing-card popular"><p className="plan-tag plan-tag-badge">Выгоднее всего</p><h3>{OFFER_TITLES.premium_year}</h3><PlanPrice price={PRICES.premium_year} unit="в год" />
-        <Checks items={[`Те же ${PLANS.premium.gptLimit} вопросов каждый месяц`, chartsText, "Продление раз в год, отмена в любой момент"]} />
-        {!premiumPlan && <button className="filled-button" onClick={() => upgrade()} disabled={upgradeWaiting}>Выбрать Premium на год</button>}
+        <Checks items={[YEAR_SAME, chartsText, RENEWAL.premium_year]} />
+        {!premiumPlan && <button className="filled-button" onClick={() => upgrade("premium_year")} disabled={upgradeWaiting}>Выбрать Premium на год</button>}
       </div>}
       {showPack && <div className="pricing-card"><p className="plan-tag">Без подписки</p><h3>{OFFER_TITLES.question_pack}</h3><PlanPrice price={PRICES.question_pack} unit="один раз, без подписки" />
         <Checks items={["Вопросы не сгорают", "Подходит бесплатному аккаунту и Premium"]} />
-        <button className="button-secondary" onClick={() => upgrade("pack")} disabled={upgradeWaiting}>Купить пакет</button>
+        <button className="button-secondary" onClick={() => upgrade("question_pack")} disabled={upgradeWaiting}>Купить пакет</button>
       </div>}
     </div>
     <details className="pricing-terms"><summary>Подробнее об условиях</summary>
@@ -69,7 +70,7 @@ export default function PricingPage() {
         <p>Неиспользованные вопросы Premium не переносятся на следующий период. Бесплатный план не превращается в платную подписку автоматически. Оплата в RUB через Lava.top, где доступна, — 799 ₽ в месяц с автоматическим продлением до отмены.</p>
         <p>Отмена продления в «Мои карты» → «Управление подпиской». Доступ сохраняется до конца оплаченного периода. Отмена не возвращает оплату автоматически.</p>
         <p>Stripe · автоматическое продление каждый месяц до отмены. Итоговая сумма и применимые налоги — перед подтверждением оплаты. Без пробного периода.</p>
-        {showPack && <p>Вопросы не сгорают и тратятся, когда закончатся бесплатные или месячные. Подходит и бесплатному аккаунту, и Premium: пакет добавляет вопросы к вашему лимиту.</p>}
+        {showPack && <p>{PACK_SPENDING} Подходит и бесплатному аккаунту, и Premium: пакет добавляет вопросы к вашему лимиту.</p>}
         <BetaPurchaseNote enabled={beta} />
         {showYear && <BetaPurchaseNote enabled={beta} product="premium_year" />}
         {showPack && <BetaPurchaseNote enabled={beta} product="question_pack" />}

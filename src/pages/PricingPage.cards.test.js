@@ -56,9 +56,9 @@ test('the buttons do what they did before', async () => {
   mockUsage = { plan: 'free', free_beta_enabled: true, stripe_checkout_available: true, stripe_annual_checkout_available: true, stripe_pack_checkout_available: true };
   await render();
   await act(async () => button('Выбрать Premium на год').click());
-  expect(mockOpenUpgrade).toHaveBeenLastCalledWith(undefined);
+  expect(mockOpenUpgrade).toHaveBeenLastCalledWith('premium_year');
   await act(async () => button('Купить пакет').click());
-  expect(mockOpenUpgrade).toHaveBeenLastCalledWith('pack');
+  expect(mockOpenUpgrade).toHaveBeenLastCalledWith('question_pack');
 });
 
 test('the long conditions sit under the cards in «Подробнее об условиях», words unchanged', async () => {
