@@ -25,7 +25,7 @@ function PlanPrice({ price, unit }) {
   </div>;
 }
 
-const Checks = ({ items }) => <ul className="plan-list">{items.map(item => <li key={item}>{item}</li>)}</ul>;
+const Checks = ({ items }) => <ul className="plan-list" role="list">{items.map(item => <li key={item}>{item}</li>)}</ul>;
 
 export default function PricingPage() {
   const { user } = useAuth();
@@ -41,6 +41,7 @@ export default function PricingPage() {
   const showPack = offers.question_pack === true && (!usage || canBuy(usage, "question_pack"));
   const premiumPlan = usage?.plan === "premium";
   const chartsText = `${PLANS.premium.chartLimit} сохранённых карт`;
+  const monthLimits = [chartsText, `${PLANS.premium.gptLimit} AI-вопросов за расчётный месяц`];
   return <section className="pricing-section page">
     <PageHeading eyebrow={beta ? "Бесплатный бета-тест" : "Тарифы"} title={beta ? "Исследуйте Lunaria без лимитов." : "Больше места для ваших открытий."}><p>{beta ? "Карты и AI-вопросы бесплатно после входа в аккаунт. Покупка Premium необязательна." : "Начните бесплатно. Выберите Premium, когда захотите продолжить разговор."}</p></PageHeading>
     <div className="pricing-grid">
@@ -50,7 +51,8 @@ export default function PricingPage() {
       </div>
       <div className={`pricing-card${showYear ? "" : " popular"}`}><p className="plan-tag">Для глубокого разговора</p><h3>{showYear || showPack ? OFFER_TITLES.premium_month : "Premium"}</h3><PlanPrice price={PRICES.premium_month} unit="в месяц" />
         {beta && <p className="plan-lead">Обычные лимиты Premium вне бета-теста:</p>}
-        <Checks items={[chartsText, `${PLANS.premium.gptLimit} AI-вопросов за расчётный месяц`, RENEWAL.premium_month]} />
+        <Checks items={beta ? monthLimits : [...monthLimits, RENEWAL.premium_month]} />
+        {beta && <Checks items={[RENEWAL.premium_month]} />}
         {upgradeWaiting && <p id="premium-unavailable" className="premium-hint">Кнопка станет доступна, когда загрузятся данные аккаунта. Если этого не происходит, обновите страницу.</p>}
         {usage?.plan !== "premium" && <button className="filled-button" onClick={() => upgrade("premium_month")} disabled={upgradeWaiting} aria-describedby={upgradeWaiting ? "premium-unavailable" : undefined}>Перейти на Premium</button>}
       </div>
@@ -69,7 +71,9 @@ export default function PricingPage() {
         {!beta && <p>Считаются только успешные AI-ответы. Лимит бесплатного плана действует за всё время аккаунта, Premium — за оплаченный расчётный период. Удаление карты или истории не возвращает вопросы.</p>}
         <p>Неиспользованные вопросы Premium не переносятся на следующий период. Бесплатный план не превращается в платную подписку автоматически. Оплата в RUB через Lava.top, где доступна, — 799 ₽ в месяц с автоматическим продлением до отмены.</p>
         <p>Отмена продления в «Мои карты» → «Управление подпиской». Доступ сохраняется до конца оплаченного периода. Отмена не возвращает оплату автоматически.</p>
-        <p>Stripe · автоматическое продление каждый месяц до отмены. Итоговая сумма и применимые налоги — перед подтверждением оплаты. Без пробного периода.</p>
+        <section className="pricing-terms-group" aria-labelledby="pricing-terms-month"><h3 id="pricing-terms-month">{OFFER_TITLES.premium_month}</h3>
+          <p>Stripe · автоматическое продление каждый месяц до отмены. Итоговая сумма и применимые налоги — перед подтверждением оплаты. Без пробного периода.</p>
+        </section>
         {showPack && <p>{PACK_SPENDING} Подходит и бесплатному аккаунту, и Premium: пакет добавляет вопросы к вашему лимиту.</p>}
         <BetaPurchaseNote enabled={beta} />
         {showYear && <BetaPurchaseNote enabled={beta} product="premium_year" />}
