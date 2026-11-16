@@ -224,3 +224,48 @@ describe('8. guard (green on the base too): the guest and the account that is st
     expect(stripePosts()).toHaveLength(0); expect(lavaPosts()).toHaveLength(0);
   });
 });
+
+describe('9. FE-PAY-POLISH: the start of a payment fails in the window of a product', () => {
+  const NETWORK = 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
+  const UNEXPECTED = 'Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.';
+  const PENDING = 'Предыдущая оплата ещё проверяется. Подождите пару минут и обновите страницу.';
+  const html502 = () => ({ ok: false, status: 502, json: async () => { throw new SyntaxError('Unexpected token < in JSON'); } });
+  const pending409 = () => ({ ok: false, status: 409, json: async () => ({ detail: { code: 'CHECKOUT_PENDING', message: PENDING } }) });
+  const posted = method => (method === STRIPE_METHOD ? stripePosts : lavaPosts);
+
+  test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: the connection breaks — a Russian alert, one request, the buttons work again', async method => {
+    const dialog = await openProduct('premium_year');
+    checkoutReply = () => { throw new TypeError('Failed to fetch'); };
+    await click(methodButton(dialog, method));
+    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(NETWORK);
+    expect(posted(method)()).toHaveLength(1);
+    expect(methodButton(dialog, STRIPE_METHOD).disabled).toBe(false);
+    expect(methodButton(dialog, LAVA_METHOD).disabled).toBe(false);
+  });
+
+  test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: the server answers with HTML (502) — the unexpected-answer alert, one request', async method => {
+    const dialog = await openProduct('premium_year');
+    checkoutReply = html502;
+    await click(methodButton(dialog, method));
+    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(UNEXPECTED);
+    expect(posted(method)()).toHaveLength(1);
+    expect(methodButton(dialog, STRIPE_METHOD).disabled).toBe(false);
+    expect(methodButton(dialog, LAVA_METHOD).disabled).toBe(false);
+  });
+
+  test.each([[STRIPE_METHOD], [LAVA_METHOD]])('%s: 409 CHECKOUT_PENDING in the year window — the server text, the buttons work again', async method => {
+    const dialog = await openProduct('premium_year');
+    checkoutReply = pending409;
+    await click(methodButton(dialog, method));
+    expect(flat(dialog.querySelector('[role="alert"]'))).toBe(PENDING);
+    expect(posted(method)()).toHaveLength(1);
+    expect(methodButton(dialog, STRIPE_METHOD).disabled).toBe(false);
+    expect(methodButton(dialog, LAVA_METHOD).disabled).toBe(false);
+  });
+
+  test('the year window says what the buyer gets, without comparing with another plan', async () => {
+    const dialog = await openProduct('premium_year');
+    expect(flat(dialog)).toContain('300 AI-вопросов в месяц и до 10 сохранённых карт. Продление раз в год, отмена в любой момент.');
+    expect(flat(dialog)).not.toContain('Те же');
+  });
+});

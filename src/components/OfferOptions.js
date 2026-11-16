@@ -21,7 +21,7 @@ const price = (product, currency) => {
 };
 const BLURB = {
   premium_month: `${PREMIUM_GPT_LIMIT} AI-вопросов в месяц и до ${PREMIUM_CHART_LIMIT} сохранённых карт. ${RENEWAL.premium_month}.`,
-  premium_year: `${YEAR_SAME} и ${PREMIUM_CHART_LIMIT} карт. ${RENEWAL.premium_year}.`,
+  premium_year: `${PREMIUM_GPT_LIMIT} AI-вопросов в месяц и до ${PREMIUM_CHART_LIMIT} сохранённых карт. ${RENEWAL.premium_year}.`,
   question_pack: PACK_SPENDING,
 };
 
