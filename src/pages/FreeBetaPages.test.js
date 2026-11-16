@@ -23,7 +23,8 @@ test('guests see the free beta and optional recurring Premium without claiming p
  expect(container.textContent).not.toContain('Free');
  expect(cards[0].textContent).toContain('Сохранённые карты без лимита');
  expect(cards[0].textContent).toContain('AI-вопросы без лимита');
- expect(cards[1].textContent).toContain('Покупка Premium необязательна');
+ // FE-PRICING-CARDS: the beta sentence moved from the card into «Подробнее об условиях».
+ expect(container.querySelector('.pricing-terms').textContent).toContain('Покупка Premium необязательна');
  expect(cards[1].textContent).toContain('Обычные лимиты Premium вне бета-теста');
  expect(container.textContent).not.toContain('Infinity');expect(container.textContent).not.toContain('/ null');
 });
