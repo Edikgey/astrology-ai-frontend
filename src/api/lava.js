@@ -1,6 +1,6 @@
 import {analyticsHeaders} from '../analytics/productAnalytics';
 import { API_URL } from "../config/api";
-import { apiError, apiFetch, readJson } from "./apiError";
+import { apiError, apiFetch, checkoutNetworkError, readJson } from "./apiError";
 import { productRequest } from "./checkoutProduct";
 
 export async function lavaRequest(action, token, product = "premium_month") {
@@ -9,8 +9,9 @@ export async function lavaRequest(action, token, product = "premium_month") {
   const response = await apiFetch(`${API_URL}/payments/lava/${action}`, {
     method: "POST", headers: { ...analyticsHeaders(), ...extra.headers, Authorization: `Bearer ${token}` },
     ...(extra.body ? { body: extra.body } : {}),
-  });
-  const data = await readJson(response);
+  }).catch(error => { throw action === "checkout" ? checkoutNetworkError(error) : error; });
+  // The status first: an error answer without JSON (HTML of a proxy) reads like one with JSON and no detail.
+  const data = response.ok ? await readJson(response) : await response.json().catch(() => undefined);
   if (!response.ok) throw apiError(response.status, data);
   return data;
 }

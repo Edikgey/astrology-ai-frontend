@@ -1,7 +1,7 @@
 import {analyticsHeaders} from '../analytics/productAnalytics';
 import { loadStripe } from "@stripe/stripe-js";
 import { API_URL } from "../config/api";
-import { apiError, apiFetch, readJson } from "./apiError";
+import { apiError, apiFetch, checkoutNetworkError, readJson, STRIPE_UNCONFIGURED_TEXT } from "./apiError";
 import { productRequest } from "./checkoutProduct";
 
 const key = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -11,7 +11,7 @@ export const stripeConfigured = mode !== null;
 export const stripeSessionPrefix = mode ? `cs_${mode}_` : null;
 let instance;
 export function getStripe() {
-  if (!stripeConfigured) throw new Error("Оплата пока не настроена.");
+  if (!stripeConfigured) throw new Error(STRIPE_UNCONFIGURED_TEXT);
   if (!instance) instance = loadStripe(key).then(result => {
     if (!result) throw new Error("Не удалось загрузить оплату.");
     return result;
@@ -24,8 +24,9 @@ export async function billingRequest(path, token, product = "premium_month") {
   const response = await apiFetch(`${API_URL}/payments/stripe/${path}`, {
     method: "POST", headers: { ...analyticsHeaders(), ...extra.headers, Authorization: `Bearer ${token}` },
     ...(extra.body ? { body: extra.body } : {}),
-  });
-  const data = await readJson(response);
+  }).catch(error => { throw path === "checkout" ? checkoutNetworkError(error) : error; });
+  // The status first: an error answer without JSON (HTML of a proxy) reads like one with JSON and no detail.
+  const data = response.ok ? await readJson(response) : await response.json().catch(() => undefined);
   if (!response.ok) throw apiError(response.status, data);
   return data;
 }

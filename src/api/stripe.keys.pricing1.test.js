@@ -28,6 +28,6 @@ test.each([undefined, '', 'sk_live_fixture', 'sk_test_fixture', 'rk_live_fixture
   ' pk_live_fixture', 'PK_LIVE_fixture', 'whsec_fixture'])('key %p leaves checkout unconfigured and never reaches Stripe.js', async key => {
   const { stripe, loadStripe } = load(key);
   expect(stripe.stripeConfigured).toBe(false);
-  expect(() => stripe.getStripe()).toThrow('Оплата пока не настроена.');
+  expect(() => stripe.getStripe()).toThrow('Оплата картой любой страны пока не настроена.');
   expect(loadStripe).not.toHaveBeenCalled();
 });

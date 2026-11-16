@@ -172,3 +172,12 @@ test("beta keeps optional Lava checkout, the RUB price and its authenticated end
   const request = global.fetch.mock.calls.find(([url]) => url.endsWith('/payments/lava/checkout'));
   expect(request[1].headers.Authorization).toBe('Bearer fake-jwt');
 });
+
+test("the empty tab is closed when the payment cannot be started, and the buyer sees why", async () => {
+  global.fetch = jest.fn(async url => url.endsWith("/account/usage") ? ok(state) :
+    { ok: false, status: 502, json: async () => { throw new SyntaxError("Unexpected token < in JSON"); } });
+  await render(); await click("Перейти на Premium"); await click("Оплатить в RUB");
+  expect(global.fetch.mock.calls.filter(([url]) => url.includes("/payments/lava/checkout"))).toHaveLength(1);
+  expect(tab.close).toHaveBeenCalledTimes(1);
+  expect(container.querySelector('[role="alert"]').textContent).toBe("Не удалось выполнить запрос. Попробуйте ещё раз.");
+});

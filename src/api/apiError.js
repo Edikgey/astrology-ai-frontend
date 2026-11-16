@@ -1,6 +1,9 @@
 import {reportSiteError} from "../analytics/reporting";
 
 export const NETWORK_ERROR_TEXT = "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
+// The start of a payment may have reached the server: a lost connection must not invite a second payment.
+export const CHECKOUT_NETWORK_TEXT = "Нет связи с сервером. Не оплачивайте повторно — обновите страницу через минуту.";
+export const STRIPE_UNCONFIGURED_TEXT = "Оплата картой любой страны пока не настроена.";
 export const UNEXPECTED_RESPONSE_TEXT = "Сервер ответил неожиданно. Обновите страницу и попробуйте ещё раз.";
 
 // Backend texts may start with an emoji ("❌ Карта не найдена").
@@ -17,6 +20,9 @@ export async function apiFetch(url, options) {
     throw error instanceof TypeError ? new Error(NETWORK_ERROR_TEXT) : error;
   }
 }
+
+// The error of apiFetch at the start of a payment, in the words of CHECKOUT_NETWORK_TEXT; other errors pass unchanged.
+export const checkoutNetworkError = error => error.message === NETWORK_ERROR_TEXT ? new Error(CHECKOUT_NETWORK_TEXT) : error;
 
 // HTML (or any non-JSON body) where the API answer is expected.
 export async function readJson(response) {
